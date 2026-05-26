@@ -44,12 +44,16 @@ scripts/
   seed/                Bulk Faker-driven seeder (uses FHIRStore.bulk_create)
   rebuild_projections.py  Reproject the index tables from resource_versions
 tests/
-  conftest.py          Session-scoped schema init + per-test DB/hook reset
-  test_fhir_api.py     REST interaction tests
-  test_projections.py  Projection write path + search routing tests
-  hooks/
-    test_registry.py   HookRegistry lifecycle tests
-    test_patient.py    PatientHooks unit tests
+  unit/
+    conftest.py        Session-scoped schema init + per-test DB/hook reset
+    test_fhir_api.py   REST interaction tests
+    test_projections.py  Projection write path + search routing tests
+    hooks/
+      test_registry.py   HookRegistry lifecycle tests
+      test_patient.py    PatientHooks unit tests
+  integration/
+    conftest.py        httpx client pointed at a live server
+    test_live_server.py  End-to-end HTTP interaction tests
 ```
 
 ## Supported Interactions
@@ -240,22 +244,23 @@ uvicorn app.main:app --reload
 Run tests:
 
 ```powershell
-pytest                              # SQLite in-memory (default, no Docker needed)
-$env:USE_POSTGRES="1"; pytest       # spin up a Postgres 16 container via testcontainers
+pytest tests/unit                   # SQLite in-memory (default, no Docker needed)
+$env:USE_POSTGRES="1"; pytest tests/unit  # spin up a Postgres 16 container via testcontainers
 ```
 
 ## Tests
 
 There are two test suites:
 
-- `tests/` — unit tests using the FastAPI `TestClient`. By default they run against an in-memory SQLite store; set `USE_POSTGRES=1` to run against a Postgres 16 container (requires Docker).
-- `tests_integration/` — integration tests that hit a live FHIR HTTP server (the Compose stack by default). They use unique IDs so they are safe to re-run against a shared server.
+- `tests/unit/` — unit tests using the FastAPI `TestClient`. By default they run against an in-memory SQLite store; set `USE_POSTGRES=1` to run against a Postgres 16 container (requires Docker).
+- `tests/integration/` — integration tests that hit a live FHIR HTTP server (the Compose stack by default). They use unique IDs so they are safe to re-run against a shared server.
 
 ```powershell
-pytest                              # unit tests only (in-memory SQLite)
-$env:USE_POSTGRES="1"; pytest       # unit tests against Postgres (requires Docker)
-pytest tests_integration            # integration tests (defaults to http://localhost:8000)
-$env:FHIR_BASE_URL = "http://other-host:8000"; pytest tests_integration
+pytest                              # all tests (unit + integration)
+pytest tests/unit                   # unit tests only (in-memory SQLite)
+$env:USE_POSTGRES="1"; pytest tests/unit  # unit tests against Postgres (requires Docker)
+pytest tests/integration            # integration tests (defaults to http://localhost:8000)
+$env:FHIR_BASE_URL = "http://other-host:8000"; pytest tests/integration
 ```
 
 Integration tests automatically `skip` if the server at `FHIR_BASE_URL` isn't reachable, so they're CI-safe.

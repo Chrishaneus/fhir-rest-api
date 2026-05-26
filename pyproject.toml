@@ -52,7 +52,7 @@ ignore = [
 known-first-party = ["app", "scripts", "tests"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests/unit", "tests/integration"]
 addopts = "-ra"
 markers = [
     "integration: tests that require a running FHIR server (run with 'pytest tests_integration')",
