@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: fhir-postgres
+    environment:
+      POSTGRES_USER: fhir
+      POSTGRES_PASSWORD: fhir
+      POSTGRES_DB: fhir
+    ports:
+      # Map to 55432 on the host because Windows installs of Postgres often
+      # already own 5432; this avoids the "password authentication failed"
+      # confusion you get when a local server intercepts the connection.
+      - "55432:5432"
+    volumes:
+      - fhir_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fhir -d fhir"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: fhir-app
+    environment:
+      DATABASE_URL: postgresql+psycopg://fhir:fhir@db:5432/fhir
+      FHIR_RESOURCE_TYPES: ""
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  fhir_postgres_data:

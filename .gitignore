@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.env
+.ruff_cache/
+
+# SQLite databases (dev / test artifacts)
+*.db
+
+# Ignore agent config files
+.cursor
+.claude
+.codegraph/
