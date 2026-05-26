@@ -7,6 +7,8 @@ the JSONB/Python fallback when one is registered for the resource type).
 
 from __future__ import annotations
 
+from typing import Any
+
 from sqlalchemy import select
 
 from app.db.base import SessionLocal
@@ -18,6 +20,27 @@ from app.db.projection_models import (
 )
 from app.projections import registry
 from app.store import store
+
+
+def resource_payload(version: Any) -> dict[str, Any]:
+    """Return the resource payload from a ResourceVersion, asserting it is present.
+
+    ``ResourceVersion.resource`` is typed ``dict[str, Any] | None`` because
+    deletion tombstones carry no JSON content — only the version metadata
+    (resource_id, version_id, deleted=True) survives in the DB row.
+
+    In these tests we only call ``resource_payload()`` on versions produced by
+    ``store.create`` or ``store.update``, where a non-None payload is
+    guaranteed. The assertion both enforces that invariant at runtime and
+    narrows the type so Pylance does not flag every downstream ``[key]``
+    access as potentially indexing None.
+    """
+    assert version.resource is not None, (
+        f"Expected a live resource payload but got a deletion tombstone "
+        f"(resource_id={getattr(version, 'resource_id', '?')!r}, "
+        f"version_id={getattr(version, 'version_id', '?')!r})"
+    )
+    return version.resource
 
 
 def _patient(family: str, given: str, gender: str, birth: str) -> dict:
@@ -39,7 +62,7 @@ def _get_patient_row(resource_id: str) -> PatientIndex | None:
 class TestWritePath:
     def test_create_populates_row(self) -> None:
         v = store.create("Patient", _patient("Smith", "Alex", "male", "1990-01-01"))
-        rid = v.resource["id"]
+        rid = resource_payload(v)["id"]
 
         row = _get_patient_row(rid)
         assert row is not None
@@ -51,7 +74,7 @@ class TestWritePath:
 
     def test_update_keeps_row_current(self) -> None:
         v = store.create("Patient", _patient("Smith", "Alex", "male", "1990-01-01"))
-        rid = v.resource["id"]
+        rid = resource_payload(v)["id"]
         store.update("Patient", rid, _patient("Jones", "Alex", "male", "1990-01-01"))
 
         row = _get_patient_row(rid)
@@ -61,7 +84,7 @@ class TestWritePath:
 
     def test_delete_removes_row(self) -> None:
         v = store.create("Patient", _patient("Smith", "Alex", "male", "1990-01-01"))
-        rid = v.resource["id"]
+        rid = resource_payload(v)["id"]
         assert _get_patient_row(rid) is not None
 
         store.delete("Patient", rid)
@@ -79,11 +102,11 @@ class TestSearch:
 
         females = store.search("Patient", {"gender": ["female"]})
         assert len(females) == 2
-        assert {p.resource["name"][0]["family"] for p in females} == {"Adams", "Castro"}
+        assert {resource_payload(p)["name"][0]["family"] for p in females} == {"Adams", "Castro"}
 
         # String params do prefix-match, case-insensitive.
         castros = store.search("Patient", {"family": ["cas"]})
-        assert [p.resource["name"][0]["family"] for p in castros] == ["Castro"]
+        assert [resource_payload(p)["name"][0]["family"] for p in castros] == ["Castro"]
 
     def test_combines_multiple_params(self) -> None:
         store.create("Patient", _patient("Smith", "Alex", "male", "1990-01-01"))
@@ -92,7 +115,7 @@ class TestSearch:
 
         results = store.search("Patient", {"family": ["Smith"], "gender": ["female"]})
         assert len(results) == 1
-        assert results[0].resource["birthDate"] == "1995-05-05"
+        assert resource_payload(results[0])["birthDate"] == "1995-05-05"
 
     def test_count_param_does_not_disable_projection(self) -> None:
         """Regression: ``_count`` is a pagination control, not a filter.
@@ -117,7 +140,7 @@ class TestSearch:
 
         results = store.search("Patient", {"Gender": ["female"]})
         assert len(results) == 2
-        assert {p.resource["gender"] for p in results} == {"female"}
+        assert {resource_payload(p)["gender"] for p in results} == {"female"}
 
     def test_unsupported_param_falls_back(self) -> None:
         """Patient has a projection but doesn't list ``identifier`` in its supported
@@ -131,11 +154,11 @@ class TestSearch:
 
         results = store.search("Patient", {"identifier": ["MRN-42"]})
         assert len(results) == 1
-        assert results[0].resource["identifier"][0]["value"] == "MRN-42"
+        assert resource_payload(results[0])["identifier"][0]["value"] == "MRN-42"
 
 
 class TestRegistry:
-    def test_covers_expected_resource_types(self) -> None:
+    def test_covers_expectedresource_payloadource_types(self) -> None:
         expected = {
             "Patient", "Practitioner", "Organization", "Encounter", "Observation",
             "Condition", "AllergyIntolerance", "MedicationRequest", "DiagnosticReport", "Procedure",
@@ -187,7 +210,7 @@ class TestRegistry:
 class TestObservationProjection:
     def test_extracts_references_and_codes(self) -> None:
         patient_v = store.create("Patient", _patient("Vega", "Lia", "female", "1980-02-14"))
-        pid = patient_v.resource["id"]
+        pid = resource_payload(patient_v)["id"]
 
         store.create("Observation", {
             "resourceType": "Observation",
@@ -217,7 +240,7 @@ class TestObservationProjection:
 class TestEncounterProjection:
     def test_extracts_period_and_class(self) -> None:
         patient_v = store.create("Patient", _patient("North", "Eli", "male", "1975-08-30"))
-        pid = patient_v.resource["id"]
+        pid = resource_payload(patient_v)["id"]
 
         store.create("Encounter", {
             "resourceType": "Encounter",
@@ -240,7 +263,7 @@ class TestEncounterProjection:
 class TestAllergyIntoleranceProjection:
     def test_extracts_clinical_status_and_criticality(self) -> None:
         patient_v = store.create("Patient", _patient("Quinn", "Sky", "female", "2000-12-01"))
-        pid = patient_v.resource["id"]
+        pid = resource_payload(patient_v)["id"]
 
         store.create("AllergyIntolerance", {
             "resourceType": "AllergyIntolerance",
