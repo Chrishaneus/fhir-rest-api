@@ -8,38 +8,48 @@ This is a development-ready REST layer, not a production clinical system. Add au
 
 ```
 app/
-  main.py              FastAPI app + route handlers
+  main.py              FastAPI app, CORS middleware, request logging
+  config.py            DATABASE_URL, CORS_ORIGINS, LOG_FILE env vars
   store.py             FHIRStore (SQLAlchemy-backed resource versions + projection writes)
-  hooks.py             ResourceHooks + HookRegistry for side effects
+  hooks/
+    __init__.py        ResourceHooks, HookRegistry, hooks singleton
+    patient.py         PatientHooks — self-registers on import
   db/
     base.py            Engine, sessionmaker, init_db()/reset_db()
     models.py          SQLAlchemy ORM (resource_versions table)
-    projection_models.py  Per-type search projection tables (Phase B)
+    projection_models.py  Per-type search projection tables
+    search.py          SQLAlchemy helpers for projection queries
   projections/
     __init__.py        Auto-registration of every concrete projection
     base.py            Projection ABC + registry + dialect-aware upsert
     helpers.py         Shared extractors (first_name_part, references, dates, ...)
     patient.py, observation.py, encounter.py, ... (one per resource type)
+  routes/
+    resources.py       CRUD + search + history routes for /{ResourceType}
+    system.py          /metadata, /_history, system search
   utils/
-    constants.py       FHIR constants and patterns
-    time.py            now_utc, fhir_instant, http_date, weak_etag
-    outcomes.py        OperationOutcome + fhir+json response helper
     errors.py          FHIRHTTPError + exception handlers
-    fhir_models.py     R5 resource type list + fhir.resources validator
-    validation.py      Resource-type/id checks + request body validation
     headers.py         ETag/Last-Modified/Prefer/conditional helpers
-    search.py          Search param parsing and resource matching
-    jsonb_search.py    FHIR -> JSONB containment-template fallback (Phase A)
-    bundles.py         Bundle (searchset / history) builder
-    capability.py      CapabilityStatement builder
+    logging.py         NDJSON structured logging handler
+    outcomes.py        OperationOutcome + fhir+json response helper
+    time.py            now_utc, fhir_instant, http_date, weak_etag
+    fhir/
+      bundles.py       Bundle (searchset / history) builder
+      capability.py    CapabilityStatement builder
+      constants.py     FHIR constants, patterns, and ignored search params
+      fhir_models.py   R5 resource type list + fhir.resources validator
+      search.py        Search param parsing, pagination, resource matching
+      validation.py    Resource-type/id checks + request body validation
 scripts/
   seed/                Bulk Faker-driven seeder (uses FHIRStore.bulk_create)
   rebuild_projections.py  Reproject the index tables from resource_versions
 tests/
-  conftest.py          Per-test DB reset + hook reset
+  conftest.py          Session-scoped schema init + per-test DB/hook reset
   test_fhir_api.py     REST interaction tests
-  test_hooks.py        Hook lifecycle tests
   test_projections.py  Projection write path + search routing tests
+  hooks/
+    test_registry.py   HookRegistry lifecycle tests
+    test_patient.py    PatientHooks unit tests
 ```
 
 ## Supported Interactions
@@ -64,9 +74,7 @@ All FHIR R5 resource types listed at https://build.fhir.org/resourcelist.html ar
 - Unknown resource types in the URL return `404 Not Found`.
 - Resource-type mismatches between URL and body return `400 Bad Request`.
 
-The resource type list and the validator live in `app/utils/fhir_models.py`. The `validate_request_body` helper in `app/utils/validation.py` is what each route calls before invoking hooks and the store.
-
-If you need to bypass strict validation for a particular resource type (e.g. accepting partial drafts) you can do that inside a `before_create`/`before_update` hook by catching the validation upstream — but normally the FHIR-level rules are exactly what you want here.
+The resource type list and the validator live in `app/utils/fhir/fhir_models.py`. The `validate_request_body` helper in `app/utils/fhir/validation.py` is what each route calls before invoking hooks and the store.
 
 ## SQLAlchemy Storage
 
@@ -88,7 +96,7 @@ cheapest one per request.
 ### Phase A: JSONB GIN on the resource content
 
 On Postgres the `resource_versions.content` column is `JSONB` with a GIN
-(`jsonb_path_ops`) index. `app/utils/jsonb_search.py` maps a curated set of
+(`jsonb_path_ops`) index. `app/db/search.py` maps a curated set of
 FHIR search params (`family`, `gender`, `subject`, `code`, `status`, ...) to
 JSON containment payloads, and `FHIRStore._sql_search` runs them as
 `content @> :payload`. The Python equivalent (`_python_search`) is used on
@@ -178,7 +186,9 @@ bypasses the store.
 
 ## Resource Hooks
 
-`app/hooks.py` exposes a `HookRegistry` that lets you attach per-resource-type side effects:
+`app/hooks/` is a package that lets you attach per-resource-type side effects. Each hook module self-registers at import time; `app/hooks/__init__.py` imports them all so they're active when the app starts.
+
+The built-in `PatientHooks` in `app/hooks/patient.py` shows the pattern:
 
 ```python
 from typing import Any
@@ -186,40 +196,39 @@ from app.hooks import ResourceHooks, hooks
 from app.utils.errors import FHIRHTTPError
 
 
-class PatientHooks(ResourceHooks):
+class MyResourceHooks(ResourceHooks):
     def before_create(self, resource: dict[str, Any]) -> dict[str, Any]:
-        if not resource.get("name"):
-            raise FHIRHTTPError(422, "Patient must have a name", "business-rule")
+        # mutate/validate; raise FHIRHTTPError to reject
         return resource
 
     def after_create(self, resource: dict[str, Any]) -> None:
-        # e.g. publish to a queue, write an AuditEvent, emit a Subscription notification...
+        # publish to a queue, write an AuditEvent, emit a Subscription...
         ...
 
-    def before_update(self, old, new):
+    def before_update(self, old: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]:
         return new
 
-    def after_update(self, old, new):
-        ...
-
-    def before_delete(self, resource):
-        ...
-
-    def after_delete(self, resource):
-        ...
+    def after_update(self, old: dict[str, Any], new: dict[str, Any]) -> None: ...
+    def before_delete(self, resource: dict[str, Any]) -> None: ...
+    def after_delete(self, resource: dict[str, Any]) -> None: ...
 
 
-hooks.register("Patient", PatientHooks())
+hooks.register("MyResource", MyResourceHooks())
 ```
 
-`before_*` hooks may mutate or replace the resource before it is stored, or raise `FHIRHTTPError` to reject the interaction with a FHIR `OperationOutcome`. `after_*` hooks run after the DB commit; any side effects they perform should be idempotent or run inside their own transactions.
+To add hooks for a new resource type:
+
+1. Create `app/hooks/myresource.py` with a class like above, calling `hooks.register(...)` at module level.
+2. Add `from app.hooks import myresource as _myresource  # noqa: E402,F401` at the bottom of `app/hooks/__init__.py`.
+
+`before_*` hooks may mutate or replace the resource before it is stored, or raise `FHIRHTTPError` to reject the interaction with a FHIR `OperationOutcome`. `after_*` hooks run after the DB commit; side effects should be idempotent or run inside their own transactions.
 
 ## Local Setup
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+python -m pip install -e ".[dev]"
 ```
 
 Run the API:
@@ -231,18 +240,20 @@ uvicorn app.main:app --reload
 Run tests:
 
 ```powershell
-pytest
+pytest                              # SQLite in-memory (default, no Docker needed)
+$env:USE_POSTGRES="1"; pytest       # spin up a Postgres 16 container via testcontainers
 ```
 
 ## Tests
 
 There are two test suites:
 
-- `tests/` — unit tests using the FastAPI `TestClient` against an in-memory SQLite store. Fast, no external dependencies.
+- `tests/` — unit tests using the FastAPI `TestClient`. By default they run against an in-memory SQLite store; set `USE_POSTGRES=1` to run against a Postgres 16 container (requires Docker).
 - `tests_integration/` — integration tests that hit a live FHIR HTTP server (the Compose stack by default). They use unique IDs so they are safe to re-run against a shared server.
 
 ```powershell
 pytest                              # unit tests only (in-memory SQLite)
+$env:USE_POSTGRES="1"; pytest       # unit tests against Postgres (requires Docker)
 pytest tests_integration            # integration tests (defaults to http://localhost:8000)
 $env:FHIR_BASE_URL = "http://other-host:8000"; pytest tests_integration
 ```
@@ -315,4 +326,6 @@ docker compose down -v         # also delete the database volume
 | Variable               | Default                 | Description                                            |
 | ---------------------- | ----------------------- | ------------------------------------------------------ |
 | `DATABASE_URL`         | `sqlite:///./fhir.db`   | SQLAlchemy URL.                                        |
+| `CORS_ORIGINS`         | `*`                     | Comma-separated allowed origins, or `*` for all.       |
+| `LOG_FILE`             | *(stdout)*              | Path to append NDJSON logs; unset = stdout.            |
 | `FHIR_RESOURCE_TYPES`  | all FHIR R5 types       | Comma-separated subset to advertise in the CapabilityStatement. Unknown names are dropped. |
