@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.db.projection_models import ObservationIndex
+from app.db.projection_models import ObservationProjectionSchema
 from app.projections.base import Projection, registry
 from app.projections.helpers import (
     effective_datetime,
@@ -27,7 +27,7 @@ from app.projections.helpers import (
 
 class ObservationProjection(Projection):
     resource_type = "Observation"
-    table = ObservationIndex
+    table = ObservationProjectionSchema
 
     TOKEN_PARAMS = {
         "status": "status",

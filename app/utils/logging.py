@@ -11,6 +11,7 @@ import json
 import logging
 import sys
 from datetime import UTC, datetime
+from typing import TextIO
 
 from app.config import LOG_FILE as _LOG_FILE
 
@@ -42,6 +43,10 @@ class NdjsonHandler(logging.StreamHandler):
 
 def configure_logging() -> logging.Logger:
     """Configure root logging with NdjsonHandler and return the 'fhir' logger."""
+    # ``open(..., "a", encoding=...)`` returns ``TextIOWrapper``; ``sys.stdout``
+    # is the abstract ``TextIO``. Annotate the wider type up front so both
+    # branches assign compatibly.
+    stream: TextIO
     if _LOG_FILE:
         stream = open(_LOG_FILE, "a", encoding="utf-8")
         atexit.register(stream.close)

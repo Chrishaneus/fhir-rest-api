@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.db.projection_models import AllergyIntoleranceIndex
+from app.db.projection_models import AllergyIntoleranceProjectionSchema
 from app.projections.base import Projection, registry
 from app.projections.helpers import first_code, reference_of
 
 
 class AllergyIntoleranceProjection(Projection):
     resource_type = "AllergyIntolerance"
-    table = AllergyIntoleranceIndex
+    table = AllergyIntoleranceProjectionSchema
 
     TOKEN_PARAMS = {
         "code": "code_code",

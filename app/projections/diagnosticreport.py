@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.db.projection_models import DiagnosticReportIndex
+from app.db.projection_models import DiagnosticReportProjectionSchema
 from app.projections.base import Projection, registry
 from app.projections.helpers import (
     effective_datetime,
@@ -15,7 +15,7 @@ from app.projections.helpers import (
 
 class DiagnosticReportProjection(Projection):
     resource_type = "DiagnosticReport"
-    table = DiagnosticReportIndex
+    table = DiagnosticReportProjectionSchema
 
     TOKEN_PARAMS = {
         "status": "status",

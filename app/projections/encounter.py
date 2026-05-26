@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.db.projection_models import EncounterIndex
+from app.db.projection_models import EncounterProjectionSchema
 from app.projections.base import Projection, registry
 from app.projections.helpers import (
     first,
@@ -17,7 +17,7 @@ from app.projections.helpers import (
 
 class EncounterProjection(Projection):
     resource_type = "Encounter"
-    table = EncounterIndex
+    table = EncounterProjectionSchema
 
     TOKEN_PARAMS = {
         "status": "status",

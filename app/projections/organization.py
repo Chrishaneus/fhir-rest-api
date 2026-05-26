@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.db.projection_models import OrganizationIndex
+from app.db.projection_models import OrganizationProjectionSchema
 from app.projections.base import Projection, registry
 from app.projections.helpers import first, first_code
 
 
 class OrganizationProjection(Projection):
     resource_type = "Organization"
-    table = OrganizationIndex
+    table = OrganizationProjectionSchema
 
     STRING_PARAMS = {
         "name": "name",

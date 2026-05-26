@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.db.projection_models import MedicationRequestIndex
+from app.db.projection_models import MedicationRequestProjectionSchema
 from app.projections.base import Projection, registry
 from app.projections.helpers import parse_fhir_datetime, reference_of
 
 
 class MedicationRequestProjection(Projection):
     resource_type = "MedicationRequest"
-    table = MedicationRequestIndex
+    table = MedicationRequestProjectionSchema
 
     TOKEN_PARAMS = {
         "status": "status",

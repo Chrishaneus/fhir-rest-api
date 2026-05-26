@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.db.projection_models import ConditionIndex
+from app.db.projection_models import ConditionProjectionSchema
 from app.projections.base import Projection, registry
 from app.projections.helpers import (
     first_code,
@@ -15,7 +15,7 @@ from app.projections.helpers import (
 
 class ConditionProjection(Projection):
     resource_type = "Condition"
-    table = ConditionIndex
+    table = ConditionProjectionSchema
 
     TOKEN_PARAMS = {
         "code": "code_code",

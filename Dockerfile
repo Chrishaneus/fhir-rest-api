@@ -19,6 +19,6 @@ RUN python -m pip install --upgrade pip \
 EXPOSE 8000
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=5 \
-    CMD curl --silent --fail http://127.0.0.1:8000/metadata > /dev/null || exit 1
+    CMD curl --silent --fail http://127.0.0.1:8000/health > /dev/null || exit 1
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

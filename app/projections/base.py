@@ -10,8 +10,8 @@ Contract for subclasses
 
 A concrete projection must override::
 
-    resource_type: str          # e.g. "Patient"
-    table: type[Base]           # SQLAlchemy projection model
+    resource_type: str                # e.g. "Patient"
+    table: type[BaseProjection]        # SQLAlchemy projection model
 
     def extract(resource: dict) -> dict[str, Any]:
         '''Return projection-column values from a FHIR resource dict.'''
@@ -48,8 +48,8 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session, aliased
 
-from app.db.base import Base
 from app.db.models import ResourceVersionRecord
+from app.db.projection_models import BaseProjection
 from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
 from app.utils.fhir.search import split_csv_values
 
@@ -108,7 +108,7 @@ class Projection(ABC):
 
     # Override on the subclass.
     resource_type: ClassVar[str] = ""
-    table: ClassVar[type[Base]]
+    table: ClassVar[type[BaseProjection]]
 
     # Search-param -> projection-column maps. Empty by default.
     TOKEN_PARAMS: ClassVar[dict[str, str]] = {}
@@ -180,7 +180,7 @@ class Projection(ABC):
         ``last_updated DESC`` against the *indexed* projection column.
         """
         proj = aliased(self.table)
-        proj_table = proj.__table__  # type: ignore[attr-defined]
+        proj_table = proj.__table__
         clauses: list[Any] = []
 
         for key, raw_values in params.items():
@@ -249,9 +249,7 @@ class Projection(ABC):
             self._upsert_rows(session, rows)
 
     def delete_row(self, session: Session, resource_id: str) -> None:
-        stmt = delete(self.table).where(
-            self.table.resource_id == resource_id  # type: ignore[attr-defined]
-        )
+        stmt = delete(self.table).where(self.table.resource_id == resource_id)
         session.execute(stmt)
 
     # ------------------------------------------------------------------
@@ -263,43 +261,49 @@ class Projection(ABC):
         session: Session,
         rows: list[dict[str, Any]],
     ) -> None:
-        """Dialect-aware ON CONFLICT DO UPDATE on ``resource_id``."""
+        """Dialect-aware ON CONFLICT DO UPDATE on ``resource_id``.
+
+        Each branch is intentionally self-contained -- the dialect-specific
+        ``Insert`` subclasses (``postgresql.dml.Insert`` vs
+        ``sqlite.dml.Insert``) carry their own ``excluded`` / ``on_conflict_*``
+        APIs and can't be unified into a single typed local variable.
+        """
         dialect = session.bind.dialect.name if session.bind else ""
-        table = self.table.__table__  # type: ignore[attr-defined]
+        columns = self.table.__table__.columns
 
         if dialect == "postgresql":
-            stmt = pg_insert(table).values(rows)
-            update_cols = {
-                c.name: stmt.excluded[c.name]
-                for c in table.columns
-                if c.name != "resource_id"
-            }
-            stmt = stmt.on_conflict_do_update(
-                index_elements=["resource_id"],
-                set_=update_cols,
+            pg_stmt = pg_insert(self.table).values(rows)
+            session.execute(
+                pg_stmt.on_conflict_do_update(
+                    index_elements=["resource_id"],
+                    set_={
+                        c.name: pg_stmt.excluded[c.name]
+                        for c in columns
+                        if c.name != "resource_id"
+                    },
+                )
             )
-            session.execute(stmt)
             return
 
         if dialect == "sqlite":
-            stmt = sqlite_insert(table).values(rows)
-            update_cols = {
-                c.name: stmt.excluded[c.name]
-                for c in table.columns
-                if c.name != "resource_id"
-            }
-            stmt = stmt.on_conflict_do_update(
-                index_elements=["resource_id"],
-                set_=update_cols,
+            sqlite_stmt = sqlite_insert(self.table).values(rows)
+            session.execute(
+                sqlite_stmt.on_conflict_do_update(
+                    index_elements=["resource_id"],
+                    set_={
+                        c.name: sqlite_stmt.excluded[c.name]
+                        for c in columns
+                        if c.name != "resource_id"
+                    },
+                )
             )
-            session.execute(stmt)
             return
 
         # Generic fallback: delete-then-insert. Not concurrency-safe but only
         # hit on exotic dialects we don't ship with.
         ids = [row["resource_id"] for row in rows]
-        session.execute(delete(table).where(table.c.resource_id.in_(ids)))
-        session.execute(insert(table).values(rows))
+        session.execute(delete(self.table).where(self.table.resource_id.in_(ids)))
+        session.execute(insert(self.table).values(rows))
 
     def _param_clause(
         self,

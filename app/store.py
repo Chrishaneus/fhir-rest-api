@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from threading import RLock
 from typing import Any
 
-from sqlalchemy import bindparam, desc, func, insert, or_, select
+from sqlalchemy import ColumnElement, bindparam, desc, func, insert, or_, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -178,27 +178,34 @@ class FHIRStore:
             def flush(b: list[dict[str, Any]]) -> None:
                 if not b:
                     return
+                # Each branch builds and executes its own statement: the
+                # dialect-specific Insert subclasses can't share a typed local.
                 if dialect == "postgresql":
-                    stmt = pg_insert(ResourceVersionRecord.__table__).values(b)
-                    stmt = stmt.on_conflict_do_nothing(
-                        index_elements=[
-                            "resource_type",
-                            "resource_id",
-                            "version_id",
-                        ]
+                    session.execute(
+                        pg_insert(ResourceVersionRecord)
+                        .values(b)
+                        .on_conflict_do_nothing(
+                            index_elements=[
+                                "resource_type",
+                                "resource_id",
+                                "version_id",
+                            ]
+                        )
                     )
                 elif dialect == "sqlite":
-                    stmt = sqlite_insert(ResourceVersionRecord.__table__).values(b)
-                    stmt = stmt.on_conflict_do_nothing(
-                        index_elements=[
-                            "resource_type",
-                            "resource_id",
-                            "version_id",
-                        ]
+                    session.execute(
+                        sqlite_insert(ResourceVersionRecord)
+                        .values(b)
+                        .on_conflict_do_nothing(
+                            index_elements=[
+                                "resource_type",
+                                "resource_id",
+                                "version_id",
+                            ]
+                        )
                     )
                 else:
-                    stmt = insert(ResourceVersionRecord.__table__).values(b)
-                session.execute(stmt)
+                    session.execute(insert(ResourceVersionRecord).values(b))
 
             def flush_projections() -> None:
                 for rt, proj_rows in projection_batches.items():
@@ -367,7 +374,11 @@ class FHIRStore:
         )
         LatestRV = aliased(ResourceVersionRecord, latest)
 
-        filters = [LatestRV.deleted.is_(False)]
+        # ``filters`` mixes simple comparisons (``is_``, ``in_``) and combined
+        # boolean expressions (``or_``); declare the widest common return type
+        # so mypy doesn't narrow the list to ``BinaryExpression`` from the
+        # first append.
+        filters: list[ColumnElement[bool]] = [LatestRV.deleted.is_(False)]
 
         id_values = split_csv_values(params.get("_id", []))
         if id_values:

@@ -13,10 +13,10 @@ from sqlalchemy import select
 
 from app.db.base import SessionLocal
 from app.db.projection_models import (
-    AllergyIntoleranceIndex,
-    EncounterIndex,
-    ObservationIndex,
-    PatientIndex,
+    AllergyIntoleranceProjectionSchema,
+    EncounterProjectionSchema,
+    ObservationProjectionSchema,
+    PatientProjectionSchema,
 )
 from app.projections import registry
 from app.store import store
@@ -52,10 +52,10 @@ def _patient(family: str, given: str, gender: str, birth: str) -> dict:
     }
 
 
-def _get_patient_row(resource_id: str) -> PatientIndex | None:
+def _get_patient_row(resource_id: str) -> PatientProjectionSchema | None:
     with SessionLocal() as session:
         return session.execute(
-            select(PatientIndex).where(PatientIndex.resource_id == resource_id)
+            select(PatientProjectionSchema).where(PatientProjectionSchema.resource_id == resource_id)
         ).scalar_one_or_none()
 
 
@@ -207,7 +207,7 @@ class TestRegistry:
         )
 
 
-class TestObservationProjection:
+class TestObservationProjectionSchema:
     def test_extracts_references_and_codes(self) -> None:
         patient_v = store.create("Patient", _patient("Vega", "Lia", "female", "1980-02-14"))
         pid = resource_payload(patient_v)["id"]
@@ -222,7 +222,7 @@ class TestObservationProjection:
         })
 
         with SessionLocal() as session:
-            row = session.execute(select(ObservationIndex)).scalar_one_or_none()
+            row = session.execute(select(ObservationProjectionSchema)).scalar_one_or_none()
             assert row is not None
             assert row.subject_ref == f"Patient/{pid}"
             assert row.code_code == "8867-4"
@@ -237,7 +237,7 @@ class TestObservationProjection:
         assert len(by_short) == 1
 
 
-class TestEncounterProjection:
+class TestEncounterProjectionSchema:
     def test_extracts_period_and_class(self) -> None:
         patient_v = store.create("Patient", _patient("North", "Eli", "male", "1975-08-30"))
         pid = resource_payload(patient_v)["id"]
@@ -251,7 +251,7 @@ class TestEncounterProjection:
         })
 
         with SessionLocal() as session:
-            row = session.execute(select(EncounterIndex)).scalar_one_or_none()
+            row = session.execute(select(EncounterProjectionSchema)).scalar_one_or_none()
             assert row is not None
             assert row.status == "completed"
             assert row.class_code == "AMB"
@@ -260,7 +260,7 @@ class TestEncounterProjection:
             assert row.period_end is not None
 
 
-class TestAllergyIntoleranceProjection:
+class TestAllergyIntoleranceProjectionSchema:
     def test_extracts_clinical_status_and_criticality(self) -> None:
         patient_v = store.create("Patient", _patient("Quinn", "Sky", "female", "2000-12-01"))
         pid = resource_payload(patient_v)["id"]
@@ -274,7 +274,7 @@ class TestAllergyIntoleranceProjection:
         })
 
         with SessionLocal() as session:
-            row = session.execute(select(AllergyIntoleranceIndex)).scalar_one_or_none()
+            row = session.execute(select(AllergyIntoleranceProjectionSchema)).scalar_one_or_none()
             assert row is not None
             assert row.criticality == "high"
             assert row.clinical_status == "active"

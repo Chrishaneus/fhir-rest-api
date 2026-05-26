@@ -110,8 +110,8 @@ SQLite for unit tests. Anything not in the curated map is silently dropped
 ### Phase B: per-resource-type projection tables
 
 For the high-volume types, the store also maintains a small denormalized
-"index" table per resource type — `patient_index`, `observation_index`,
-`encounter_index`, etc. The projection row stores only the search keys plus
+"projection" table per resource type — `patient_projection`, `observation_projection`,
+`encounter_projection`, etc. The projection row stores only the search keys plus
 a `(resource_id, version_id, last_updated)` back-pointer to the version row,
 so reads can hit a B-tree on `(subject_ref, code_code)` or
 `(family, gender, birth_date)` instead of probing JSONB.
@@ -174,7 +174,7 @@ one for, say, `ServiceRequest`:
 
 Multi-valued fields (e.g. `Patient.name`, `Patient.identifier`) are
 projected as the *first* entry only. Full multi-row child projections
-(e.g. a `patient_name_index` with one row per name) would let us match
+(e.g. a `patient_name_projection` with one row per name) would let us match
 non-primary names exactly, at the cost of more write work. Not done yet;
 when an unsupported param shows up the search falls back to JSONB.
 

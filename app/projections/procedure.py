@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.db.projection_models import ProcedureIndex
+from app.db.projection_models import ProcedureProjectionSchema
 from app.projections.base import Projection, registry
 from app.projections.helpers import (
     first_code,
@@ -15,7 +15,7 @@ from app.projections.helpers import (
 
 class ProcedureProjection(Projection):
     resource_type = "Procedure"
-    table = ProcedureIndex
+    table = ProcedureProjectionSchema
 
     TOKEN_PARAMS = {
         "status": "status",

@@ -20,6 +20,11 @@ from app.utils.outcomes import fhir_json_response, operation_outcome
 router = APIRouter(tags=["system"])
 
 
+@router.get("/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 def _all_resource_types() -> list[str]:
     return sorted(configured_resource_types() | store.resource_types_in_use())
 
