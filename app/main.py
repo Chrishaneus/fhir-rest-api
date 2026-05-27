@@ -1,41 +1,45 @@
 """FastAPI application wiring the FHIR REST layer.
 
-Routers (see ``app.routes``):
+Routers (see ``app.routes`` and ``app.auth``):
 
+* ``auth``      - register and login (JWT)
 * ``system``    - capability statement, system history, system search
 * ``resources`` - type-level and instance-level interactions
 
 Reusable building blocks:
 
-* ``app.utils.*`` - FHIR/HTTP helpers (errors, headers, search, bundles, ...)
-* ``app.db.*``    - SQLAlchemy engine and ORM models
-* ``app.store``   - FHIRStore on top of SQLAlchemy
-* ``app.hooks``   - ResourceHooks + HookRegistry for side effects
+* ``app.utils.*``  - FHIR/HTTP helpers (errors, headers, search, bundles, ...)
+* ``app.db.*``     - SQLAlchemy engine and ORM models
+* ``app.store``    - FHIRStore on top of SQLAlchemy
+* ``app.hooks``    - ResourceHooks + HookRegistry for side effects
+* ``app.middleware`` - logging and JWT auth middleware
 
 Environment variables:
 
-* ``DATABASE_URL``  - SQLAlchemy connection string (default: sqlite:///./fhir.db)
-* ``CORS_ORIGINS``  - comma-separated allowed origins, or ``*`` (default: ``*``)
-* ``LOG_FILE``      - path to append NDJSON logs; stdout if unset
+* ``DATABASE_URL``        - SQLAlchemy connection string (default: sqlite:///./fhir.db)
+* ``CORS_ORIGINS``        - comma-separated allowed origins, or ``*`` (default: ``*``)
+* ``LOG_FILE``            - path to append NDJSON logs; stdout if unset
+* ``JWT_SECRET``          - secret for signing JWTs; unset disables authentication
+* ``JWT_EXPIRY_MINUTES``  - token lifetime in minutes (default: 60)
 """
 
 from __future__ import annotations
 
-import time
-import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import CORS_ORIGINS
 from app.db.base import init_db
-from app.routes import resources_router, system_router
+from app.middleware import log_requests
+from app.routes import auth_router, resources_router, system_router
 from app.utils.errors import register_exception_handlers
 from app.utils.logging import configure_logging
 
-logger = configure_logging()
+configure_logging()
 
 
 @asynccontextmanager
@@ -59,31 +63,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    request_id = request.headers.get("x-request-id") or uuid.uuid4().hex
-    start = time.perf_counter()
-    response = await call_next(request)
-    ms = round((time.perf_counter() - start) * 1000, 1)
-    logger.info(
-        "request",
-        extra={
-            "method": request.method,
-            "path": request.url.path,
-            "status": response.status_code,
-            "duration_ms": ms,
-            "request_id": request_id,
-        },
-    )
-    response.headers["x-request-id"] = request_id
-    return response
-
+app.add_middleware(BaseHTTPMiddleware, dispatch=log_requests)
 
 register_exception_handlers(app)
 
-# Order matters: the system router's literal paths (/metadata, /_history, /)
-# are registered first so they win against the generic /{resource_type} routes.
+# Route order: auth and system literal paths first so they win over
+# the generic /{resource_type} catch-all in resources_router.
+app.include_router(auth_router)
 app.include_router(system_router)
 app.include_router(resources_router)

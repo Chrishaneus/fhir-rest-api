@@ -57,3 +57,20 @@ LOG_FILE: str | None = os.getenv("LOG_FILE")
 
 # Comma-separated list of resource types to advertise, or "" for all R5 types.
 FHIR_RESOURCE_TYPES: str = os.getenv("FHIR_RESOURCE_TYPES", "")
+
+# ---------------------------------------------------------------------------
+# Authentication
+# ---------------------------------------------------------------------------
+
+# Shared secret used to sign and verify JWT tokens.
+# When unset, authentication is disabled (all requests pass through).
+JWT_SECRET: str | None = os.getenv("JWT_SECRET")
+
+# Access-token lifetime in minutes (default: 60).
+JWT_EXPIRY_MINUTES: int = int(os.getenv("JWT_EXPIRY_MINUTES", "60"))
+
+# ---------------------------------------------------------------------------
+# Cache
+# ---------------------------------------------------------------------------
+
+REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")

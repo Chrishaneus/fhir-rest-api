@@ -24,9 +24,10 @@ from __future__ import annotations
 from typing import Any
 
 import jsonpatch
-from fastapi import APIRouter, Body, Request
+from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import JSONResponse, Response
 
+from app.auth.dependencies import require_auth
 from app.hooks import hooks
 from app.store import VersionConflictError, store
 from app.utils.errors import FHIRHTTPError
@@ -45,7 +46,7 @@ from app.utils.headers import (
 )
 from app.utils.outcomes import fhir_json_response
 
-router = APIRouter(tags=["resources"])
+router = APIRouter(tags=["resources"], dependencies=[Depends(require_auth)])
 
 
 def _sort_warnings(params: dict[str, list[str]]) -> list[str] | None:

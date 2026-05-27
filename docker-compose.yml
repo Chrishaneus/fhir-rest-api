@@ -2,10 +2,8 @@ services:
   db:
     image: postgres:16-alpine
     container_name: fhir-postgres
-    environment:
-      POSTGRES_USER: fhir
-      POSTGRES_PASSWORD: fhir
-      POSTGRES_DB: fhir
+    env_file:
+      - .env
     ports:
       # Map to 55432 on the host because Windows installs of Postgres often
       # already own 5432; this avoids the "password authentication failed"
@@ -19,16 +17,28 @@ services:
       timeout: 5s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: fhir-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   app:
     build: .
     container_name: fhir-app
-    environment:
-      DATABASE_URL: postgresql+psycopg://fhir:fhir@db:5432/fhir
-      FHIR_RESOURCE_TYPES: ""
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
 

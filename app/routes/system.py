@@ -7,9 +7,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
+from app.auth.dependencies import require_auth
 from app.store import store
 from app.utils.fhir.bundles import bundle_response
 from app.utils.fhir.capability import capability_statement
@@ -35,14 +36,14 @@ async def metadata(request: Request) -> JSONResponse:
     return fhir_json_response(capability_statement(request, _all_resource_types()))
 
 
-@router.get("/_history")
-@router.get("/_history/")
+@router.get("/_history", dependencies=[Depends(require_auth)])
+@router.get("/_history/", dependencies=[Depends(require_auth)])
 async def system_history(request: Request) -> JSONResponse:
     entries = store.history(limit=1000)
     return fhir_json_response(bundle_response(request, "history", entries, total=len(entries)))
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_auth)])
 async def root_or_system_search(request: Request) -> JSONResponse:
     params = query_params(request)
     if not params:

@@ -14,7 +14,11 @@ RUN apt-get update \
 COPY pyproject.toml ./
 COPY app ./app
 RUN python -m pip install --upgrade pip \
-    && python -m pip install .
+    && python -m pip install . \
+    && useradd -m appuser \
+    && chown -R appuser /app
+
+USER appuser
 
 EXPOSE 8000
 
