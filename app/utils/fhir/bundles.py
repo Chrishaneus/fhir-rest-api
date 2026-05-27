@@ -37,8 +37,10 @@ def bundle_response(
     offset: int = 0,
     page_size: int | None = None,
     warnings: list[str] | None = None,
+    included: list | None = None,
 ) -> dict[str, Any]:
     base = str(request.base_url).rstrip("/")
+    is_searchset = bundle_type == "searchset"
     bundle_entries: list[dict[str, Any]] = []
     for version in entries:
         resource = version.resource
@@ -54,7 +56,27 @@ def bundle_response(
         }
         if resource:
             entry["resource"] = resource
+        if is_searchset:
+            entry["search"] = {"mode": "match"}
         bundle_entries.append(entry)
+
+    if included:
+        for version in included:
+            resource = version.resource
+            if not resource:
+                continue
+            inc_type = resource["resourceType"]
+            inc_id = resource.get("id")
+            bundle_entries.append({
+                "fullUrl": f"{base}/{inc_type}/{inc_id}" if inc_id else base,
+                "search": {"mode": "include"},
+                "resource": resource,
+                "response": {
+                    "status": "200 OK",
+                    "etag": weak_etag(version.version_id),
+                    "lastModified": fhir_instant(version.last_updated),
+                },
+            })
 
     current_url = str(request.url)
     links: list[dict[str, str]] = [{"relation": "self", "url": current_url}]

@@ -32,6 +32,7 @@ from app.hooks import hooks
 from app.store import VersionConflictError, store
 from app.utils.errors import FHIRHTTPError
 from app.utils.fhir.bundles import bundle_response
+from app.utils.fhir.includes import resolve_includes
 from app.utils.fhir.search import apply_pagination, form_and_query_params, query_params
 from app.utils.fhir.validation import (
     assert_resource_id,
@@ -65,10 +66,12 @@ async def post_type_search(resource_type: str, request: Request) -> JSONResponse
     params = await form_and_query_params(request)
     matches = store.search(resource_type, params)
     page, offset, page_size = apply_pagination(matches, params)
+    included = resolve_includes(store, resource_type, page, params)
     return fhir_json_response(
         bundle_response(
             request, "searchset", page,
             total=len(matches), offset=offset, page_size=page_size,
+            included=included,
         )
     )
 
@@ -80,10 +83,12 @@ async def get_type_search(resource_type: str, request: Request) -> JSONResponse:
     params = query_params(request)
     matches = store.search(resource_type, params)
     page, offset, page_size = apply_pagination(matches, params)
+    included = resolve_includes(store, resource_type, page, params)
     return fhir_json_response(
         bundle_response(
             request, "searchset", page,
             total=len(matches), offset=offset, page_size=page_size,
+            included=included,
         )
     )
 

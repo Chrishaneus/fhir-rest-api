@@ -347,3 +347,171 @@ class TestPatch:
         )
         assert r.status_code == 412
         assert r.json()["resourceType"] == "OperationOutcome"
+
+
+class TestIncludes:
+    @pytest.fixture
+    def patient_with_observation(self, client: TestClient) -> tuple[dict, dict]:
+        p = client.post("/Patient", json=patient("IncludeTest")).json()
+        obs = client.post("/Observation", json={
+            "resourceType": "Observation",
+            "status": "final",
+            "code": {"text": "HR"},
+            "subject": {"reference": f"Patient/{p['id']}"},
+        }).json()
+        return p, obs
+
+    def test_include_observation_subject_fetches_patient(
+        self, client: TestClient, patient_with_observation: tuple
+    ) -> None:
+        p, obs = patient_with_observation
+        r = client.get(f"/Observation?_id={obs['id']}&_include=Observation:subject")
+        assert r.status_code == 200
+        body = r.json()
+        entries = body["entry"]
+        match_entries = [e for e in entries if e.get("search", {}).get("mode") == "match"]
+        include_entries = [e for e in entries if e.get("search", {}).get("mode") == "include"]
+        assert len(match_entries) == 1
+        assert match_entries[0]["resource"]["resourceType"] == "Observation"
+        assert len(include_entries) == 1
+        assert include_entries[0]["resource"]["resourceType"] == "Patient"
+        assert include_entries[0]["resource"]["id"] == p["id"]
+
+    def test_include_with_target_type_filter(
+        self, client: TestClient, patient_with_observation: tuple
+    ) -> None:
+        p, obs = patient_with_observation
+        r = client.get(f"/Observation?_id={obs['id']}&_include=Observation:subject:Patient")
+        assert r.status_code == 200
+        include_entries = [
+            e for e in r.json()["entry"]
+            if e.get("search", {}).get("mode") == "include"
+        ]
+        assert len(include_entries) == 1
+        assert include_entries[0]["resource"]["id"] == p["id"]
+
+    def test_include_wrong_target_type_returns_no_includes(
+        self, client: TestClient, patient_with_observation: tuple
+    ) -> None:
+        _, obs = patient_with_observation
+        r = client.get(f"/Observation?_id={obs['id']}&_include=Observation:subject:Encounter")
+        assert r.status_code == 200
+        include_entries = [
+            e for e in r.json()["entry"]
+            if e.get("search", {}).get("mode") == "include"
+        ]
+        assert len(include_entries) == 0
+
+    def test_revinclude_observation_subject_appends_observations(
+        self, client: TestClient, patient_with_observation: tuple
+    ) -> None:
+        p, obs = patient_with_observation
+        r = client.get(f"/Patient?_id={p['id']}&_revinclude=Observation:subject")
+        assert r.status_code == 200
+        body = r.json()
+        entries = body["entry"]
+        match_entries = [e for e in entries if e.get("search", {}).get("mode") == "match"]
+        include_entries = [e for e in entries if e.get("search", {}).get("mode") == "include"]
+        assert len(match_entries) == 1
+        assert match_entries[0]["resource"]["resourceType"] == "Patient"
+        assert len(include_entries) == 1
+        assert include_entries[0]["resource"]["resourceType"] == "Observation"
+        assert include_entries[0]["resource"]["id"] == obs["id"]
+
+    def test_no_includes_no_mode_on_plain_search(self, client: TestClient) -> None:
+        client.post("/Patient", json=patient("NoInclude"))
+        r = client.get("/Patient")
+        assert r.status_code == 200
+        modes = {e.get("search", {}).get("mode") for e in r.json()["entry"]}
+        assert modes == {"match"}
+
+    def test_search_mode_match_present_without_include_param(
+        self, client: TestClient, created_patient: dict
+    ) -> None:
+        r = client.get(f"/Patient?_id={created_patient['id']}")
+        assert r.status_code == 200
+        entries = r.json()["entry"]
+        assert all(e.get("search", {}).get("mode") == "match" for e in entries)
+
+
+class TestReferenceValidation:
+    def _obs(self, subject_ref: str | None = None, encounter_ref: str | None = None) -> dict:
+        body: dict = {
+            "resourceType": "Observation",
+            "status": "final",
+            "code": {"text": "HR"},
+        }
+        if subject_ref is not None:
+            body["subject"] = {"reference": subject_ref}
+        if encounter_ref is not None:
+            body["encounter"] = {"reference": encounter_ref}
+        return body
+
+    def test_valid_reference_accepted(self, client: TestClient, created_patient: dict) -> None:
+        r = client.post("/Observation", json=self._obs(f"Patient/{created_patient['id']}"))
+        assert r.status_code == 201
+
+    def test_nonexistent_subject_returns_422(self, client: TestClient) -> None:
+        r = client.post("/Observation", json=self._obs("Patient/doesnotexist"))
+        assert r.status_code == 422
+        body = r.json()
+        assert body["resourceType"] == "OperationOutcome"
+        assert "doesnotexist" in body["issue"][0]["diagnostics"]
+
+    def test_absent_subject_field_is_not_required(self, client: TestClient) -> None:
+        r = client.post("/Observation", json=self._obs())
+        assert r.status_code == 201
+
+    def test_absolute_url_reference_is_skipped(self, client: TestClient) -> None:
+        r = client.post(
+            "/Observation",
+            json=self._obs("https://other-server.example.com/Patient/remote-id"),
+        )
+        assert r.status_code == 201
+
+    def test_nonexistent_encounter_returns_422(
+        self, client: TestClient, created_patient: dict
+    ) -> None:
+        r = client.post(
+            "/Observation",
+            json=self._obs(
+                f"Patient/{created_patient['id']}",
+                encounter_ref="Encounter/doesnotexist",
+            ),
+        )
+        assert r.status_code == 422
+
+    def test_update_validates_changed_reference(
+        self, client: TestClient, created_patient: dict
+    ) -> None:
+        obs = client.post(
+            "/Observation", json=self._obs(f"Patient/{created_patient['id']}")
+        ).json()
+        r = client.put(
+            f"/Observation/{obs['id']}",
+            json={**obs, "subject": {"reference": "Patient/ghost"}},
+        )
+        assert r.status_code == 422
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+    def test_allergy_intolerance_validates_patient(self, client: TestClient) -> None:
+        r = client.post(
+            "/AllergyIntolerance",
+            json={
+                "resourceType": "AllergyIntolerance",
+                "patient": {"reference": "Patient/ghost"},
+                "code": {"text": "Penicillin"},
+            },
+        )
+        assert r.status_code == 422
+
+    def test_condition_validates_subject(self, client: TestClient) -> None:
+        r = client.post(
+            "/Condition",
+            json={
+                "resourceType": "Condition",
+                "subject": {"reference": "Patient/ghost"},
+                "code": {"text": "Fever"},
+            },
+        )
+        assert r.status_code == 422

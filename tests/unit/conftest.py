@@ -31,6 +31,11 @@ from app.db.base import init_db, reset_db
 from app.hooks import hooks
 from app.main import app
 
+# Capture the hook registrations that modules set up at import time.
+# Tests may add extra hooks; we restore from this snapshot around each test
+# so production hooks stay active while test-added ones are cleaned up.
+_BASELINE_HOOKS = hooks.snapshot()
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _create_schema():
@@ -40,12 +45,12 @@ def _create_schema():
 
 @pytest.fixture(autouse=True)
 def _clean_database():
-    """Delete all rows, clear hooks, and reset rate-limit state before every test."""
+    """Delete all rows, restore baseline hooks, and reset rate-limit state before every test."""
     rate_limit._client = fakeredis.FakeRedis(decode_responses=True)
     reset_db()
-    hooks.clear()
+    hooks.restore(_BASELINE_HOOKS)
     yield
-    hooks.clear()
+    hooks.restore(_BASELINE_HOOKS)
 
 
 @pytest.fixture(scope="session")

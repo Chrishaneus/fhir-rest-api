@@ -70,6 +70,17 @@ def auth_client(client: httpx.Client, auth_token: str):
         yield c
 
 
+@pytest.fixture(scope="session")
+def unauth_client(client: httpx.Client):
+    """An httpx.Client with no Authorization header — used to test 401 responses."""
+    with httpx.Client(
+        base_url=str(client.base_url),
+        timeout=10.0,
+        headers={"Accept": FHIR_JSON},
+    ) as c:
+        yield c
+
+
 # ---------------------------------------------------------------------------
 # Registration
 # ---------------------------------------------------------------------------
@@ -196,22 +207,22 @@ class TestProtectedRoutes:
         assert r.status_code == 200
 
     def test_request_without_token_returns_401(
-        self, client: httpx.Client, auth_token: str
+        self, unauth_client: httpx.Client, auth_token: str
     ) -> None:
-        r = client.get("/Patient")
+        r = unauth_client.get("/Patient")
         assert r.status_code == 401
         assert r.json()["resourceType"] == "OperationOutcome"
 
     def test_invalid_token_returns_401(
-        self, client: httpx.Client, auth_token: str
+        self, unauth_client: httpx.Client, auth_token: str
     ) -> None:
-        r = client.get(
+        r = unauth_client.get(
             "/Patient", headers={"Authorization": "Bearer this.is.invalid"}
         )
         assert r.status_code == 401
 
-    def test_health_accessible_without_token(self, client: httpx.Client) -> None:
-        assert client.get("/health").status_code == 200
+    def test_health_accessible_without_token(self, unauth_client: httpx.Client) -> None:
+        assert unauth_client.get("/health").status_code == 200
 
     def test_metadata_accessible_without_token(self, client: httpx.Client) -> None:
         assert client.get("/metadata").status_code == 200

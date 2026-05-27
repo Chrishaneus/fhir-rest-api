@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "11111111-2222-3333-4444-555555555555",
     "name": "FHIR REST API",
-    "description": "End-to-end tests for the Python FastAPI FHIR R5 REST server.\n\nRun the full collection in order — Auth registers a unique user and saves a Bearer token, which all subsequent requests inherit. The Patient folder creates a resource whose ID is stored in `patientId` and used by Read, History, Observation, and clinical-resource requests. The Sort folder seeds additional patients to verify `_sort` ordering.\n\n**Base URL:** `http://localhost:8000`  \n**Auth:** JWT Bearer (token saved automatically after Login)",
+    "description": "End-to-end tests for the Python FastAPI FHIR R5 REST server.\n\nRun the full collection in order — Auth registers a unique user and saves a Bearer token, which all subsequent requests inherit. The Patient folder creates a resource whose ID is stored in `patientId`. The Sort folder seeds additional patients to verify `_sort` ordering. The Include / RevInclude folder seeds a fresh patient and observation to test `_include` / `_revinclude`, saving their IDs to `includePatientId` and `includeObsId`. The Reference Validation folder verifies that dangling local references are rejected with 422.\n\n**Base URL:** `http://localhost:8000`  \n**Auth:** JWT Bearer (token saved automatically after Login)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "55269035"
   },
@@ -1096,6 +1096,428 @@
       ]
     },
     {
+      "name": "Include / RevInclude",
+      "description": "Tests for `_include` and `_revinclude` query parameters. Seeds a fresh Patient (`includePatientId`) and Observation (`includeObsId`) first, then verifies that `_include=Observation:subject` appends the referenced Patient to the Bundle and `_revinclude=Observation:subject` appends linked Observations to a Patient search. Depends on: Auth (token).",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient (seed include patient)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('includePatientId', json.id);",
+                  "    console.log('Include patient id saved:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"IncludeTest\", \"given\": [\"Sam\"]}],\n  \"gender\": \"unknown\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation (seed include observation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('includeObsId', json.id);",
+                  "    console.log('Include observation id saved:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"text\": \"Heart rate\"},\n  \"subject\": {\"reference\": \"Patient/{{includePatientId}}\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": ["{{baseUrl}}"],
+              "path": ["Observation"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation?_id={{includeObsId}}&_include=Observation:subject",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    pm.expect(pm.response.json().type).to.eql('searchset');",
+                  "});",
+                  "pm.test('Match entry is the Observation', () => {",
+                  "    const matches = pm.response.json().entry.filter(e => e.search && e.search.mode === 'match');",
+                  "    pm.expect(matches.length).to.eql(1);",
+                  "    pm.expect(matches[0].resource.resourceType).to.eql('Observation');",
+                  "});",
+                  "pm.test('Include entry is the Patient', () => {",
+                  "    const includes = pm.response.json().entry.filter(e => e.search && e.search.mode === 'include');",
+                  "    pm.expect(includes.length).to.eql(1);",
+                  "    pm.expect(includes[0].resource.resourceType).to.eql('Patient');",
+                  "    pm.expect(includes[0].resource.id).to.eql(pm.collectionVariables.get('includePatientId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Observation?_id={{includeObsId}}&_include=Observation:subject",
+              "host": ["{{baseUrl}}"],
+              "path": ["Observation"],
+              "query": [
+                {"key": "_id",      "value": "{{includeObsId}}"},
+                {"key": "_include", "value": "Observation:subject"}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation?_id={{includeObsId}}&_include=Observation:subject:Patient (target type filter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Include entry is a Patient', () => {",
+                  "    const includes = pm.response.json().entry.filter(e => e.search && e.search.mode === 'include');",
+                  "    pm.expect(includes.length).to.eql(1);",
+                  "    pm.expect(includes[0].resource.resourceType).to.eql('Patient');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Observation?_id={{includeObsId}}&_include=Observation:subject:Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Observation"],
+              "query": [
+                {"key": "_id",      "value": "{{includeObsId}}"},
+                {"key": "_include", "value": "Observation:subject:Patient"}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_id={{includePatientId}}&_revinclude=Observation:subject",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Match entry is the Patient', () => {",
+                  "    const matches = pm.response.json().entry.filter(e => e.search && e.search.mode === 'match');",
+                  "    pm.expect(matches.length).to.eql(1);",
+                  "    pm.expect(matches[0].resource.resourceType).to.eql('Patient');",
+                  "});",
+                  "pm.test('Include entry is the Observation', () => {",
+                  "    const includes = pm.response.json().entry.filter(e => e.search && e.search.mode === 'include');",
+                  "    pm.expect(includes.length).to.eql(1);",
+                  "    pm.expect(includes[0].resource.resourceType).to.eql('Observation');",
+                  "    pm.expect(includes[0].resource.id).to.eql(pm.collectionVariables.get('includeObsId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_id={{includePatientId}}&_revinclude=Observation:subject",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"],
+              "query": [
+                {"key": "_id",         "value": "{{includePatientId}}"},
+                {"key": "_revinclude", "value": "Observation:subject"}
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reference Validation",
+      "description": "Verifies that `before_create` / `before_update` hooks reject dangling references with 422 Unprocessable Content. Tests Observation (subject), Condition (subject), and AllergyIntolerance (patient). The happy-path request reuses `includePatientId` set by the Include folder — run Include first, or manually set the variable to a live Patient ID.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Observation (dangling subject → 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});",
+                  "pm.test('Diagnostics mention the missing reference', () => {",
+                  "    const diag = pm.response.json().issue[0].diagnostics;",
+                  "    pm.expect(diag).to.include('ghost-patient-id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"text\": \"HR\"},\n  \"subject\": {\"reference\": \"Patient/ghost-patient-id\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": ["{{baseUrl}}"],
+              "path": ["Observation"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation (valid subject → 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Reference was accepted', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('Observation');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"text\": \"HR\"},\n  \"subject\": {\"reference\": \"Patient/{{includePatientId}}\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": ["{{baseUrl}}"],
+              "path": ["Observation"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation (absolute URL subject — skipped → 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('External reference was not validated', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('Observation');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"text\": \"HR\"},\n  \"subject\": {\"reference\": \"https://other.example.com/fhir/Patient/remote-id\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": ["{{baseUrl}}"],
+              "path": ["Observation"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Condition (dangling subject → 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Condition\",\n  \"subject\": {\"reference\": \"Patient/ghost-patient-id\"},\n  \"code\": {\"text\": \"Fever\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Condition",
+              "host": ["{{baseUrl}}"],
+              "path": ["Condition"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/AllergyIntolerance (dangling patient → 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"AllergyIntolerance\",\n  \"patient\": {\"reference\": \"Patient/ghost-patient-id\"},\n  \"code\": {\"text\": \"Penicillin\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/AllergyIntolerance",
+              "host": ["{{baseUrl}}"],
+              "path": ["AllergyIntolerance"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Errors",
       "description": "Negative-path tests that verify correct error responses. Covers missing token (401), invalid token (401), wrong password (401), unknown resource type (404), and wrong Content-Type on PATCH (415). All responses are asserted to be OperationOutcome resources.",
       "item": [
@@ -1303,9 +1725,11 @@
     }
   ],
   "variable": [
-    {"key": "baseUrl",   "value": "http://localhost:8000"},
-    {"key": "username",  "value": "alice"},
-    {"key": "token",     "value": ""},
-    {"key": "patientId", "value": ""}
+    {"key": "baseUrl",          "value": "http://localhost:8000"},
+    {"key": "username",         "value": "alice"},
+    {"key": "token",            "value": ""},
+    {"key": "patientId",        "value": ""},
+    {"key": "includePatientId", "value": ""},
+    {"key": "includeObsId",     "value": ""}
   ]
 }

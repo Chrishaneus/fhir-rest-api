@@ -70,6 +70,15 @@ class HookRegistry:
     def clear(self) -> None:
         self._hooks.clear()
 
+    def snapshot(self) -> dict[str, "ResourceHooks"]:
+        """Return a shallow copy of the current registry."""
+        return dict(self._hooks)
+
+    def restore(self, snapshot: dict[str, "ResourceHooks"]) -> None:
+        """Replace the registry with a previously taken snapshot."""
+        self._hooks.clear()
+        self._hooks.update(snapshot)
+
     def get(self, resource_type: str) -> ResourceHooks:
         return self._hooks.get(resource_type, self._default)
 
@@ -119,3 +128,4 @@ class LoggingHooks(ResourceHooks):
 # Add a line here for every new hook file you create.
 # ---------------------------------------------------------------------------
 from app.hooks import patient as _patient  # noqa: E402,F401
+from app.hooks import reference_validation as _reference_validation  # noqa: E402,F401
