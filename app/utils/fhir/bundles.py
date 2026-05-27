@@ -18,6 +18,16 @@ def _paged_url(url: str, offset: int, count: int) -> str:
     return urlunparse(parsed._replace(query=urlencode(qp, doseq=True)))
 
 
+def _warning_entry(diagnostics: str) -> dict[str, Any]:
+    return {
+        "search": {"mode": "outcome"},
+        "resource": {
+            "resourceType": "OperationOutcome",
+            "issue": [{"severity": "warning", "code": "not-supported", "diagnostics": diagnostics}],
+        },
+    }
+
+
 def bundle_response(
     request: Request,
     bundle_type: str,
@@ -26,6 +36,7 @@ def bundle_response(
     total: int | None = None,
     offset: int = 0,
     page_size: int | None = None,
+    warnings: list[str] | None = None,
 ) -> dict[str, Any]:
     base = str(request.base_url).rstrip("/")
     bundle_entries: list[dict[str, Any]] = []
@@ -62,6 +73,9 @@ def bundle_response(
                     "url": _paged_url(current_url, offset + page_size, page_size),
                 }
             )
+
+    if warnings:
+        bundle_entries.extend(_warning_entry(msg) for msg in warnings)
 
     bundle: dict[str, Any] = {
         "resourceType": "Bundle",

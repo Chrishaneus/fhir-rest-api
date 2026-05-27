@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -230,3 +232,92 @@ class TestConditionalRead:
     def test_stale_etag_returns_200(self, client: TestClient, created_patient: dict) -> None:
         r = client.get(f"/Patient/{created_patient['id']}", headers={"If-None-Match": 'W/"999"'})
         assert r.status_code == 200
+
+
+class TestSortWarning:
+    def test_sort_param_returns_outcome_warning_entry(self, client: TestClient, created_patient: dict) -> None:
+        r = client.get("/Patient?_sort=family")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["type"] == "searchset"
+        outcome_entries = [
+            e for e in body["entry"] if e.get("search", {}).get("mode") == "outcome"
+        ]
+        assert len(outcome_entries) == 1
+        issue = outcome_entries[0]["resource"]["issue"][0]
+        assert issue["severity"] == "warning"
+        assert "_sort" in issue["diagnostics"]
+
+    def test_no_sort_param_has_no_outcome_entry(self, client: TestClient, created_patient: dict) -> None:
+        r = client.get("/Patient")
+        assert r.status_code == 200
+        body = r.json()
+        outcome_entries = [
+            e for e in body["entry"] if e.get("search", {}).get("mode") == "outcome"
+        ]
+        assert len(outcome_entries) == 0
+
+    def test_post_search_sort_param_returns_warning(self, client: TestClient, created_patient: dict) -> None:
+        r = client.post("/Patient/_search", data={"_sort": "family"})
+        assert r.status_code == 200
+        outcome_entries = [
+            e for e in r.json()["entry"] if e.get("search", {}).get("mode") == "outcome"
+        ]
+        assert len(outcome_entries) == 1
+
+
+class TestPatch:
+    def _patch(self, client: TestClient, resource_id: str, operations: list) -> object:
+        return client.patch(
+            f"/Patient/{resource_id}",
+            content=json.dumps(operations),
+            headers={"Content-Type": "application/json-patch+json"},
+        )
+
+    def test_patch_adds_field(self, client: TestClient, created_patient: dict) -> None:
+        r = self._patch(client, created_patient["id"], [{"op": "add", "path": "/active", "value": True}])
+        assert r.status_code == 200
+        assert r.json()["active"] is True
+
+    def test_patch_replaces_field(self, client: TestClient, created_patient: dict) -> None:
+        ops = [{"op": "replace", "path": "/name/0/family", "value": "Patched"}]
+        r = self._patch(client, created_patient["id"], ops)
+        assert r.status_code == 200
+        assert r.json()["name"][0]["family"] == "Patched"
+
+    def test_patch_increments_version(self, client: TestClient, created_patient: dict) -> None:
+        r = self._patch(client, created_patient["id"], [{"op": "add", "path": "/active", "value": False}])
+        assert r.status_code == 200
+        assert r.headers["etag"] == 'W/"2"'
+        assert r.json()["meta"]["versionId"] == "2"
+
+    def test_patch_wrong_content_type_returns_415(self, client: TestClient, created_patient: dict) -> None:
+        r = client.patch(
+            f"/Patient/{created_patient['id']}",
+            json=[{"op": "add", "path": "/active", "value": True}],
+        )
+        assert r.status_code == 415
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+    def test_patch_nonexistent_returns_404(self, client: TestClient) -> None:
+        r = self._patch(client, "doesnotexist", [{"op": "add", "path": "/active", "value": True}])
+        assert r.status_code == 404
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+    def test_patch_invalid_operation_returns_400(self, client: TestClient, created_patient: dict) -> None:
+        r = self._patch(client, created_patient["id"], [{"op": "badop", "path": "/active", "value": True}]
+        )
+        assert r.status_code == 400
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+    def test_patch_stale_etag_returns_412(self, client: TestClient, created_patient: dict) -> None:
+        r = client.patch(
+            f"/Patient/{created_patient['id']}",
+            content=json.dumps([{"op": "add", "path": "/active", "value": True}]),
+            headers={
+                "Content-Type": "application/json-patch+json",
+                "If-Match": 'W/"999"',
+            },
+        )
+        assert r.status_code == 412
+        assert r.json()["resourceType"] == "OperationOutcome"

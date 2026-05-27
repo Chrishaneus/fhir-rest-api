@@ -32,6 +32,7 @@ SUPPORTED_INTERACTIONS = (
     "read",
     "vread",
     "update",
+    "patch",
     "delete",
     "history-instance",
     "create",

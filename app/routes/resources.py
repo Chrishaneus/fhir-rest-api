@@ -11,6 +11,7 @@ Instance-level:
 * ``GET    /{resource_type}/{id}/_history``        - instance history Bundle
 * ``GET    /{resource_type}/{id}``                 - read
 * ``PUT    /{resource_type}/{id}``                 - update / upsert
+* ``PATCH  /{resource_type}/{id}``                 - patch (JSON Patch)
 * ``DELETE /{resource_type}/{id}``                 - delete (tombstone)
 
 Route order matters here: Starlette matches routes in the order they are
@@ -22,6 +23,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import jsonpatch
 from fastapi import APIRouter, Body, Request
 from fastapi.responses import JSONResponse, Response
 
@@ -46,6 +48,12 @@ from app.utils.outcomes import fhir_json_response
 router = APIRouter(tags=["resources"])
 
 
+def _sort_warnings(params: dict[str, list[str]]) -> list[str] | None:
+    if params.get("_sort"):
+        return ["_sort is not supported; results are returned in an unspecified order"]
+    return None
+
+
 @router.get("/{resource_type}/_history")
 @router.get("/{resource_type}/_history/")
 async def type_history(resource_type: str, request: Request) -> JSONResponse:
@@ -61,8 +69,12 @@ async def post_type_search(resource_type: str, request: Request) -> JSONResponse
     params = await form_and_query_params(request)
     matches = store.search(resource_type, params)
     page, offset, page_size = apply_pagination(matches, params)
+    warnings = _sort_warnings(params)
     return fhir_json_response(
-        bundle_response(request, "searchset", page, total=len(matches), offset=offset, page_size=page_size)
+        bundle_response(
+            request, "searchset", page,
+            total=len(matches), offset=offset, page_size=page_size, warnings=warnings,
+        )
     )
 
 
@@ -73,8 +85,12 @@ async def get_type_search(resource_type: str, request: Request) -> JSONResponse:
     params = query_params(request)
     matches = store.search(resource_type, params)
     page, offset, page_size = apply_pagination(matches, params)
+    warnings = _sort_warnings(params)
     return fhir_json_response(
-        bundle_response(request, "searchset", page, total=len(matches), offset=offset, page_size=page_size)
+        bundle_response(
+            request, "searchset", page,
+            total=len(matches), offset=offset, page_size=page_size, warnings=warnings,
+        )
     )
 
 
@@ -184,6 +200,67 @@ async def update_resource(
     return preferred_success_response(
         version.resource,
         status_code=201 if created else 200,
+        headers=headers,
+        prefer=request.headers.get("prefer"),
+    )
+
+
+@router.patch("/{resource_type}/{resource_id}")
+@router.patch("/{resource_type}/{resource_id}/")
+async def patch_resource(
+    resource_type: str,
+    resource_id: str,
+    request: Request,
+) -> Response:
+    assert_resource_type(resource_type)
+    assert_resource_id(resource_id)
+
+    content_type = request.headers.get("content-type", "")
+    if not content_type.startswith("application/json-patch+json"):
+        raise FHIRHTTPError(
+            415,
+            "Content-Type must be application/json-patch+json for PATCH",
+            "invalid",
+        )
+
+    try:
+        operations = await request.json()
+    except Exception:
+        raise FHIRHTTPError(400, "Request body is not valid JSON", "structure") from None
+
+    if not isinstance(operations, list):
+        raise FHIRHTTPError(400, "JSON Patch body must be a JSON array", "structure")
+
+    current = store.latest(resource_type, resource_id)
+    if current is None or current.deleted:
+        raise FHIRHTTPError(404, "Resource was not found", "not-found")
+    assert current.resource is not None
+
+    try:
+        patched = jsonpatch.apply_patch(current.resource, operations)
+    except (jsonpatch.JsonPatchException, jsonpatch.JsonPointerException) as exc:
+        raise FHIRHTTPError(400, f"JSON Patch error: {exc}", "invalid") from exc
+
+    resource = validate_request_body(resource_type, patched, require_id=resource_id)
+
+    hook = hooks.get(resource_type)
+    resource = hook.before_update(current.resource, resource)
+
+    try:
+        version, _ = store.update(
+            resource_type, resource_id, resource,
+            if_match=request.headers.get("if-match"),
+        )
+    except VersionConflictError as exc:
+        raise FHIRHTTPError(412, str(exc), "conflict") from exc
+    assert version.resource is not None
+
+    hook.after_update(current.resource, version.resource)
+
+    headers = response_headers(request, resource_type, resource_id, version)
+    return preferred_success_response(
+        version.resource,
+        status_code=200,
         headers=headers,
         prefer=request.headers.get("prefer"),
     )
