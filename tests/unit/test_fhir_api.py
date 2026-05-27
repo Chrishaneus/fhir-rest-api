@@ -434,6 +434,36 @@ class TestIncludes:
         assert all(e.get("search", {}).get("mode") == "match" for e in entries)
 
 
+class TestFormatParam:
+    def test_json_format_accepted(self, client: TestClient) -> None:
+        r = client.get("/metadata?_format=application/fhir+json")
+        assert r.status_code == 200
+        assert r.json()["resourceType"] == "CapabilityStatement"
+
+    def test_json_shorthand_accepted(self, client: TestClient) -> None:
+        assert client.get("/metadata?_format=json").status_code == 200
+
+    def test_application_json_accepted(self, client: TestClient) -> None:
+        assert client.get("/metadata?_format=application/json").status_code == 200
+
+    def test_xml_format_returns_406(self, client: TestClient) -> None:
+        r = client.get("/metadata?_format=application/fhir+xml")
+        assert r.status_code == 406
+        body = r.json()
+        assert body["resourceType"] == "OperationOutcome"
+        assert "application/fhir+xml" in body["issue"][0]["diagnostics"]
+
+    def test_xml_shorthand_returns_406(self, client: TestClient) -> None:
+        assert client.get("/Patient?_format=xml").status_code == 406
+
+    def test_unknown_format_returns_406(self, client: TestClient) -> None:
+        r = client.get("/metadata?_format=application/pdf")
+        assert r.status_code == 406
+
+    def test_no_format_param_unaffected(self, client: TestClient) -> None:
+        assert client.get("/metadata").status_code == 200
+
+
 class TestReferenceValidation:
     def _obs(self, subject_ref: str | None = None, encounter_ref: str | None = None) -> dict:
         body: dict = {
