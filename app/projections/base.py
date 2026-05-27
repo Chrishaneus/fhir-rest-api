@@ -43,7 +43,7 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any, ClassVar
 
-from sqlalchemy import Select, and_, delete, func, insert, or_, select
+from sqlalchemy import Select, and_, asc, delete, desc, func, insert, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session, aliased
@@ -51,7 +51,7 @@ from sqlalchemy.orm import Session, aliased
 from app.db.models import ResourceVersionRecord
 from app.db.projection_models import BaseProjection
 from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
-from app.utils.fhir.search import split_csv_values
+from app.utils.fhir.search import parse_sort_params, split_csv_values
 
 # Search-param prefixes supported on date / number params.
 # https://hl7.org/fhir/R5/search.html#prefix
@@ -176,8 +176,9 @@ class Projection(ABC):
 
         Joins the projection (filtered by ``params``) back to
         ``resource_versions`` on ``(resource_type, resource_id, version_id)``
-        so the caller can fetch the full FHIR JSON. Results are ordered by
-        ``last_updated DESC`` against the *indexed* projection column.
+        so the caller can fetch the full FHIR JSON. Results are ordered
+        according to ``_sort`` params; falls back to ``last_updated DESC``
+        when ``_sort`` is absent or names only unknown columns.
         """
         proj = aliased(self.table)
         proj_table = proj.__table__
@@ -193,7 +194,6 @@ class Projection(ABC):
             if clause is not None:
                 clauses.append(clause)
 
-        last_updated_col = proj_table.c.last_updated
         rv = aliased(ResourceVersionRecord)
         stmt = (
             select(rv)
@@ -208,9 +208,52 @@ class Projection(ABC):
                 )
             )
             .where(*clauses, rv.deleted.is_(False))
-            .order_by(last_updated_col.desc(), proj_table.c.resource_id.desc())
+            .order_by(*self._sort_columns(proj_table, params))
         )
         return stmt
+
+    def _sort_columns(self, proj_table: Any, params: dict[str, list[str]]) -> list[Any]:
+        """Map ``_sort`` params to SQL ORDER BY expressions on the projection table.
+
+        Known FHIR params are mapped to their projection columns. Unknown params
+        are silently skipped. Falls back to ``last_updated DESC`` when no params
+        are present or none can be mapped.  Always appends ``resource_id ASC``
+        as a stable tiebreaker.
+        """
+        sort_fields = parse_sort_params(params)
+
+        # Build a flat param→column name lookup across all param type maps.
+        sortable: dict[str, str] = {"_id": "resource_id", "_lastupdated": "last_updated"}
+        for param, col in self.TOKEN_PARAMS.items():
+            sortable[param.lower()] = col
+        for param, col in self.STRING_PARAMS.items():
+            sortable[param.lower()] = col
+        for param, col in self.DATE_PARAMS.items():
+            sortable[param.lower()] = col
+        for param, col in self.NUMBER_PARAMS.items():
+            sortable[param.lower()] = col
+        for param, col in self.BOOL_PARAMS.items():
+            sortable[param.lower()] = col
+        for param, (col, _) in self.REFERENCE_PARAMS.items():
+            sortable[param.lower()] = col
+
+        if not sort_fields:
+            return [proj_table.c.last_updated.desc(), proj_table.c.resource_id.asc()]
+
+        order: list[Any] = []
+        for field, ascending in sort_fields:
+            col_name = sortable.get(field.lower())
+            if col_name is None:
+                continue
+            col = proj_table.c[col_name]
+            order.append(asc(col) if ascending else desc(col))
+
+        if not order:
+            # None of the requested fields are sortable in SQL; use default.
+            return [proj_table.c.last_updated.desc(), proj_table.c.resource_id.asc()]
+
+        order.append(proj_table.c.resource_id.asc())
+        return order
 
     # ------------------------------------------------------------------
     # Write path helpers (called by FHIRStore in the same transaction)

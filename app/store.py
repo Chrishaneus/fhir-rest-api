@@ -21,8 +21,49 @@ from app.db.models import ResourceVersionRecord
 from app.db.search import containment_payloads
 from app.projections import registry as projection_registry
 from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
-from app.utils.fhir.search import resource_matches, split_csv_values
+from app.utils.fhir.search import parse_sort_params, resource_matches, split_csv_values
 from app.utils.time import fhir_instant, now_utc, weak_etag
+
+
+def _sort_key_for_field(version: "ResourceVersion", field: str) -> Any:
+    """Extract a comparison-safe sort key from a ResourceVersion for one FHIR sort field."""
+    lower = field.lower()
+    resource = version.resource or {}
+    if lower == "_id":
+        return resource.get("id") or ""
+    if lower == "_lastupdated":
+        return version.last_updated
+    if lower in ("family", "name"):
+        names = resource.get("name") or []
+        return (names[0].get("family") or "") if names else ""
+    if lower == "given":
+        names = resource.get("name") or []
+        given_list = (names[0].get("given") or []) if names else []
+        return given_list[0] if given_list else ""
+    if lower == "birthdate":
+        return resource.get("birthDate") or ""
+    return resource.get(field) or resource.get(lower) or ""
+
+
+def _apply_python_sort(
+    versions: list["ResourceVersion"],
+    params: dict[str, list[str]],
+) -> list["ResourceVersion"]:
+    """Re-sort ResourceVersions by ``_sort`` params using Python comparison.
+
+    Applies each sort field in reverse order so the first field in ``_sort``
+    takes highest priority (Python's stable sort preserves previous orderings).
+    """
+    sort_fields = parse_sort_params(params)
+    if not sort_fields:
+        return versions
+    result = list(versions)
+    for field, ascending in reversed(sort_fields):
+        result.sort(
+            key=lambda v, f=field: _sort_key_for_field(v, f),
+            reverse=not ascending,
+        )
+    return result
 
 
 class VersionConflictError(Exception):
@@ -410,7 +451,8 @@ class FHIRStore:
             .order_by(LatestRV.last_updated.desc(), LatestRV.id.desc())
         )
         records = session.execute(stmt).scalars().all()
-        return [v for v in (self._to_version(r) for r in records) if v]
+        versions = [v for v in (self._to_version(r) for r in records) if v]
+        return _apply_python_sort(versions, params)
 
     def _python_search(
         self,
@@ -451,7 +493,7 @@ class FHIRStore:
                 version.resource or {}, params, system_search=system_search
             ):
                 matches.append(version)
-        return matches
+        return _apply_python_sort(matches, params)
 
     def history(
         self,

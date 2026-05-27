@@ -250,36 +250,46 @@ class TestRequestId:
         assert r.headers["x-request-id"] == "trace-abc"
 
 
-class TestSortWarning:
-    def test_sort_param_returns_outcome_warning_entry(self, client: TestClient, created_patient: dict) -> None:
+class TestSort:
+    @pytest.fixture(autouse=True)
+    def _seed(self, client: TestClient) -> None:
+        for name in ("Adams", "Carter", "Baker"):
+            client.post("/Patient", json=patient(name))
+
+    def _families(self, client: TestClient, qs: str) -> list[str]:
+        r = client.get(f"/Patient{qs}")
+        assert r.status_code == 200
+        return [
+            e["resource"]["name"][0]["family"]
+            for e in r.json()["entry"]
+            if "resource" in e
+        ]
+
+    def test_sort_ascending_by_family(self, client: TestClient) -> None:
+        assert self._families(client, "?_sort=family") == ["Adams", "Baker", "Carter"]
+
+    def test_sort_descending_by_family(self, client: TestClient) -> None:
+        assert self._families(client, "?_sort=-family") == ["Carter", "Baker", "Adams"]
+
+    def test_no_sort_returns_results(self, client: TestClient) -> None:
+        assert len(self._families(client, "")) == 3
+
+    def test_no_outcome_warning_entry(self, client: TestClient) -> None:
         r = client.get("/Patient?_sort=family")
-        assert r.status_code == 200
-        body = r.json()
-        assert body["type"] == "searchset"
-        outcome_entries = [
-            e for e in body["entry"] if e.get("search", {}).get("mode") == "outcome"
-        ]
-        assert len(outcome_entries) == 1
-        issue = outcome_entries[0]["resource"]["issue"][0]
-        assert issue["severity"] == "warning"
-        assert "_sort" in issue["diagnostics"]
-
-    def test_no_sort_param_has_no_outcome_entry(self, client: TestClient, created_patient: dict) -> None:
-        r = client.get("/Patient")
-        assert r.status_code == 200
-        body = r.json()
-        outcome_entries = [
-            e for e in body["entry"] if e.get("search", {}).get("mode") == "outcome"
-        ]
-        assert len(outcome_entries) == 0
-
-    def test_post_search_sort_param_returns_warning(self, client: TestClient, created_patient: dict) -> None:
-        r = client.post("/Patient/_search", data={"_sort": "family"})
-        assert r.status_code == 200
         outcome_entries = [
             e for e in r.json()["entry"] if e.get("search", {}).get("mode") == "outcome"
         ]
-        assert len(outcome_entries) == 1
+        assert len(outcome_entries) == 0
+
+    def test_post_search_sort(self, client: TestClient) -> None:
+        r = client.post("/Patient/_search", data={"_sort": "family"})
+        assert r.status_code == 200
+        families = [
+            e["resource"]["name"][0]["family"]
+            for e in r.json()["entry"]
+            if "resource" in e
+        ]
+        assert families == ["Adams", "Baker", "Carter"]
 
 
 class TestPatch:

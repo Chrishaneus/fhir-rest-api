@@ -10,6 +10,25 @@ from app.utils.errors import FHIRHTTPError
 from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
 
 
+def parse_sort_params(params: dict[str, list[str]]) -> list[tuple[str, bool]]:
+    """Parse ``_sort`` into ``[(field_name, ascending), ...]``.
+
+    ``?_sort=family,-birthDate`` → ``[("family", True), ("birthDate", False)]``.
+    Comma-separated values and multiple ``_sort`` params are both supported.
+    """
+    fields: list[tuple[str, bool]] = []
+    for item in params.get("_sort", []):
+        for part in item.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            if part.startswith("-"):
+                fields.append((part[1:], False))
+            else:
+                fields.append((part, True))
+    return fields
+
+
 def split_csv_values(values: list[str]) -> list[str]:
     parts: list[str] = []
     for value in values:

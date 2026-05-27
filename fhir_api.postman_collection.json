@@ -2,12 +2,14 @@
   "info": {
     "_postman_id": "11111111-2222-3333-4444-555555555555",
     "name": "FHIR REST API",
+    "description": "End-to-end tests for the Python FastAPI FHIR R5 REST server.\n\nRun the full collection in order — Auth registers a unique user and saves a Bearer token, which all subsequent requests inherit. The Patient folder creates a resource whose ID is stored in `patientId` and used by Read, History, Observation, and clinical-resource requests. The Sort folder seeds additional patients to verify `_sort` ordering.\n\n**Base URL:** `http://localhost:8000`  \n**Auth:** JWT Bearer (token saved automatically after Login)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "55269035"
   },
   "item": [
     {
       "name": "Public",
+      "description": "Unauthenticated endpoints. No Authorization header required. Use these to verify the server is running before attempting any authenticated requests.",
       "item": [
         {
           "name": "{{baseUrl}}/health",
@@ -77,6 +79,7 @@
     },
     {
       "name": "Auth",
+      "description": "User registration and login. Register generates a unique username (`alice_<timestamp>`) to avoid conflicts on repeated runs. Login saves the returned JWT to the `token` collection variable, which all protected requests use via `Bearer {{token}}`.",
       "item": [
         {
           "name": "{{baseUrl}}/auth/register",
@@ -172,6 +175,7 @@
     },
     {
       "name": "Patient",
+      "description": "Full CRUD lifecycle for a Patient resource. Create saves the new resource ID to `patientId`, which Read, Update, Patch, and Delete all reference. Run these in order: Create → Read → Search → PUT → PATCH → Delete. The DELETE at the end tombstones the resource so History requests can demonstrate the deleted version.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient (Create)",
@@ -461,6 +465,7 @@
     },
     {
       "name": "History",
+      "description": "Version history interactions. Reads instance, type, and system history bundles. Run after the Patient CRUD folder — the patient will have been created, updated twice (PUT + PATCH), and deleted, so the history bundle should contain at least 3 entries. Version 1 may return 410 Gone after the DELETE.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient/{{patientId}}/_history",
@@ -604,6 +609,7 @@
     },
     {
       "name": "Observation",
+      "description": "Search interactions for Observation resources. Demonstrates subject reference filtering, LOINC code filtering, date range filtering with `ge`/`le` prefixes, and pagination via `_count`/`_offset`. These requests return empty bundles if no Observations have been created — that is still a valid 200 searchset response.",
       "item": [
         {
           "name": "{{baseUrl}}/Observation?subject=Patient/{{patientId}}",
@@ -759,6 +765,7 @@
     },
     {
       "name": "Condition, AllergyIntolerance, MedicationRequest",
+      "description": "Search interactions for common clinical resources linked to the patient. All three filter by subject/patient reference using `patientId`. Empty bundles are expected unless matching resources have been created separately — the tests only assert on the Bundle structure, not entry count.",
       "item": [
         {
           "name": "{{baseUrl}}/Condition?subject=Patient/{{patientId}}&clinical-status=active",
@@ -874,7 +881,223 @@
       ]
     },
     {
+      "name": "Sort",
+      "description": "Validates `_sort` query parameter support. Two seed patients (Adams and Carter) are created first to guarantee the result set contains sortable data. All three sort requests use `_count=10` to avoid fetching thousands of records. Assertions check relative ordering of consecutive entries rather than hardcoded names, so they pass regardless of what other data is in the database.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient (seed Adams)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"Adams\", \"given\": [\"Amy\"]}],\n  \"gender\": \"female\",\n  \"birthDate\": \"1985-03-12\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient (seed Carter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"Carter\", \"given\": [\"Chris\"]}],\n  \"gender\": \"male\",\n  \"birthDate\": \"1990-07-04\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_sort=family&_count=10 (ascending)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});",
+                  "pm.test('First two entries are sorted family ascending', () => {",
+                  "    const entries = pm.response.json().entry.filter(e => e.resource && e.resource.name && e.resource.name[0].family);",
+                  "    pm.expect(entries.length).to.be.above(1);",
+                  "    const first = entries[0].resource.name[0].family.toLowerCase();",
+                  "    const second = entries[1].resource.name[0].family.toLowerCase();",
+                  "    pm.expect(first <= second).to.be.true;",
+                  "});",
+                  "pm.test('No OperationOutcome warning entries', () => {",
+                  "    const outcomes = pm.response.json().entry.filter(e => e.search && e.search.mode === 'outcome');",
+                  "    pm.expect(outcomes.length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_sort=family&_count=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"],
+              "query": [
+                {"key": "_sort",  "value": "family"},
+                {"key": "_count", "value": "10"}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_sort=-family&_count=10 (descending)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});",
+                  "pm.test('First two entries are sorted family descending', () => {",
+                  "    const entries = pm.response.json().entry.filter(e => e.resource && e.resource.name && e.resource.name[0].family);",
+                  "    pm.expect(entries.length).to.be.above(1);",
+                  "    const first = entries[0].resource.name[0].family.toLowerCase();",
+                  "    const second = entries[1].resource.name[0].family.toLowerCase();",
+                  "    pm.expect(first >= second).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_sort=-family&_count=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"],
+              "query": [
+                {"key": "_sort",  "value": "-family"},
+                {"key": "_count", "value": "10"}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_sort=-birthdate&_count=10 (newest first)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});",
+                  "pm.test('First two entries are sorted birthDate descending', () => {",
+                  "    const entries = pm.response.json().entry.filter(e => e.resource && e.resource.birthDate);",
+                  "    pm.expect(entries.length).to.be.above(1);",
+                  "    pm.expect(entries[0].resource.birthDate >= entries[1].resource.birthDate).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_sort=-birthdate&_count=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"],
+              "query": [
+                {"key": "_sort",  "value": "-birthdate"},
+                {"key": "_count", "value": "10"}
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Errors",
+      "description": "Negative-path tests that verify correct error responses. Covers missing token (401), invalid token (401), wrong password (401), unknown resource type (404), and wrong Content-Type on PATCH (415). All responses are asserted to be OperationOutcome resources.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient (missing token)",

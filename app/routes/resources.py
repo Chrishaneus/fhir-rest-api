@@ -49,11 +49,6 @@ from app.utils.outcomes import fhir_json_response
 router = APIRouter(tags=["resources"], dependencies=[Depends(require_auth)])
 
 
-def _sort_warnings(params: dict[str, list[str]]) -> list[str] | None:
-    if params.get("_sort"):
-        return ["_sort is not supported; results are returned in an unspecified order"]
-    return None
-
 
 @router.get("/{resource_type}/_history")
 @router.get("/{resource_type}/_history/")
@@ -70,11 +65,10 @@ async def post_type_search(resource_type: str, request: Request) -> JSONResponse
     params = await form_and_query_params(request)
     matches = store.search(resource_type, params)
     page, offset, page_size = apply_pagination(matches, params)
-    warnings = _sort_warnings(params)
     return fhir_json_response(
         bundle_response(
             request, "searchset", page,
-            total=len(matches), offset=offset, page_size=page_size, warnings=warnings,
+            total=len(matches), offset=offset, page_size=page_size,
         )
     )
 
@@ -86,11 +80,10 @@ async def get_type_search(resource_type: str, request: Request) -> JSONResponse:
     params = query_params(request)
     matches = store.search(resource_type, params)
     page, offset, page_size = apply_pagination(matches, params)
-    warnings = _sort_warnings(params)
     return fhir_json_response(
         bundle_response(
             request, "searchset", page,
-            total=len(matches), offset=offset, page_size=page_size, warnings=warnings,
+            total=len(matches), offset=offset, page_size=page_size,
         )
     )
 
