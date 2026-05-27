@@ -28,9 +28,22 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
                 "mode": "server",
                 "security": {
                     "cors": True,
+                    "service": [
+                        {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/restful-security-service",
+                                    "code": "JWT",
+                                    "display": "JSON Web Token",
+                                }
+                            ]
+                        }
+                    ],
                     "description": (
-                        "Demo layer only. Add authentication, authorization, consent, "
-                        "and audit controls before production use."
+                        "JWT Bearer authentication required on all endpoints except "
+                        "GET /health and GET /metadata. Tokens are issued via POST /auth/login. "
+                        "Failed login attempts are rate-limited with a timed account lockout "
+                        "backed by Redis."
                     ),
                 },
                 "interaction": [
@@ -48,6 +61,7 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
                         "conditionalCreate": False,
                         "conditionalUpdate": False,
                         "conditionalDelete": "not-supported",
+                        "referencePolicy": ["local"],
                     }
                     for resource_type in resource_types
                 ],
