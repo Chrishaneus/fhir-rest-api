@@ -234,6 +234,21 @@ class TestConditionalRead:
         assert r.status_code == 200
 
 
+class TestRequestId:
+    def test_generates_request_id_when_absent(self, client: TestClient) -> None:
+        r = client.get("/metadata")
+        assert "x-request-id" in r.headers
+        assert len(r.headers["x-request-id"]) == 32  # uuid4().hex
+
+    def test_echoes_client_provided_request_id(self, client: TestClient) -> None:
+        r = client.get("/metadata", headers={"X-Request-ID": "my-correlation-id"})
+        assert r.headers["x-request-id"] == "my-correlation-id"
+
+    def test_request_id_consistent_across_resource_endpoints(self, client: TestClient, created_patient: dict) -> None:
+        r = client.get(f"/Patient/{created_patient['id']}", headers={"X-Request-ID": "trace-abc"})
+        assert r.headers["x-request-id"] == "trace-abc"
+
+
 class TestSortWarning:
     def test_sort_param_returns_outcome_warning_entry(self, client: TestClient, created_patient: dict) -> None:
         r = client.get("/Patient?_sort=family")

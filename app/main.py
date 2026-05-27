@@ -22,6 +22,7 @@ Environment variables:
 from __future__ import annotations
 
 import time
+import uuid
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -62,6 +63,7 @@ app.add_middleware(
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
+    request_id = request.headers.get("x-request-id") or uuid.uuid4().hex
     start = time.perf_counter()
     response = await call_next(request)
     ms = round((time.perf_counter() - start) * 1000, 1)
@@ -72,8 +74,10 @@ async def log_requests(request: Request, call_next):
             "path": request.url.path,
             "status": response.status_code,
             "duration_ms": ms,
+            "request_id": request_id,
         },
     )
+    response.headers["x-request-id"] = request_id
     return response
 
 
