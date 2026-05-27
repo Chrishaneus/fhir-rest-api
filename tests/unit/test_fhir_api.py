@@ -2,6 +2,7 @@ import json
 
 import pytest
 from fastapi.testclient import TestClient
+from httpx import Response
 
 from app.utils.fhir.constants import FHIR_JSON
 
@@ -282,7 +283,7 @@ class TestSortWarning:
 
 
 class TestPatch:
-    def _patch(self, client: TestClient, resource_id: str, operations: list) -> object:
+    def _patch(self, client: TestClient, resource_id: str, operations: list) -> Response:
         return client.patch(
             f"/Patient/{resource_id}",
             content=json.dumps(operations),

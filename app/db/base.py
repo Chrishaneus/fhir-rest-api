@@ -34,8 +34,7 @@ class Base(DeclarativeBase):
 
 def init_db() -> None:
     """Create all tables. Safe to call at startup and in tests."""
-    from app.db.auth_models import User  # noqa: F401 - register users table
-    from app.db import models, projection_models  # noqa: F401 - register tables
+    from app.db import auth_models, models, projection_models  # noqa: F401 - register tables
 
     Base.metadata.create_all(bind=engine)
     _ensure_projection_indexes()
@@ -48,8 +47,7 @@ def reset_db() -> None:
     Relies on init_db() having been called at session start to create the
     schema. Deletes in reverse FK order so constraints are never violated.
     """
-    from app.db.auth_models import User  # noqa: F401 - register users table
-    from app.db import models, projection_models  # noqa: F401
+    from app.db import auth_models, models, projection_models  # noqa: F401 - register tables
 
     with engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):

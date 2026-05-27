@@ -7,9 +7,9 @@ the JSONB/Python fallback when one is registered for the resource type).
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
-from sqlalchemy import select
+from sqlalchemy import Table, select
 
 from app.db.base import SessionLocal
 from app.db.projection_models import (
@@ -69,6 +69,7 @@ class TestWritePath:
         assert row.family == "Smith"
         assert row.given == "Alex"
         assert row.gender == "male"
+        assert row.birth_date is not None
         assert row.birth_date.isoformat() == "1990-01-01"
         assert row.version_id == "1"
 
@@ -178,7 +179,7 @@ class TestRegistry:
         """
         failures: dict[str, set[str]] = {}
         for projection in registry.all():
-            table = projection.table.__table__  # type: ignore[attr-defined]
+            table = cast(Table, projection.table.__table__)
 
             leading_indexed: set[str] = {col.name for col in table.primary_key.columns}
             for idx in table.indexes:
@@ -229,6 +230,7 @@ class TestObservationProjectionSchema:
             assert row.code_system == "http://loinc.org"
             assert row.status == "final"
             assert row.effective_at is not None
+            assert row.value_quantity_value is not None
             assert int(row.value_quantity_value) == 72
 
         by_full_ref = store.search("Observation", {"subject": [f"Patient/{pid}"]})

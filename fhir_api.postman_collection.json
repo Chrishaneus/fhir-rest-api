@@ -1,0 +1,1088 @@
+{
+  "info": {
+    "_postman_id": "11111111-2222-3333-4444-555555555555",
+    "name": "FHIR REST API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "55269035"
+  },
+  "item": [
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "{{baseUrl}}/health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns ok status', () => {",
+                  "    pm.expect(pm.response.json().status).to.eql('ok');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/metadata",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns CapabilityStatement', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('CapabilityStatement');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/fhir+json"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/metadata",
+              "host": ["{{baseUrl}}"],
+              "path": ["metadata"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "{{baseUrl}}/auth/register",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.collectionVariables.set('username', 'alice_' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns success message', () => {",
+                  "    pm.expect(pm.response.json()).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"Secret!123\",\n  \"email\": \"{{username}}@example.com\",\n  \"role\": \"clinician\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/auth/login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns access token', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('access_token');",
+                  "    pm.expect(json.token_type).to.eql('bearer');",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "    pm.collectionVariables.set('token', json.access_token);",
+                  "    console.log('Token saved:', json.access_token.slice(0, 20) + '...');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"Secret!123\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Patient",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient (Create)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns Patient resource', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Patient');",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json.meta).to.have.property('versionId');",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('patientId', json.id);",
+                  "    console.log('Patient id saved:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"Smith\", \"given\": [\"Jane\"]}],\n  \"gender\": \"female\",\n  \"birthDate\": \"1990-04-15\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{patientId}} (Read)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns correct Patient', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Patient');",
+                  "    pm.expect(json.id).to.eql(pm.collectionVariables.get('patientId'));",
+                  "});",
+                  "pm.test('ETag header is present', () => {",
+                  "    pm.expect(pm.response.headers.get('ETag')).to.match(/^W\\/\"/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Accept",        "value": "application/fhir+json"}
+            ],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "{{patientId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?family=Smith (Search GET)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "    pm.expect(json).to.have.property('total');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient?family=Smith",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"],
+              "query": [{"key": "family", "value": "Smith"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/_search (POST form)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {"key": "family", "value": "Smith"},
+                {"key": "gender", "value": "female"}
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/_search",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "_search"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{patientId}} (PUT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Resource updated correctly', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Patient');",
+                  "    pm.expect(json.active).to.be.true;",
+                  "    pm.expect(json.name[0].given).to.include('Marie');",
+                  "});",
+                  "pm.test('Version incremented', () => {",
+                  "    pm.expect(pm.response.json().meta.versionId).to.eql('2');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"id\": \"{{patientId}}\",\n  \"name\": [{\"family\": \"Smith\", \"given\": [\"Jane\", \"Marie\"]}],\n  \"gender\": \"female\",\n  \"birthDate\": \"1990-04-15\",\n  \"active\": true\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "{{patientId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{patientId}} (PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Patch applied correctly', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Patient');",
+                  "    pm.expect(json.active).to.be.false;",
+                  "});",
+                  "pm.test('ETag reflects new version', () => {",
+                  "    pm.expect(pm.response.headers.get('ETag')).to.eql('W/\"3\"');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "PATCH",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/json-patch+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[{\"op\": \"replace\", \"path\": \"/active\", \"value\": false}]",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "{{patientId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{patientId}} (DELETE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 204', () => pm.response.to.have.status(204));",
+                  "pm.test('Body is empty', () => {",
+                  "    pm.expect(pm.response.text()).to.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "{{patientId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "History",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient/{{patientId}}/_history",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns history Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('history');",
+                  "    pm.expect(json.entry.length).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{patientId}}/_history",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "{{patientId}}", "_history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{patientId}}/_history/1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200 or 410', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 410]);",
+                  "});",
+                  "pm.test('Returns Patient or OperationOutcome', () => {",
+                  "    const rt = pm.response.json().resourceType;",
+                  "    pm.expect(rt).to.be.oneOf(['Patient', 'OperationOutcome']);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{patientId}}/_history/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "{{patientId}}", "_history", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/_history",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns history Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('history');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient/_history",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "_history"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/_history",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns history Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('history');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/_history",
+              "host": ["{{baseUrl}}"],
+              "path": ["_history"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Observation",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Observation?subject=Patient/{{patientId}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Observation?subject=Patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Observation"],
+              "query": [{"key": "subject", "value": "Patient/{{patientId}}"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation?code=8867-4",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Observation?code=8867-4",
+              "host": ["{{baseUrl}}"],
+              "path": ["Observation"],
+              "query": [{"key": "code", "value": "8867-4"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation?date=ge2024-01-01&date=le2024-12-31",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Observation?date=ge2024-01-01&date=le2024-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["Observation"],
+              "query": [
+                {"key": "date", "value": "ge2024-01-01"},
+                {"key": "date", "value": "le2024-12-31"}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation?_count=10&_offset=0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});",
+                  "pm.test('Entry count respects _count', () => {",
+                  "    const entries = pm.response.json().entry || [];",
+                  "    pm.expect(entries.length).to.be.at.most(10);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Observation?_count=10&_offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["Observation"],
+              "query": [
+                {"key": "_count",  "value": "10"},
+                {"key": "_offset", "value": "0"}
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Condition, AllergyIntolerance, MedicationRequest",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Condition?subject=Patient/{{patientId}}&clinical-status=active",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Condition?subject=Patient/{{patientId}}&clinical-status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["Condition"],
+              "query": [
+                {"key": "subject",         "value": "Patient/{{patientId}}"},
+                {"key": "clinical-status", "value": "active"}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/AllergyIntolerance?patient=Patient/{{patientId}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/AllergyIntolerance?patient=Patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["AllergyIntolerance"],
+              "query": [{"key": "patient", "value": "Patient/{{patientId}}"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/MedicationRequest?subject=Patient/{{patientId}}&status=active",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/MedicationRequest?subject=Patient/{{patientId}}&status=active",
+              "host": ["{{baseUrl}}"],
+              "path": ["MedicationRequest"],
+              "query": [
+                {"key": "subject", "value": "Patient/{{patientId}}"},
+                {"key": "status",  "value": "active"}
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Errors",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient (missing token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient (bad token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer this.is.invalid"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/auth/login (wrong password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Does not return a token', () => {",
+                  "    pm.expect(pm.response.json()).to.not.have.property('access_token');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"wrong\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Unicorn (unknown resource type)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Unicorn",
+              "host": ["{{baseUrl}}"],
+              "path": ["Unicorn"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{patientId}} (wrong content-type PATCH)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 415', () => pm.response.to.have.status(415));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "PATCH",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[{\"op\": \"add\", \"path\": \"/active\", \"value\": true}]",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{patientId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "{{patientId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [""]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          "pm.test('X-Request-ID header is present', () => {",
+          "    pm.expect(pm.response.headers.get('X-Request-ID')).to.not.be.null;",
+          "});",
+          "if (pm.response.code !== 204 && pm.response.text().includes('\"resourceType\"')) {",
+          "    pm.test('FHIR responses use application/fhir+json', () => {",
+          "        pm.expect(pm.response.headers.get('Content-Type')).to.include('fhir+json');",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {"key": "baseUrl",   "value": "http://localhost:8000"},
+    {"key": "username",  "value": "alice"},
+    {"key": "token",     "value": ""},
+    {"key": "patientId", "value": ""}
+  ]
+}

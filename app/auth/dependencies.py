@@ -33,7 +33,7 @@ async def require_auth(
     try:
         payload = verify_token(credentials.credentials)
     except jwt.PyJWTError:
-        raise FHIRHTTPError(401, "Invalid or expired token", "security")
+        raise FHIRHTTPError(401, "Invalid or expired token", "security") from None
 
     username = payload.get("sub")
     token_version = payload.get("tv")

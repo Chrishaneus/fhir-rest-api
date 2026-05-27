@@ -20,3 +20,6 @@ htmlcov/
 .cursor
 .claude
 .codegraph/
+
+# Ignore testing files
+sample_requests.sh

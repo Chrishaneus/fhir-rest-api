@@ -12,6 +12,7 @@ and the five public functions; call sites in the router stay unchanged.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
 import redis
 
@@ -39,7 +40,7 @@ def locked_until(username: str) -> datetime | None:
     val = _get_client().get(_KEY_LOCKED.format(username))
     if val is None:
         return None
-    return datetime.fromtimestamp(float(val), tz=UTC)
+    return datetime.fromtimestamp(float(cast(str, val)), tz=UTC)
 
 
 def record_failure(username: str) -> None:
@@ -49,7 +50,7 @@ def record_failure(username: str) -> None:
     key_locked = _KEY_LOCKED.format(username)
     lockout_seconds = LOCKOUT_MINUTES * 60
 
-    count = r.incr(key_attempts)
+    count = cast(int, r.incr(key_attempts))
     r.expire(key_attempts, lockout_seconds)
 
     if count >= MAX_ATTEMPTS:
