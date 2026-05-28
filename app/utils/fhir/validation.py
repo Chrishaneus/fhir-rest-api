@@ -17,7 +17,7 @@ from app.utils.fhir.fhir_models import (
 def configured_resource_types() -> set[str]:
     """Return the set of resource types advertised in the CapabilityStatement.
 
-    Defaults to every FHIR R5 resource type. Set ``FHIR_RESOURCE_TYPES`` to a
+    Defaults to every FHIR R5 resource type. Set `FHIR_RESOURCE_TYPES` to a
     comma-separated list to restrict the advertised set; unknown names are
     silently dropped.
     """
@@ -50,11 +50,11 @@ def validate_request_body(
     *,
     require_id: str | None = None,
 ) -> dict[str, Any]:
-    """Validate a request body against ``fhir.resources`` for ``resource_type``.
+    """Validate a request body against `fhir.resources` for `resource_type`.
 
     * Ensures the body is a JSON object.
-    * Ensures ``resourceType`` in the body, if present, matches the URL.
-    * For updates, ensures ``id`` in the body matches the URL id.
+    * Ensures `resourceType` in the body, if present, matches the URL.
+    * For updates, ensures `id` in the body matches the URL id.
     * Delegates structural validation to :func:`validate_fhir_resource`.
     """
     if not isinstance(payload, dict):

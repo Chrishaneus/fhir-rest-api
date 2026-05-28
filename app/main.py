@@ -1,26 +1,26 @@
 """FastAPI application wiring the FHIR REST layer.
 
-Routers (see ``app.routes`` and ``app.auth``):
+Routers (see `app.routes` and `app.auth`):
 
-* ``auth``      - register and login (JWT)
-* ``system``    - capability statement, system history, system search
-* ``resources`` - type-level and instance-level interactions
+* `auth`      - register and login (JWT)
+* `system`    - capability statement, system history, system search
+* `resources` - type-level and instance-level interactions
 
 Reusable building blocks:
 
-* ``app.utils.*``  - FHIR/HTTP helpers (errors, headers, search, bundles, ...)
-* ``app.db.*``     - SQLAlchemy engine and ORM models
-* ``app.store``    - FHIRStore on top of SQLAlchemy
-* ``app.hooks``    - ResourceHooks + HookRegistry for side effects
-* ``app.middleware`` - logging and JWT auth middleware
+* `app.utils.*`  - FHIR/HTTP helpers (errors, headers, search, bundles, ...)
+* `app.db.*`     - SQLAlchemy engine and ORM models
+* `app.store`    - FHIRStore on top of SQLAlchemy
+* `app.hooks`    - ResourceHooks + HookRegistry for side effects
+* `app.middleware` - logging and JWT auth middleware
 
 Environment variables:
 
-* ``DATABASE_URL``        - SQLAlchemy connection string (default: sqlite:///./fhir.db)
-* ``CORS_ORIGINS``        - comma-separated allowed origins, or ``*`` (default: ``*``)
-* ``LOG_FILE``            - path to append NDJSON logs; stdout if unset
-* ``JWT_SECRET``          - secret for signing JWTs; unset disables authentication
-* ``JWT_EXPIRY_MINUTES``  - token lifetime in minutes (default: 60)
+* `DATABASE_URL`        - SQLAlchemy connection string (default: sqlite:///./fhir.db)
+* `CORS_ORIGINS`        - comma-separated allowed origins, or `*` (default: `*`)
+* `LOG_FILE`            - path to append NDJSON logs; stdout if unset
+* `JWT_SECRET`          - secret for signing JWTs; unset disables authentication
+* `JWT_EXPIRY_MINUTES`  - token lifetime in minutes (default: 60)
 """
 
 from __future__ import annotations

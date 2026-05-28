@@ -1,9 +1,9 @@
 """_include / _revinclude resolution helpers.
 
 FHIR R5 spec:
-* ``_include=ResourceType:searchParam[:TargetType]`` — append resources
+* `_include=ResourceType:searchParam[:TargetType]` — append resources
   referenced *by* the match set to the Bundle.
-* ``_revinclude=ResourceType:searchParam[:SourceType]`` — append resources
+* `_revinclude=ResourceType:searchParam[:SourceType]` — append resources
   that *reference* the match set to the Bundle.
 
 Both operate on the current *page* only (not the full match set).
@@ -22,10 +22,10 @@ def parse_include_specs(
     *,
     reverse: bool = False,
 ) -> list[tuple[str, str, str | None]]:
-    """Parse ``_include`` or ``_revinclude`` values into structured triples.
+    """Parse `_include` or `_revinclude` values into structured triples.
 
-    FHIR format: ``ResourceType:searchParam`` or ``ResourceType:searchParam:TargetType``.
-    Returns ``[(source_type, param_name, target_type_or_None), ...]``.
+    FHIR format: `ResourceType:searchParam` or `ResourceType:searchParam:TargetType`.
+    Returns `[(source_type, param_name, target_type_or_None), ...]`.
     Multiple comma-separated specs in one header value are split correctly.
     """
     key = "_revinclude" if reverse else "_include"
@@ -46,13 +46,13 @@ def parse_include_specs(
 
 
 def _to_camel(name: str) -> str:
-    """Convert kebab-case to camelCase: ``based-on`` → ``basedOn``."""
+    """Convert kebab-case to camelCase: `based-on` → `basedOn`."""
     parts = name.split("-")
     return parts[0] + "".join(part.capitalize() for part in parts[1:])
 
 
 def _collect_refs(value: Any, output: list[str]) -> None:
-    """Recursively extract ``Reference.reference`` strings from a resource subtree."""
+    """Recursively extract `Reference.reference` strings from a resource subtree."""
     if isinstance(value, dict):
         reference_value = value.get("reference")
         if isinstance(reference_value, str) and reference_value:
@@ -65,10 +65,10 @@ def _collect_refs(value: Any, output: list[str]) -> None:
 
 
 def _extract_references(resource: dict[str, Any], param: str) -> list[str]:
-    """Extract ``Reference.reference`` strings for a search param from a resource.
+    """Extract `Reference.reference` strings for a search param from a resource.
 
-    Tries both the raw param name and its camelCase form so that ``based-on``
-    finds the ``basedOn`` key in the FHIR JSON.
+    Tries both the raw param name and its camelCase form so that `based-on`
+    finds the `basedOn` key in the FHIR JSON.
     """
     references: list[str] = []
     for key in {param, _to_camel(param)}:
@@ -79,7 +79,7 @@ def _extract_references(resource: dict[str, Any], param: str) -> list[str]:
 
 
 def _parse_reference(ref: str) -> tuple[str, str] | None:
-    """Parse ``ResourceType/id`` into ``(ResourceType, id)``, or ``None``."""
+    """Parse `ResourceType/id` into `(ResourceType, id)`, or `None`."""
     if "/" in ref:
         parts = ref.split("/", 1)
         if parts[0] and parts[1]:
@@ -93,10 +93,10 @@ def resolve_includes(
     page: list["ResourceVersion"],
     params: dict[str, list[str]],
 ) -> list["ResourceVersion"]:
-    """Fetch resources named by ``_include`` / ``_revinclude`` specs.
+    """Fetch resources named by `_include` / `_revinclude` specs.
 
     Operates only on the current *page*, deduplicates against both the page
-    itself and previously included resources via a ``(type, id)`` seen set.
+    itself and previously included resources via a `(type, id)` seen set.
     """
     include_specs = parse_include_specs(params)
     revinclude_specs = parse_include_specs(params, reverse=True)

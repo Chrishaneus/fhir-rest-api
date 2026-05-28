@@ -1,9 +1,9 @@
-"""Bridge between ``fhir.resources`` Pydantic models and our REST layer.
+"""Bridge between `fhir.resources` Pydantic models and our REST layer.
 
 This module is the single place that knows which FHIR R5 resource types exist
 and how to validate them. The validator runs the request payload through the
-``fhir.resources`` Pydantic model for the relevant resource type, raising a
-:class:`FHIRHTTPError` (with an ``OperationOutcome``-shaped body) on failure.
+`fhir.resources` Pydantic model for the relevant resource type, raising a
+:class:`FHIRHTTPError` (with an `OperationOutcome`-shaped body) on failure.
 
 The resource-type list mirrors the concrete Resource subclasses listed at
 https://build.fhir.org/resourcelist.html for FHIR R5.
@@ -191,7 +191,7 @@ def is_known_resource_type(resource_type: str) -> bool:
 
 
 def get_fhir_resource_class(resource_type: str) -> type[FHIRAbstractModel] | None:
-    """Return the ``fhir.resources`` Pydantic model class for a resource type."""
+    """Return the `fhir.resources` Pydantic model class for a resource type."""
     if not is_known_resource_type(resource_type):
         return None
     try:
@@ -201,7 +201,7 @@ def get_fhir_resource_class(resource_type: str) -> type[FHIRAbstractModel] | Non
 
 
 def validate_fhir_resource(resource_type: str, payload: dict[str, Any]) -> dict[str, Any]:
-    """Validate ``payload`` against the FHIR R5 Pydantic model for ``resource_type``.
+    """Validate `payload` against the FHIR R5 Pydantic model for `resource_type`.
 
     Returns the model-dumped dict (after Pydantic normalization). Raises
     :class:`FHIRHTTPError` with a FHIR-shaped OperationOutcome status code when

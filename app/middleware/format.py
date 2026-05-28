@@ -1,10 +1,10 @@
-"""``_format`` query-parameter negotiation middleware.
+"""`_format` query-parameter negotiation middleware.
 
-FHIR R5 §3.1.2 — clients may pass ``?_format=<mime-type>`` as an alternative
-to the ``Accept`` header. The server MUST honour it and return 406 if the
+FHIR R5 §3.1.2 — clients may pass `?_format=<mime-type>` as an alternative
+to the `Accept` header. The server MUST honour it and return 406 if the
 requested format is not supported.
 
-This server only produces ``application/fhir+json``, so any ``_format`` value
+This server only produces `application/fhir+json`, so any `_format` value
 that is not a JSON variant results in a 406 OperationOutcome.
 """
 

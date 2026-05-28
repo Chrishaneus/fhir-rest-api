@@ -1,11 +1,11 @@
 """Reference validation hooks for resource types with outbound Reference fields.
 
-When a resource is created or updated, any ``Reference.reference`` values that
-follow the ``ResourceType/id`` pattern are resolved against the local store.
+When a resource is created or updated, any `Reference.reference` values that
+follow the `ResourceType/id` pattern are resolved against the local store.
 If the target does not exist (or has been deleted), a 422 is returned before
 the write is committed.
 
-Absolute URLs (``https://...``) and URNs (``urn:...``) are silently skipped
+Absolute URLs (`https://...`) and URNs (`urn:...`) are silently skipped
 because those reference external servers that this store cannot reach.
 """
 
@@ -18,9 +18,9 @@ from app.utils.errors import FHIRHTTPError
 
 
 def _parse_local_reference(ref: str) -> tuple[str, str] | None:
-    """Return ``(ResourceType, id)`` for a relative ``ResourceType/id`` reference.
+    """Return `(ResourceType, id)` for a relative `ResourceType/id` reference.
 
-    Returns ``None`` for absolute URLs, URNs, contained references, or anything
+    Returns `None` for absolute URLs, URNs, contained references, or anything
     that cannot be resolved against the local store.
     """
     if not ref or ref.startswith(("http://", "https://", "urn:", "#")):
@@ -33,7 +33,7 @@ def _parse_local_reference(ref: str) -> tuple[str, str] | None:
 
 
 def _check_reference(resource: dict[str, Any], field: str) -> None:
-    """Raise 422 if ``resource[field]`` is a local reference that does not exist."""
+    """Raise 422 if `resource[field]` is a local reference that does not exist."""
     value = resource.get(field)
     if not isinstance(value, dict):
         return
@@ -59,8 +59,8 @@ class ReferenceValidatingHooks(ResourceHooks):
     """Validate that named Reference fields resolve to existing local resources.
 
     Pass the JSON field names that should be checked.  Fields that are absent,
-    hold no ``reference`` string, or whose reference is an absolute URL are
-    silently skipped — only ``ResourceType/id`` local references are checked.
+    hold no `reference` string, or whose reference is an absolute URL are
+    silently skipped — only `ResourceType/id` local references are checked.
     """
 
     def __init__(self, *field_names: str) -> None:

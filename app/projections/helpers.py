@@ -5,7 +5,7 @@ we project only the first entry. Real EHR data overwhelmingly puts the
 "official" entry first, and a single-row projection keeps reads cheap. The
 README documents the limitation alongside Phase B.
 
-Every helper here returns ``None`` when the requested field is missing or
+Every helper here returns `None` when the requested field is missing or
 malformed, never raises. The point is to keep the write path defensive
 against weirdly-shaped resources (faker output, partial migrations, etc.)
 without making the store transaction die over a typo in a single record.
@@ -19,16 +19,16 @@ from typing import Any
 
 
 def first(seq: Any) -> Any | None:
-    """Return ``seq[0]`` if ``seq`` is a non-empty list, else ``None``."""
+    """Return `seq[0]` if `seq` is a non-empty list, else `None`."""
     if isinstance(seq, list) and seq:
         return seq[0]
     return None
 
 
 def first_name_part(resource: dict[str, Any], part: str) -> str | None:
-    """Extract the first ``HumanName``'s family or first given name.
+    """Extract the first `HumanName`'s family or first given name.
 
-    ``part`` is ``"family"`` or ``"given"``. ``given`` is itself a list so we
+    `part` is `"family"` or `"given"`. `given` is itself a list so we
     return its first entry.
     """
     name = first(resource.get("name"))
@@ -44,7 +44,7 @@ def first_name_part(resource: dict[str, Any], part: str) -> str | None:
 
 
 def first_coding(codeable_concept: Any) -> tuple[str | None, str | None]:
-    """Return ``(system, code)`` for the first coding in a CodeableConcept."""
+    """Return `(system, code)` for the first coding in a CodeableConcept."""
     if not isinstance(codeable_concept, dict):
         return None, None
     coding = first(codeable_concept.get("coding"))
@@ -59,12 +59,12 @@ def first_coding(codeable_concept: Any) -> tuple[str | None, str | None]:
 
 
 def first_code(codeable_concept: Any) -> str | None:
-    """Shortcut for ``first_coding`` when only the ``code`` is needed."""
+    """Shortcut for `first_coding` when only the `code` is needed."""
     return first_coding(codeable_concept)[1]
 
 
 def reference_of(value: Any) -> str | None:
-    """Return the ``"reference"`` string from a Reference object."""
+    """Return the `"reference"` string from a Reference object."""
     if not isinstance(value, dict):
         return None
     reference = value.get("reference")
@@ -72,11 +72,11 @@ def reference_of(value: Any) -> str | None:
 
 
 def codeable_reference(value: Any) -> str | None:
-    """Extract the ``reference`` from a R5 ``CodeableReference``.
+    """Extract the `reference` from a R5 `CodeableReference`.
 
-    R5 CodeableReference can hold either a ``reference`` or a ``concept``
+    R5 CodeableReference can hold either a `reference` or a `concept`
     (CodeableConcept). We only project the reference half here; if the entry
-    is concept-only, return ``None`` so the projection column stays NULL
+    is concept-only, return `None` so the projection column stays NULL
     (which is the truthful answer).
     """
     if not isinstance(value, dict):
@@ -85,7 +85,7 @@ def codeable_reference(value: Any) -> str | None:
 
 
 def parse_fhir_datetime(value: Any) -> datetime | None:
-    """Parse a FHIR ``instant`` / ``dateTime`` string into a Python ``datetime``."""
+    """Parse a FHIR `instant` / `dateTime` string into a Python `datetime`."""
     if not isinstance(value, str) or not value:
         return None
     try:
@@ -95,7 +95,7 @@ def parse_fhir_datetime(value: Any) -> datetime | None:
 
 
 def parse_fhir_date(value: Any) -> date | None:
-    """Parse a FHIR ``date`` (``YYYY-MM-DD``) into a Python ``date``."""
+    """Parse a FHIR `date` (`YYYY-MM-DD`) into a Python `date`."""
     if not isinstance(value, str) or not value:
         return None
     try:
@@ -109,7 +109,7 @@ def parse_fhir_date(value: Any) -> date | None:
 
 
 def parse_decimal(value: Any) -> Decimal | None:
-    """Parse a numeric value (FHIR ``decimal`` / ``integer``) into a Decimal."""
+    """Parse a numeric value (FHIR `decimal` / `integer`) into a Decimal."""
     if value is None:
         return None
     try:
@@ -131,10 +131,10 @@ def period_end(period: Any) -> datetime | None:
 
 
 def effective_datetime(resource: dict[str, Any]) -> datetime | None:
-    """FHIR ``effective[x]`` collapses to a single timestamp here.
+    """FHIR `effective[x]` collapses to a single timestamp here.
 
-    Strategy: prefer ``effectiveDateTime`` (instant), fall back to the start
-    of ``effectivePeriod`` (range), then ``effectiveInstant``.
+    Strategy: prefer `effectiveDateTime` (instant), fall back to the start
+    of `effectivePeriod` (range), then `effectiveInstant`.
     """
     result = parse_fhir_datetime(resource.get("effectiveDateTime"))
     if result is not None:
@@ -146,7 +146,7 @@ def effective_datetime(resource: dict[str, Any]) -> datetime | None:
 
 
 def performed_datetime(resource: dict[str, Any]) -> datetime | None:
-    """Procedure / similar ``performed[x]`` -> a single timestamp."""
+    """Procedure / similar `performed[x]` -> a single timestamp."""
     result = parse_fhir_datetime(resource.get("performedDateTime"))
     if result is not None:
         return result
@@ -154,7 +154,7 @@ def performed_datetime(resource: dict[str, Any]) -> datetime | None:
 
 
 def quantity_parts(quantity: Any) -> tuple[Decimal | None, str | None]:
-    """Return ``(value, unit)`` from a FHIR ``Quantity``."""
+    """Return `(value, unit)` from a FHIR `Quantity`."""
     if not isinstance(quantity, dict):
         return None, None
     value = parse_decimal(quantity.get("value"))

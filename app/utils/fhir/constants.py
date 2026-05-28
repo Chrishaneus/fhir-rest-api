@@ -51,13 +51,13 @@ IGNORED_SEARCH_PARAMS = {
     "_contained",
     "_containedType",
     "_offset",
-    # ``_count`` is a pagination control, not a filter -- listing it here
+    # `_count` is a pagination control, not a filter -- listing it here
     # keeps it from disqualifying the projection fast path in
-    # ``Projection.supports`` and from being treated as an unknown filter
+    # `Projection.supports` and from being treated as an unknown filter
     # in the JSONB containment loop.
     "_count",
-    # ``_lastUpdated`` is handled by dedicated column-level filters in
-    # ``_sql_search`` and ``_python_search`` (and by ``_range_clause`` in
+    # `_lastUpdated` is handled by dedicated column-level filters in
+    # `_sql_search` and `_python_search` (and by `_range_clause` in
     # the projection path), so it must be excluded from the generic JSONB
     # containment loop which cannot apply prefix semantics or period expansion.
     "_lastUpdated",

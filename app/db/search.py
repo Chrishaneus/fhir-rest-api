@@ -1,14 +1,14 @@
 """Translate FHIR search parameters into JSONB containment payloads.
 
 This module is the bridge between FHIR-flavoured query strings like
-``?family=Smith&gender=male`` and the Postgres ``content @> '...'::jsonb``
+`?family=Smith&gender=male` and the Postgres `content @> '...'::jsonb`
 operator that uses our GIN index.
 
 Strategy
 --------
 Each search parameter maps to one or more *containment templates* — small
-dict shapes where the literal ``"{value}"`` placeholder gets substituted with
-the search value before being JSON-encoded and pushed to Postgres. ``@>``
+dict shapes where the literal `"{value}"` placeholder gets substituted with
+the search value before being JSON-encoded and pushed to Postgres. `@>`
 matches when the right-hand JSON is a subtree of the left, which is exactly
 the FHIR "match if this value appears" semantics we want for token-style
 parameters.
@@ -16,7 +16,7 @@ parameters.
 This is intentionally a *curated* mapping rather than a full FHIR SearchParameter
 engine. It covers the common patterns (token/string, simple references) for
 the resource types most consumers care about. Unknown parameters are dropped
-on the floor (FHIR ``Prefer: handling=lenient`` default), which is preferable
+on the floor (FHIR `Prefer: handling=lenient` default), which is preferable
 to falling back to a full table scan.
 """
 
@@ -83,7 +83,7 @@ def is_supported(param: str) -> bool:
 
 
 def _render(template: Any, value: str) -> Any:
-    """Recursively substitute ``"{value}"`` placeholders inside a template."""
+    """Recursively substitute `"{value}"` placeholders inside a template."""
     if isinstance(template, dict):
         return {key: _render(template_value, value) for key, template_value in template.items()}
     if isinstance(template, list):
@@ -96,7 +96,7 @@ def _render(template: Any, value: str) -> Any:
 def containment_payloads(param: str, values: list[str]) -> list[dict[str, Any]]:
     """Return a list of Python-dict containment payloads to OR together.
 
-    Each payload is meant to be bound into ``content @> :payload`` against a
+    Each payload is meant to be bound into `content @> :payload` against a
     JSONB column; SQLAlchemy's JSONB type will serialize the dict for us, so
     we deliberately do *not* json.dumps here (double-encoding would wrap the
     whole thing in quotes and break containment).

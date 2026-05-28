@@ -1,7 +1,7 @@
 """CLI for the bulk FHIR R5 seeder.
 
 Generation happens in :mod:`scripts.seed.generator`; this module just wires
-``argparse`` to it and pushes the resulting tuples through
+`argparse` to it and pushes the resulting tuples through
 :meth:`app.store.FHIRStore.bulk_create` for a fast batched write path.
 
 Examples
@@ -22,7 +22,7 @@ Examples
     python -m scripts.seed --only Patient --only Observation
 
 The seeder writes directly through the SQLAlchemy store and therefore
-**bypasses the FastAPI route layer**. Registered ``ResourceHooks`` will not
+**bypasses the FastAPI route layer**. Registered `ResourceHooks` will not
 fire during seeding. Use the HTTP API if you need hook side-effects.
 """
 
@@ -35,12 +35,12 @@ import time
 from collections import Counter
 from pathlib import Path
 
-# Project root has to be importable when running ``python -m scripts.seed``.
+# Project root has to be importable when running `python -m scripts.seed`.
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-# ``app.db.base`` reads DATABASE_URL at import time, so default to the
+# `app.db.base` reads DATABASE_URL at import time, so default to the
 # docker-compose Postgres on the host's 55432 port (host 5432 is often
 # claimed by a native Postgres install on Windows).
 os.environ.setdefault(
@@ -66,7 +66,7 @@ _BATCH_SIZE = 500
 
 
 def _flush(rows: list[tuple[str, str, dict]]) -> Counter:
-    """Bulk-insert ``rows`` and return a per-type submission counter."""
+    """Bulk-insert `rows` and return a per-type submission counter."""
     per_type: Counter = Counter(rt for rt, _, _ in rows)
     store.bulk_create(rows, batch_size=_BATCH_SIZE)
     return per_type
@@ -89,8 +89,8 @@ def _clear_db() -> None:
         # TRUNCATE on Postgres is essentially free; on SQLite fall back to
         # DELETE FROM which is also fine for unit tests.
         if engine.dialect.name == "postgresql":
-            # ``RESTART IDENTITY`` so the id sequence starts at 1 again, which
-            # matters for the ``ix_resource_versions_content_gin`` cardinality
+            # `RESTART IDENTITY` so the id sequence starts at 1 again, which
+            # matters for the `ix_resource_versions_content_gin` cardinality
             # estimates after a reseed.
             tables = ", ".join(["resource_versions", *projection_tables])
             conn.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY"))

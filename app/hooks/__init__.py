@@ -1,18 +1,18 @@
 """Resource lifecycle hooks.
 
 Each FHIR resource type can have its own hook module under this package.
-The module defines a ResourceHooks subclass and calls ``hooks.register``
+The module defines a ResourceHooks subclass and calls `hooks.register`
 at module level so the hook is active as soon as the package is imported.
 
 To add hooks for a new resource type:
 
-    1. Create ``app/hooks/<resource_type_lower>.py``
-    2. Define a class that subclasses ``ResourceHooks``
-    3. Call ``hooks.register("<ResourceType>", MyHooks())`` at the bottom
-    4. Add ``from app.hooks import <resource_type_lower> as _``  # noqa: F401
+    1. Create `app/hooks/<resource_type_lower>.py`
+    2. Define a class that subclasses `ResourceHooks`
+    3. Call `hooks.register("<ResourceType>", MyHooks())` at the bottom
+    4. Add `from app.hooks import <resource_type_lower> as _`  # noqa: F401
        at the end of this file
 
-All existing code that does ``from app.hooks import hooks`` continues to
+All existing code that does `from app.hooks import hooks` continues to
 work without change.
 """
 

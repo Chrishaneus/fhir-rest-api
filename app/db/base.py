@@ -57,11 +57,11 @@ def reset_db() -> None:
 def _ensure_projection_indexes() -> None:
     """Create any projection indexes missing from an already-existing table.
 
-    ``Base.metadata.create_all`` adds the indexes declared in
-    ``__table_args__`` only when it creates the table itself. If a deployment
+    `Base.metadata.create_all` adds the indexes declared in
+    `__table_args__` only when it creates the table itself. If a deployment
     is upgrading from an older codebase that had the table but a smaller set
     of indexes, the new indexes would otherwise never be created. We re-issue
-    ``CREATE INDEX IF NOT EXISTS`` for every index on every ``*_index`` table
+    `CREATE INDEX IF NOT EXISTS` for every index on every `*_index` table
     so adding a new index becomes a code-only change.
     """
     from app.db import projection_models  # noqa: F401 - register models

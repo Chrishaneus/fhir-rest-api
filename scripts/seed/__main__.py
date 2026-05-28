@@ -1,4 +1,4 @@
-"""Entry point for ``python -m scripts.seed``."""
+"""Entry point for `python -m scripts.seed`."""
 
 from __future__ import annotations
 

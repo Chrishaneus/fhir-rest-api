@@ -50,9 +50,9 @@ def _apply_python_sort(
     versions: list["ResourceVersion"],
     params: dict[str, list[str]],
 ) -> list["ResourceVersion"]:
-    """Re-sort ResourceVersions by ``_sort`` params using Python comparison.
+    """Re-sort ResourceVersions by `_sort` params using Python comparison.
 
-    Applies each sort field in reverse order so the first field in ``_sort``
+    Applies each sort field in reverse order so the first field in `_sort`
     takes highest priority (Python's stable sort preserves previous orderings).
     """
     sort_fields = parse_sort_params(params)
@@ -70,9 +70,9 @@ def _apply_python_sort(
 def _last_updated_sql_clause(
     column: ColumnElement[Any], value: str
 ) -> ColumnElement[bool] | None:
-    """Return a SQLAlchemy filter clause for a single ``_lastUpdated`` value.
+    """Return a SQLAlchemy filter clause for a single `_lastUpdated` value.
 
-    Returns ``None`` if the value cannot be parsed so callers can skip silently.
+    Returns `None` if the value cannot be parsed so callers can skip silently.
     """
     try:
         prefix, start, end = parse_date_param(value)
@@ -97,7 +97,7 @@ def _apply_last_updated_filter(
     versions: list["ResourceVersion"],
     params: dict[str, list[str]],
 ) -> list["ResourceVersion"]:
-    """Post-filter *versions* by every ``_lastUpdated`` value in *params* (AND semantics)."""
+    """Post-filter *versions* by every `_lastUpdated` value in *params* (AND semantics)."""
     filter_values = split_csv_values(params.get("_lastUpdated", []))
     if not filter_values:
         return versions
@@ -164,8 +164,8 @@ class TransactionResult:
 class FHIRStore:
     """FHIR resource store backed by SQLAlchemy.
 
-    A single ``resource_versions`` table holds every historical version, with
-    deletion tombstones marked by ``deleted=True`` and ``content=None``.
+    A single `resource_versions` table holds every historical version, with
+    deletion tombstones marked by `deleted=True` and `content=None`.
     """
 
     def __init__(self, session_factory: sessionmaker[Session] | None = None) -> None:
@@ -268,18 +268,18 @@ class FHIRStore:
     ) -> int:
         """Bulk insert version 1 records using batched INSERTs.
 
-        Each ``rows`` item is ``(resource_type, resource_id, resource_dict)``.
-        The store fills in ``versionId="1"``, ``meta.lastUpdated``, and the
-        ``last_updated`` column. Duplicates (same resource_type/resource_id/
-        version_id) are silently skipped via ``ON CONFLICT DO NOTHING``, which
+        Each `rows` item is `(resource_type, resource_id, resource_dict)`.
+        The store fills in `versionId="1"`, `meta.lastUpdated`, and the
+        `last_updated` column. Duplicates (same resource_type/resource_id/
+        version_id) are silently skipped via `ON CONFLICT DO NOTHING`, which
         keeps the bulk seeder idempotent without requiring the caller to
         truncate first.
 
         Returns the number of rows submitted to the database (i.e. the count
-        of ``rows`` consumed -- not necessarily the count actually inserted,
-        because psycopg's ``rowcount`` is unreliable for multi-row
-        ``INSERT ... ON CONFLICT`` statements). Callers that need an exact
-        "inserted vs skipped" breakdown should ``SELECT COUNT(*)`` before and
+        of `rows` consumed -- not necessarily the count actually inserted,
+        because psycopg's `rowcount` is unreliable for multi-row
+        `INSERT ... ON CONFLICT` statements). Callers that need an exact
+        "inserted vs skipped" breakdown should `SELECT COUNT(*)` before and
         after.
 
         This is intended for the bulk seeder. Production writes should go
@@ -417,8 +417,8 @@ class FHIRStore:
         """Return (anchor_version, linked_versions) for the $everything operation.
 
         Works for any resource type - Patient, Encounter, Group, etc.
-        On Postgres uses a single ``jsonb_path_exists`` query with the recursive
-        jsonpath ``$.**.reference ? (@ == $ref)`` against the ``jsonb_path_ops``
+        On Postgres uses a single `jsonb_path_exists` query with the recursive
+        jsonpath `$.**.reference ? (@ == $ref)` against the `jsonb_path_ops`
         GIN index - O(log N) and catches references at any nesting depth.
         On SQLite falls back to a Python-level deep scan (used by unit tests).
         """
@@ -443,12 +443,12 @@ class FHIRStore:
     def _sql_resource_everything(
         self, session: Session, anchor_type: str, resource_reference: str
     ) -> list[ResourceVersion]:
-        """Postgres-only: find all resources of other types that reference ``resource_reference``.
+        """Postgres-only: find all resources of other types that reference `resource_reference`.
 
-        Uses ``jsonb_path_exists`` with the recursive jsonpath operator ``**``
-        so any ``"reference"`` key at any nesting depth (including extensions)
-        is matched.  ``resource_reference`` is bound through a JSONB vars object
-        (``$ref``) rather than interpolated into the path string.
+        Uses `jsonb_path_exists` with the recursive jsonpath operator `**`
+        so any `"reference"` key at any nesting depth (including extensions)
+        is matched.  `resource_reference` is bound through a JSONB vars object
+        (`$ref`) rather than interpolated into the path string.
         """
         latest = (
             select(ResourceVersionRecord)
@@ -488,15 +488,15 @@ class FHIRStore:
         """Pick the cheapest viable search strategy for a (type, params) pair.
 
         Order of preference:
-          1. Projection-table SQL search if one exists for ``resource_type``
+          1. Projection-table SQL search if one exists for `resource_type`
              *and* it covers every requested param. Hits B-tree indexes only.
-          2. JSONB containment over ``resource_versions`` (Postgres only).
+          2. JSONB containment over `resource_versions` (Postgres only).
           3. Python fallback (SQLite, used by unit tests).
 
         When a projection partially covers a request, we deliberately fall
         through instead of mixing strategies: a JSONB filter on the unsupported
         param plus a projection JOIN would either need a second JOIN or an
-        ``IN (subquery)`` rewrite, and the cost of the JSONB scan dominates
+        `IN (subquery)` rewrite, and the cost of the JSONB scan dominates
         either way. Cleaner to let the JSONB path own those requests.
         """
         # Projection fast path: works for both direct and system search because
@@ -522,7 +522,7 @@ class FHIRStore:
         projection: Any,
         params: dict[str, list[str]],
     ) -> list[ResourceVersion]:
-        """Run a projection-backed query and materialize to ``ResourceVersion``s."""
+        """Run a projection-backed query and materialize to `ResourceVersion`s."""
         # Strip system-search-only params before passing to the projection.
         proj_params = {key: value for key, value in params.items() if key != "_type"}
         statement = projection.build_select(proj_params)
@@ -537,11 +537,11 @@ class FHIRStore:
         *,
         system_search: bool = False,
     ) -> list[ResourceVersion]:
-        """Indexed search on Postgres using JSONB ``@>`` against the GIN index.
+        """Indexed search on Postgres using JSONB `@>` against the GIN index.
 
         Builds a single statement that:
-          1. picks the latest version per ``resource_id`` via ``DISTINCT ON``;
-          2. filters by ``resource_type`` and ``deleted = false``;
+          1. picks the latest version per `resource_id` via `DISTINCT ON`;
+          2. filters by `resource_type` and `deleted = false`;
           3. applies one containment clause per supported search parameter,
              OR'ing across alternative paths/values and AND'ing across params.
 
@@ -584,9 +584,9 @@ class FHIRStore:
         )
         LatestRV = aliased(ResourceVersionRecord, latest)
 
-        # ``filters`` mixes simple comparisons (``is_``, ``in_``) and combined
-        # boolean expressions (``or_``); declare the widest common return type
-        # so mypy doesn't narrow the list to ``BinaryExpression`` from the
+        # `filters` mixes simple comparisons (`is_`, `in_`) and combined
+        # boolean expressions (`or_`); declare the widest common return type
+        # so mypy doesn't narrow the list to `BinaryExpression` from the
         # first append.
         filters: list[ColumnElement[bool]] = [LatestRV.deleted.is_(False)]
 
@@ -600,8 +600,8 @@ class FHIRStore:
                 filters.append(clause)
 
         for key, raw_values in params.items():
-            # ``_count`` is now in IGNORED_SEARCH_PARAMS; ``_id`` was already
-            # consumed above and ``containment_payloads`` returns [] for it
+            # `_count` is now in IGNORED_SEARCH_PARAMS; `_id` was already
+            # consumed above and `containment_payloads` returns [] for it
             # anyway, so the only thing to skip here is the ignored set.
             if key in IGNORED_SEARCH_PARAMS or key == "_id":
                 continue

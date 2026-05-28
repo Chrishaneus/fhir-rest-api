@@ -25,14 +25,14 @@ from app.store import store
 def resource_payload(version: Any) -> dict[str, Any]:
     """Return the resource payload from a ResourceVersion, asserting it is present.
 
-    ``ResourceVersion.resource`` is typed ``dict[str, Any] | None`` because
+    `ResourceVersion.resource` is typed `dict[str, Any] | None` because
     deletion tombstones carry no JSON content — only the version metadata
     (resource_id, version_id, deleted=True) survives in the DB row.
 
-    In these tests we only call ``resource_payload()`` on versions produced by
-    ``store.create`` or ``store.update``, where a non-None payload is
+    In these tests we only call `resource_payload()` on versions produced by
+    `store.create` or `store.update`, where a non-None payload is
     guaranteed. The assertion both enforces that invariant at runtime and
-    narrows the type so Pylance does not flag every downstream ``[key]``
+    narrows the type so Pylance does not flag every downstream `[key]`
     access as potentially indexing None.
     """
     assert version.resource is not None, (
@@ -119,9 +119,9 @@ class TestSearch:
         assert resource_payload(results[0])["birthDate"] == "1995-05-05"
 
     def test_count_param_does_not_disable_projection(self) -> None:
-        """Regression: ``_count`` is a pagination control, not a filter.
+        """Regression: `_count` is a pagination control, not a filter.
 
-        Before the fix, ``_count`` wasn't in ``IGNORED_SEARCH_PARAMS`` and wasn't
+        Before the fix, `_count` wasn't in `IGNORED_SEARCH_PARAMS` and wasn't
         in any projection's supported set, so :meth:`Projection.supports` returned
         False on every paginated request (~every real client request) and the
         store silently fell back to JSONB / Python.
@@ -131,8 +131,8 @@ class TestSearch:
         assert projection.supports({"gender": ["male"], "_count": ["20"]}) is True
 
     def test_uppercase_param_keeps_filter_applied(self) -> None:
-        """Regression: ``supports()`` lowercased keys but ``_param_clause()``
-        didn't, so ``?Gender=female`` advertised as supported but the clause was
+        """Regression: `supports()` lowercased keys but `_param_clause()`
+        didn't, so `?Gender=female` advertised as supported but the clause was
         silently dropped, returning every Patient instead of the female ones.
         """
         store.create("Patient", _patient("Adams", "Mira", "female", "1985-03-12"))
@@ -144,7 +144,7 @@ class TestSearch:
         assert {resource_payload(p)["gender"] for p in results} == {"female"}
 
     def test_unsupported_param_falls_back(self) -> None:
-        """Patient has a projection but doesn't list ``identifier`` in its supported
+        """Patient has a projection but doesn't list `identifier` in its supported
         params. The store must fall back to the JSONB / Python path so the filter
         still applies -- silently dropping it would return wrong results.
         """
@@ -173,9 +173,9 @@ class TestRegistry:
         Without this, a projection can advertise a fast SQL path while actually
         forcing a seq scan -- exactly the bug class Phase B exists to prevent.
         Composite indexes count only when the searchable column is *first*: a
-        btree on ``(subject_reference, code_code)`` accelerates ``code_code`` queries
-        only when ``subject_reference`` is also filtered, so it doesn't satisfy a
-        standalone ``code=...`` search.
+        btree on `(subject_reference, code_code)` accelerates `code_code` queries
+        only when `subject_reference` is also filtered, so it doesn't satisfy a
+        standalone `code=...` search.
         """
         failures: dict[str, set[str]] = {}
         for projection in registry.all():

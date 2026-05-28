@@ -2,18 +2,18 @@
 
 A projection table holds **one row per current resource** (not per version),
 with the small set of columns that we want to be able to filter and sort by
-in SQL directly. The full FHIR JSON still lives in ``resource_versions``;
+in SQL directly. The full FHIR JSON still lives in `resource_versions`;
 projections only carry the search keys plus a back-pointer to the version row.
 
 Schema conventions for every projection
 ---------------------------------------
 
-* ``resource_id`` -- primary key (resource type is implicit in the table).
-* ``version_id``  -- the version of ``resource_versions`` this projection row
+* `resource_id` -- primary key (resource type is implicit in the table).
+* `version_id`  -- the version of `resource_versions` this projection row
   reflects. Lets the search path join to the exact version that was current
   when the projection was last touched.
-* ``last_updated`` -- mirrors ``resource_versions.last_updated`` so sorting
-  and ``_lastUpdated`` range queries stay in the projection.
+* `last_updated` -- mirrors `resource_versions.last_updated` so sorting
+  and `_lastUpdated` range queries stay in the projection.
 * All other columns are search keys, indexed individually unless they are
   already covered by a composite index.
 
@@ -43,12 +43,12 @@ from app.db.base import Base
 class BaseProjection(Base):
     """Abstract base for every projection table.
 
-    Declares the three columns every projection has (``resource_id``,
-    ``version_id``, ``last_updated``) so the schema definition stays DRY *and*
+    Declares the three columns every projection has (`resource_id`,
+    `version_id`, `last_updated`) so the schema definition stays DRY *and*
     so static type-checkers can see those columns when we hold a
-    ``type[BaseProjection]`` in :attr:`app.projections.base.Projection.table`.
+    `type[BaseProjection]` in :attr:`app.projections.base.Projection.table`.
 
-    ``__abstract__ = True`` tells SQLAlchemy not to materialize a table for
+    `__abstract__ = True` tells SQLAlchemy not to materialize a table for
     this class itself; only its concrete subclasses get tables.
     """
 
@@ -149,9 +149,9 @@ class EncounterProjectionSchema(BaseProjection):
 class ObservationProjectionSchema(BaseProjection):
     """Search projection for FHIR Observation.
 
-    We materialize the first coding's code (``code_code``) which covers >95%
+    We materialize the first coding's code (`code_code`) which covers >95%
     of real-world Observation queries (LOINC code). Numeric value extraction
-    powers FHIR ``value-quantity`` queries.
+    powers FHIR `value-quantity` queries.
     """
 
     __tablename__ = "observation_projection"
@@ -177,7 +177,7 @@ class ObservationProjectionSchema(BaseProjection):
         Index("ix_observation_projection_status", "status"),
         # Standalone single-column index on effective_at: composite indexes
         # only accelerate queries that filter on their leading column, so
-        # subject-less ``?date=ge...`` searches still need this.
+        # subject-less `?date=ge...` searches still need this.
         Index("ix_observation_projection_effective_at", "effective_at"),
         Index("ix_observation_projection_value_quantity", "value_quantity_value"),
         Index("ix_observation_projection_last_updated", "last_updated"),

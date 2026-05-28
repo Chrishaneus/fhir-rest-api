@@ -1,7 +1,7 @@
-"""Integration tests for the ``_format`` query parameter.
+"""Integration tests for the `_format` query parameter.
 
-FHIR R5 §3.1.2: clients may pass ``?_format=<mime-type>`` as an alternative
-to the ``Accept`` header. The server returns 406 for unsupported formats.
+FHIR R5 §3.1.2: clients may pass `?_format=<mime-type>` as an alternative
+to the `Accept` header. The server returns 406 for unsupported formats.
 """
 
 from __future__ import annotations

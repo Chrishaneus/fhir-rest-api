@@ -1,22 +1,22 @@
 """Type-level and instance-level FHIR HTTP interactions.
 
 Type-level:
-* ``GET    /{resource_type}/_history``      - history Bundle for a resource type
-* ``POST   /{resource_type}/_search``       - search Bundle (POST form)
-* ``GET    /{resource_type}``               - search Bundle (GET query)
-* ``POST   /{resource_type}``               - create
+* `GET    /{resource_type}/_history`      - history Bundle for a resource type
+* `POST   /{resource_type}/_search`       - search Bundle (POST form)
+* `GET    /{resource_type}`               - search Bundle (GET query)
+* `POST   /{resource_type}`               - create
 
 Instance-level:
-* ``GET    /{resource_type}/{id}/_history/{vid}``  - vread
-* ``GET    /{resource_type}/{id}/_history``        - instance history Bundle
-* ``GET    /{resource_type}/{id}``                 - read
-* ``PUT    /{resource_type}/{id}``                 - update / upsert
-* ``PATCH  /{resource_type}/{id}``                 - patch (JSON Patch)
-* ``DELETE /{resource_type}/{id}``                 - delete (tombstone)
+* `GET    /{resource_type}/{id}/_history/{vid}`  - vread
+* `GET    /{resource_type}/{id}/_history`        - instance history Bundle
+* `GET    /{resource_type}/{id}`                 - read
+* `PUT    /{resource_type}/{id}`                 - update / upsert
+* `PATCH  /{resource_type}/{id}`                 - patch (JSON Patch)
+* `DELETE /{resource_type}/{id}`                 - delete (tombstone)
 
 Route order matters here: Starlette matches routes in the order they are
-registered, so the ``_history`` / ``_search`` literal-segment routes must be
-declared before the generic ``{resource_type}/{resource_id}`` routes.
+registered, so the `_history` / `_search` literal-segment routes must be
+declared before the generic `{resource_type}/{resource_id}` routes.
 """
 
 from __future__ import annotations

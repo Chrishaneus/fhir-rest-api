@@ -1,8 +1,8 @@
 """Whole-system FHIR HTTP interactions.
 
-* ``GET /metadata``  - CapabilityStatement
-* ``GET /_history``  - system-wide history Bundle
-* ``GET /``          - root info or system-wide search across all resource types
+* `GET /metadata`  - CapabilityStatement
+* `GET /_history`  - system-wide history Bundle
+* `GET /`          - root info or system-wide search across all resource types
 """
 
 from __future__ import annotations

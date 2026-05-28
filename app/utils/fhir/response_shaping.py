@@ -30,9 +30,9 @@ def _tag_subsetted(resource: dict[str, Any]) -> dict[str, Any]:
 
 
 def apply_summary(resource: dict[str, Any], value: str) -> dict[str, Any]:
-    """Shape *resource* according to a single ``_summary`` value.
+    """Shape *resource* according to a single `_summary` value.
 
-    ``count`` is a bundle-level concern; ignored here.
+    `count` is a bundle-level concern; ignored here.
     """
     summary_mode = value.strip().lower()
     if summary_mode in ("false", "", "count"):
@@ -53,7 +53,7 @@ def apply_elements(resource: dict[str, Any], elements: list[str]) -> dict[str, A
 
 
 def shape_resource(resource: dict[str, Any], params: dict[str, list[str]]) -> dict[str, Any]:
-    """Apply ``_summary`` and ``_elements`` shaping to a single resource dict."""
+    """Apply `_summary` and `_elements` shaping to a single resource dict."""
     summary_values = params.get("_summary", [])
     elements_values = params.get("_elements", [])
 
@@ -71,15 +71,15 @@ def shape_resource(resource: dict[str, Any], params: dict[str, list[str]]) -> di
 
 
 def is_count_only(params: dict[str, list[str]]) -> bool:
-    """Return True when ``_summary=count`` is active (bundle entries must be omitted)."""
+    """Return True when `_summary=count` is active (bundle entries must be omitted)."""
     summary_values = params.get("_summary", [])
     return bool(summary_values) and summary_values[-1].strip().lower() == "count"
 
 
 def shape_bundle(bundle: dict[str, Any], params: dict[str, list[str]]) -> dict[str, Any]:
-    """Apply ``_summary`` / ``_elements`` shaping to all resources inside a bundle.
+    """Apply `_summary` / `_elements` shaping to all resources inside a bundle.
 
-    For ``_summary=count`` the entries are stripped; only ``total`` is kept.
+    For `_summary=count` the entries are stripped; only `total` is kept.
     """
     if is_count_only(params):
         return {key: bundle_value for key, bundle_value in bundle.items() if key != "entry"}

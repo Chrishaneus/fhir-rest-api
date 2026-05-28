@@ -1,4 +1,4 @@
-"""Integration tests for ``_summary`` and ``_elements`` response shaping.
+"""Integration tests for `_summary` and `_elements` response shaping.
 
 FHIR R5 §3.3.1.1 (_summary) and §3.3.1.2 (_elements).
 """

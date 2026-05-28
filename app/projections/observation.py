@@ -3,10 +3,10 @@
 Observation is the hottest table in any real EHR -- vital signs, lab results,
 imaging measurements all flow through it. The projection prioritizes:
 
-* ``subject_reference`` + ``effective_at`` for chart timelines (composite index)
-* ``subject_reference`` + ``code_code`` for "all values of this code for this patient"
-* ``encounter_reference`` for encounter views
-* ``value_quantity_value`` for numeric range queries (e.g. ``value-quantity=gt140``)
+* `subject_reference` + `effective_at` for chart timelines (composite index)
+* `subject_reference` + `code_code` for "all values of this code for this patient"
+* `encounter_reference` for encounter views
+* `value_quantity_value` for numeric range queries (e.g. `value-quantity=gt140`)
 """
 
 from __future__ import annotations

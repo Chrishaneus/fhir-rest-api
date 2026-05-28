@@ -2,7 +2,7 @@
 
 DATABASE_URL is read from the environment (same variable as the app uses), so
 there is no need to hardcode a URL in alembic.ini. The fallback matches the
-app's default: a local SQLite file ``fhir.db``.
+app's default: a local SQLite file `fhir.db`.
 
 Usage::
 

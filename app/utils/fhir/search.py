@@ -11,10 +11,10 @@ from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
 
 
 def parse_sort_params(params: dict[str, list[str]]) -> list[tuple[str, bool]]:
-    """Parse ``_sort`` into ``[(field_name, ascending), ...]``.
+    """Parse `_sort` into `[(field_name, ascending), ...]`.
 
-    ``?_sort=family,-birthDate`` → ``[("family", True), ("birthDate", False)]``.
-    Comma-separated values and multiple ``_sort`` params are both supported.
+    `?_sort=family,-birthDate` → `[("family", True), ("birthDate", False)]`.
+    Comma-separated values and multiple `_sort` params are both supported.
     """
     fields: list[tuple[str, bool]] = []
     for item in params.get("_sort", []):

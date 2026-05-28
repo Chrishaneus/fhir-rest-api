@@ -43,8 +43,8 @@ class NdjsonHandler(logging.StreamHandler):
 
 def configure_logging() -> logging.Logger:
     """Configure root logging with NdjsonHandler and return the 'fhir' logger."""
-    # ``open(..., "a", encoding=...)`` returns ``TextIOWrapper``; ``sys.stdout``
-    # is the abstract ``TextIO``. Annotate the wider type up front so both
+    # `open(..., "a", encoding=...)` returns `TextIOWrapper`; `sys.stdout`
+    # is the abstract `TextIO`. Annotate the wider type up front so both
     # branches assign compatibly.
     stream: TextIO
     if _LOG_FILE:

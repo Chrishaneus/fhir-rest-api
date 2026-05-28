@@ -5,6 +5,6 @@ HTTP server has to be running and no JSON files have to be parsed. The Pydantic
 factories double as living, type-checked documentation of which resource
 shapes we expect to see in this project's data.
 
-See ``scripts.seed.runner`` for the registry, topological sort, and CLI; the
-individual factories live under ``scripts.seed.factories``.
+See `scripts.seed.runner` for the registry, topological sort, and CLI; the
+individual factories live under `scripts.seed.factories`.
 """

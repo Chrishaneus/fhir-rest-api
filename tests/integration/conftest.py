@@ -1,11 +1,11 @@
 """Integration test fixtures targeting a running FHIR HTTP server.
 
-Set ``FHIR_BASE_URL`` to point at a different host; defaults to
-``http://localhost:8000`` (the docker compose default).
+Set `FHIR_BASE_URL` to point at a different host; defaults to
+`http://localhost:8000` (the docker compose default).
 
 When the server has JWT_SECRET configured, the fixture auto-registers and logs
-in a throwaway test user, then attaches ``Authorization: Bearer <token>`` to
-every request. Override with ``FHIR_JWT_TOKEN`` to supply a pre-existing token.
+in a throwaway test user, then attaches `Authorization: Bearer <token>` to
+every request. Override with `FHIR_JWT_TOKEN` to supply a pre-existing token.
 """
 
 from __future__ import annotations
@@ -25,8 +25,8 @@ _TEST_PASSWORD = "integration-test-pw-" + uuid.uuid4().hex[:8]
 def _acquire_token(base_url: str) -> str:
     """Register a throwaway user and return a JWT Bearer token.
 
-    Returns ``""`` if the server has no JWT_SECRET configured (503 on /auth/login).
-    Honours ``FHIR_JWT_TOKEN`` env var to skip the registration step entirely.
+    Returns `""` if the server has no JWT_SECRET configured (503 on /auth/login).
+    Honours `FHIR_JWT_TOKEN` env var to skip the registration step entirely.
     """
     explicit = os.environ.get("FHIR_JWT_TOKEN", "")
     if explicit:

@@ -2,19 +2,19 @@
 
 How it scales
 -------------
-The :data:`PLAN` dict maps each FHIR resource type to a ``count_at_scale_1``.
-``--scale 1.0`` produces roughly the counts in PLAN (≈70k rows). ``--scale 0.1``
-produces ~7k rows; ``--scale 10`` produces ~700k. Every count is multiplied by
+The :data:`PLAN` dict maps each FHIR resource type to a `count_at_scale_1`.
+`--scale 1.0` produces roughly the counts in PLAN (≈70k rows). `--scale 0.1`
+produces ~7k rows; `--scale 10` produces ~700k. Every count is multiplied by
 the scale factor and rounded up (so even small fractional scales still emit at
 least one of every type the user asked for).
 
 Reproducibility
 ---------------
-A single integer ``seed`` controls both Faker and the stdlib ``random.Random``
-instance, so two runs with the same ``--seed`` produce byte-identical resources.
-Resource ids are formatted like ``bulk-patient-000123`` (six-digit zero-padded
+A single integer `seed` controls both Faker and the stdlib `random.Random`
+instance, so two runs with the same `--seed` produce byte-identical resources.
+Resource ids are formatted like `bulk-patient-000123` (six-digit zero-padded
 serial), so re-running with the same seed against an already-populated DB is a
-no-op thanks to ``INSERT...ON CONFLICT DO NOTHING`` in
+no-op thanks to `INSERT...ON CONFLICT DO NOTHING` in
 :meth:`app.store.FHIRStore.bulk_create`.
 
 Reference graph
@@ -176,14 +176,14 @@ class BulkContext:
         self.rng = random.Random(self.seed)
 
     def count(self, resource_type: str) -> int:
-        """How many of ``resource_type`` should be produced at the configured scale."""
+        """How many of `resource_type` should be produced at the configured scale."""
         target = PLAN.get(resource_type, 0) * self.scale
         # Always emit at least one when asked, otherwise tiny scales silently
         # drop entire resource types.
         return max(1, math.ceil(target)) if target > 0 else 0
 
     def ledger(self, resource_type: str, resource_id: str) -> None:
-        """Record that we generated ``resource_id`` of ``resource_type``."""
+        """Record that we generated `resource_id` of `resource_type`."""
         self.ids[resource_type].append(resource_id)
 
     def random_id(self, resource_type: str) -> str | None:
@@ -203,7 +203,7 @@ class BulkContext:
 
 
 def _id_for(resource_type: str, index: int) -> str:
-    """Stable, zero-padded id like ``bulk-patient-000042``."""
+    """Stable, zero-padded id like `bulk-patient-000042`."""
     # FHIR ids are case-insensitive in practice; lowercase the type so we get
     # predictable, grep-friendly ids regardless of the model class name.
     slug = resource_type.lower()
@@ -283,7 +283,7 @@ _MEDICATION_CODES: tuple[tuple[str, str], ...] = (
 
 # --- Generators --------------------------------------------------------------
 #
-# Each generator yields tuples of ``(resource_type, resource_id, resource_json)``
+# Each generator yields tuples of `(resource_type, resource_id, resource_json)`
 # so the caller can pass them straight to FHIRStore.bulk_create.
 
 
@@ -1175,10 +1175,10 @@ def generate(
 ) -> Iterator[tuple[str, str, dict[str, Any]]]:
     """Yield every resource the plan requests, in dependency order.
 
-    When ``only_types`` is provided, types not in the set are still generated
-    if a kept type depends on them (e.g. requesting only ``Observation`` still
+    When `only_types` is provided, types not in the set are still generated
+    if a kept type depends on them (e.g. requesting only `Observation` still
     produces the Patients and Encounters its references point at, otherwise
-    every Observation would have a dangling ``subject``).
+    every Observation would have a dangling `subject`).
     """
     required = _expand_dependencies(only_types) if only_types else None
     for resource_type, gen in PIPELINE:
@@ -1232,7 +1232,7 @@ _DEPS: dict[str, frozenset[str]] = {
 
 
 def _expand_dependencies(types: set[str]) -> set[str]:
-    """Return ``types`` plus the transitive closure of their dependencies."""
+    """Return `types` plus the transitive closure of their dependencies."""
     closure = set(types)
     queue = list(types)
     while queue:

@@ -3,7 +3,7 @@
 A *projection* is a denormalized index table for one FHIR resource type. It
 exists to answer the question "which resource ids of type T match this set
 of FHIR search params?" in pure SQL with B-tree indexes, instead of doing
-a JSONB containment scan over ``resource_versions``.
+a JSONB containment scan over `resource_versions`.
 
 Contract for subclasses
 -----------------------
@@ -25,8 +25,8 @@ And may override the optional class-attribute mappings::
     NUMBER_PARAMS: dict[str, str]  # FHIR number param -> projection column
 
 These maps drive :meth:`Projection.build_select`, which converts the request
-``params`` into a ``SELECT`` statement that joins back to
-``resource_versions`` to return the full FHIR JSON of the latest version.
+`params` into a `SELECT` statement that joins back to
+`resource_versions` to return the full FHIR JSON of the latest version.
 
 Anything not listed in those maps counts as *unsupported*; if a request
 includes an unsupported param, :meth:`Projection.supports` returns False and
@@ -71,9 +71,9 @@ _PREFIX_OPS = {
 
 
 def _parse_prefix(raw: str) -> tuple[str, str]:
-    """Split ``ge2025-01-01`` into ``("ge", "2025-01-01")``.
+    """Split `ge2025-01-01` into `("ge", "2025-01-01")`.
 
-    Defaults to ``eq`` if no recognised prefix is present.
+    Defaults to `eq` if no recognised prefix is present.
     """
     if len(raw) >= 2 and raw[:2] in _PREFIX_OPS:
         return raw[:2], raw[2:]
@@ -83,8 +83,8 @@ def _parse_prefix(raw: str) -> tuple[str, str]:
 def _parse_date(value: str) -> datetime | date | None:
     """Parse a FHIR date / dateTime to the most precise Python type we can.
 
-    Returns ``date`` for ``YYYY-MM-DD`` and ``datetime`` for full instants.
-    Returns ``None`` on parse failure so the caller can drop the filter.
+    Returns `date` for `YYYY-MM-DD` and `datetime` for full instants.
+    Returns `None` on parse failure so the caller can drop the filter.
     """
     if not value:
         return None
@@ -105,11 +105,11 @@ def _parse_number(value: str) -> Decimal | None:
 
 
 def _last_updated_clause(column: Any, value: str) -> Any:
-    """Build a SQLAlchemy WHERE clause for one ``_lastUpdated`` value.
+    """Build a SQLAlchemy WHERE clause for one `_lastUpdated` value.
 
     Uses FHIR period semantics: partial dates expand to their implied period
-    so ``eq2024-01-15`` matches any instant within that day, not just midnight.
-    Returns ``None`` if the value cannot be parsed.
+    so `eq2024-01-15` matches any instant within that day, not just midnight.
+    Returns `None` if the value cannot be parsed.
     """
     try:
         prefix, start, end = parse_date_param(value)
@@ -156,7 +156,7 @@ class Projection(ABC):
         """Return the column values to upsert into the projection table.
 
         Keys must match the projection model's column names. Missing keys
-        default to ``None`` on insert.
+        default to `None` on insert.
         """
 
     # ------------------------------------------------------------------
@@ -167,8 +167,8 @@ class Projection(ABC):
     def supported_params(self) -> set[str]:
         """Set of FHIR search params this projection can answer, lower-cased.
 
-        Always includes ``_id`` and ``_lastupdated`` -- those are served by
-        the primary key / ``last_updated`` columns that every projection has.
+        Always includes `_id` and `_lastupdated` -- those are served by
+        the primary key / `last_updated` columns that every projection has.
 
         Computed once per instance (projection singletons) and cached.
         """
@@ -182,9 +182,9 @@ class Projection(ABC):
         return params
 
     def supports(self, params: dict[str, list[str]]) -> bool:
-        """True iff every non-control param in ``params`` is supported.
+        """True iff every non-control param in `params` is supported.
 
-        Control params like ``_count`` and ``_format`` (see
+        Control params like `_count` and `_format` (see
         :data:`app.utils.constants.IGNORED_SEARCH_PARAMS`) are skipped, so they
         never disqualify the projection.
         """
@@ -199,13 +199,13 @@ class Projection(ABC):
         return True
 
     def build_select(self, params: dict[str, list[str]]) -> Select[Any]:
-        """Build a SELECT that returns the matching ``ResourceVersionRecord`` rows.
+        """Build a SELECT that returns the matching `ResourceVersionRecord` rows.
 
-        Joins the projection (filtered by ``params``) back to
-        ``resource_versions`` on ``(resource_type, resource_id, version_id)``
+        Joins the projection (filtered by `params`) back to
+        `resource_versions` on `(resource_type, resource_id, version_id)`
         so the caller can fetch the full FHIR JSON. Results are ordered
-        according to ``_sort`` params; falls back to ``last_updated DESC``
-        when ``_sort`` is absent or names only unknown columns.
+        according to `_sort` params; falls back to `last_updated DESC`
+        when `_sort` is absent or names only unknown columns.
         """
         projection_alias = aliased(self.table)
         projection_table = projection_alias.__table__
@@ -248,11 +248,11 @@ class Projection(ABC):
         return statement
 
     def _sort_columns(self, projection_table: Any, params: dict[str, list[str]]) -> list[Any]:
-        """Map ``_sort`` params to SQL ORDER BY expressions on the projection table.
+        """Map `_sort` params to SQL ORDER BY expressions on the projection table.
 
         Known FHIR params are mapped to their projection columns. Unknown params
-        are silently skipped. Falls back to ``last_updated DESC`` when no params
-        are present or none can be mapped.  Always appends ``resource_id ASC``
+        are silently skipped. Falls back to `last_updated DESC` when no params
+        are present or none can be mapped.  Always appends `resource_id ASC`
         as a stable tiebreaker.
         """
         sort_fields = parse_sort_params(params)
@@ -319,8 +319,8 @@ class Projection(ABC):
     ) -> None:
         """Insert / update many projection rows in one statement.
 
-        Each row dict must already contain ``resource_id``, ``version_id``,
-        ``last_updated`` plus the extracted columns. See
+        Each row dict must already contain `resource_id`, `version_id`,
+        `last_updated` plus the extracted columns. See
         :meth:`FHIRStore.bulk_create`.
         """
         if rows:
@@ -339,11 +339,11 @@ class Projection(ABC):
         session: Session,
         rows: list[dict[str, Any]],
     ) -> None:
-        """Dialect-aware ON CONFLICT DO UPDATE on ``resource_id``.
+        """Dialect-aware ON CONFLICT DO UPDATE on `resource_id`.
 
         Each branch is intentionally self-contained -- the dialect-specific
-        ``Insert`` subclasses (``postgresql.dml.Insert`` vs
-        ``sqlite.dml.Insert``) carry their own ``excluded`` / ``on_conflict_*``
+        `Insert` subclasses (`postgresql.dml.Insert` vs
+        `sqlite.dml.Insert`) carry their own `excluded` / `on_conflict_*`
         APIs and can't be unified into a single typed local variable.
         """
         dialect = session.bind.dialect.name if session.bind else ""
@@ -393,11 +393,11 @@ class Projection(ABC):
 
         Lookups are done against the lower-cased key to match the contract of
         :meth:`supports` (which also lower-cases): a request like
-        ``?Gender=male`` should hit the same projection column as
-        ``?gender=male``. All concrete projections declare their param keys
+        `?Gender=male` should hit the same projection column as
+        `?gender=male`. All concrete projections declare their param keys
         in lower case so this is safe.
 
-        Returns ``None`` when the param is irrelevant to this projection;
+        Returns `None` when the param is irrelevant to this projection;
         :meth:`supports` will already have rejected truly-unknown params, so
         the only return-None case is genuinely unsupported control params.
         """
@@ -445,7 +445,7 @@ class Projection(ABC):
 
     @staticmethod
     def _reference_clause(column: Any, values: list[str], default_type: str) -> Any:
-        """Build a reference equality clause that accepts ``Type/id`` or bare ``id``."""
+        """Build a reference equality clause that accepts `Type/id` or bare `id`."""
         normalized: list[str] = []
         for value in values:
             if "/" in value:
@@ -456,7 +456,7 @@ class Projection(ABC):
 
     @staticmethod
     def _range_clause(column: Any, values: list[str], parser: Any) -> Any:
-        """Build an AND of prefix comparisons (``geX``, ``ltY``, etc.) over ``column``."""
+        """Build an AND of prefix comparisons (`geX`, `ltY`, etc.) over `column`."""
         parts: list[Any] = []
         for raw in values:
             prefix, body = _parse_prefix(raw)
@@ -468,8 +468,8 @@ class Projection(ABC):
         if not parts:
             # Every value failed to parse. Emit an always-false SQL clause so
             # the query returns no rows rather than silently widening results.
-            # ``column != column`` is always false: for non-NULL values any value
-            # equals itself; for NULL, ``NULL != NULL`` yields NULL which is
+            # `column != column` is always false: for non-NULL values any value
+            # equals itself; for NULL, `NULL != NULL` yields NULL which is
             # falsy in a WHERE clause.
             return column != column
         return and_(*parts)

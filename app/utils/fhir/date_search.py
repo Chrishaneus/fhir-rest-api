@@ -1,4 +1,4 @@
-"""FHIR date search parameter parsing for ``_lastUpdated`` and date-type params.
+"""FHIR date search parameter parsing for `_lastUpdated` and date-type params.
 
 Supports the standard FHIR prefixes: eq, ne, gt, ge, lt, le, sa, eb.
 Partial dates (YYYY, YYYY-MM, YYYY-MM-DD) are expanded to an implied period;
@@ -20,13 +20,13 @@ _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def parse_date_param(value: str) -> tuple[str, datetime, datetime]:
-    """Parse a FHIR date search value into ``(prefix, period_start, period_end)``.
+    """Parse a FHIR date search value into `(prefix, period_start, period_end)`.
 
     Both bounds are UTC-normalised.  Partial dates expand to their full implied
-    period (e.g. ``2024-01-01`` → midnight…23:59:59.999999).  Full instants
-    have ``period_start == period_end``.
+    period (e.g. `2024-01-01` → midnight…23:59:59.999999).  Full instants
+    have `period_start == period_end`.
 
-    Raises ``ValueError`` for unrecognised formats.
+    Raises `ValueError` for unrecognised formats.
     """
     value = value.strip()
     prefix_match = _PREFIX_RE.match(value)
@@ -75,9 +75,9 @@ def _to_period(value: str) -> tuple[datetime, datetime]:
 
 
 def matches_last_updated(last_updated: datetime, value: str) -> bool:
-    """Return True if *last_updated* satisfies a single ``_lastUpdated`` search value.
+    """Return True if *last_updated* satisfies a single `_lastUpdated` search value.
 
-    Raises ``ValueError`` for unrecognisable values.
+    Raises `ValueError` for unrecognisable values.
     """
     prefix, start, end = parse_date_param(value)
 

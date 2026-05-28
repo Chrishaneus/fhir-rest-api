@@ -31,5 +31,5 @@ def create_token(username: str, *, role: str, token_version: int) -> str:
 
 
 def verify_token(token: str) -> dict[str, Any]:
-    """Return the full decoded payload. Raises ``jwt.PyJWTError`` if invalid."""
+    """Return the full decoded payload. Raises `jwt.PyJWTError` if invalid."""
     return jwt.decode(token, _secret(), algorithms=[_ALGORITHM])
