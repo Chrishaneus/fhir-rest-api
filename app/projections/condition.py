@@ -22,9 +22,9 @@ class ConditionProjection(Projection):
         "clinical-status": "clinical_status",
     }
     REFERENCE_PARAMS = {
-        "subject": ("subject_ref", "Patient"),
-        "patient": ("subject_ref", "Patient"),
-        "encounter": ("encounter_ref", "Encounter"),
+        "subject": ("subject_reference", "Patient"),
+        "patient": ("subject_reference", "Patient"),
+        "encounter": ("encounter_reference", "Encounter"),
     }
     DATE_PARAMS = {
         "recorded-date": "recorded_date",
@@ -32,8 +32,8 @@ class ConditionProjection(Projection):
 
     def extract(self, resource: dict[str, Any]) -> dict[str, Any]:
         return {
-            "subject_ref": reference_of(resource.get("subject")),
-            "encounter_ref": reference_of(resource.get("encounter")),
+            "subject_reference": reference_of(resource.get("subject")),
+            "encounter_reference": reference_of(resource.get("encounter")),
             "clinical_status": first_code(resource.get("clinicalStatus")),
             "code_code": first_code(resource.get("code")),
             "recorded_date": parse_fhir_date(resource.get("recordedDate")),

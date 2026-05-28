@@ -30,8 +30,8 @@ def parse_include_specs(
     """
     key = "_revinclude" if reverse else "_include"
     specs: list[tuple[str, str, str | None]] = []
-    for raw in params.get(key, []):
-        for item in raw.split(","):
+    for raw_value in params.get(key, []):
+        for item in raw_value.split(","):
             item = item.strip()
             if not item:
                 continue
@@ -48,20 +48,20 @@ def parse_include_specs(
 def _to_camel(name: str) -> str:
     """Convert kebab-case to camelCase: ``based-on`` → ``basedOn``."""
     parts = name.split("-")
-    return parts[0] + "".join(p.capitalize() for p in parts[1:])
+    return parts[0] + "".join(part.capitalize() for part in parts[1:])
 
 
-def _collect_refs(value: Any, out: list[str]) -> None:
+def _collect_refs(value: Any, output: list[str]) -> None:
     """Recursively extract ``Reference.reference`` strings from a resource subtree."""
     if isinstance(value, dict):
-        ref = value.get("reference")
-        if isinstance(ref, str) and ref:
-            out.append(ref)
-        for v in value.values():
-            _collect_refs(v, out)
+        reference_value = value.get("reference")
+        if isinstance(reference_value, str) and reference_value:
+            output.append(reference_value)
+        for child_value in value.values():
+            _collect_refs(child_value, output)
     elif isinstance(value, list):
         for item in value:
-            _collect_refs(item, out)
+            _collect_refs(item, output)
 
 
 def _extract_references(resource: dict[str, Any], param: str) -> list[str]:
@@ -70,15 +70,15 @@ def _extract_references(resource: dict[str, Any], param: str) -> list[str]:
     Tries both the raw param name and its camelCase form so that ``based-on``
     finds the ``basedOn`` key in the FHIR JSON.
     """
-    refs: list[str] = []
+    references: list[str] = []
     for key in {param, _to_camel(param)}:
         value = resource.get(key)
         if value is not None:
-            _collect_refs(value, refs)
-    return refs
+            _collect_refs(value, references)
+    return references
 
 
-def _parse_ref(ref: str) -> tuple[str, str] | None:
+def _parse_reference(ref: str) -> tuple[str, str] | None:
     """Parse ``ResourceType/id`` into ``(ResourceType, id)``, or ``None``."""
     if "/" in ref:
         parts = ref.split("/", 1)
@@ -121,17 +121,17 @@ def resolve_includes(
             if not version.resource:
                 continue
             for ref in _extract_references(version.resource, param_name):
-                parsed = _parse_ref(ref)
+                parsed = _parse_reference(ref)
                 if parsed is None:
                     continue
-                ref_type, ref_id = parsed
-                if target_type and ref_type != target_type:
+                reference_type, reference_id = parsed
+                if target_type and reference_type != target_type:
                     continue
-                if (ref_type, ref_id) in seen:
+                if (reference_type, reference_id) in seen:
                     continue
-                result = store.latest(ref_type, ref_id)
+                result = store.latest(reference_type, reference_id)
                 if result and not result.deleted:
-                    seen.add((ref_type, ref_id))
+                    seen.add((reference_type, reference_id))
                     included.append(result)
 
     # _revinclude: search for resources that point back to the page resources

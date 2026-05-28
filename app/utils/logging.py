@@ -31,9 +31,9 @@ class NdjsonHandler(logging.StreamHandler):
         }
         if record.exc_info:
             payload["exc"] = logging.Formatter().formatException(record.exc_info)
-        for key, val in record.__dict__.items():
+        for key, log_value in record.__dict__.items():
             if key not in _LOGRECORD_BUILTINS and not key.startswith("_"):
-                payload[key] = val
+                payload[key] = log_value
         try:
             self.stream.write(json.dumps(payload) + "\n")
             self.flush()

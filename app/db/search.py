@@ -85,7 +85,7 @@ def is_supported(param: str) -> bool:
 def _render(template: Any, value: str) -> Any:
     """Recursively substitute ``"{value}"`` placeholders inside a template."""
     if isinstance(template, dict):
-        return {k: _render(v, value) for k, v in template.items()}
+        return {key: _render(template_value, value) for key, template_value in template.items()}
     if isinstance(template, list):
         return [_render(item, value) for item in template]
     if isinstance(template, str) and template == "{value}":

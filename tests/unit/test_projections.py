@@ -173,8 +173,8 @@ class TestRegistry:
         Without this, a projection can advertise a fast SQL path while actually
         forcing a seq scan -- exactly the bug class Phase B exists to prevent.
         Composite indexes count only when the searchable column is *first*: a
-        btree on ``(subject_ref, code_code)`` accelerates ``code_code`` queries
-        only when ``subject_ref`` is also filtered, so it doesn't satisfy a
+        btree on ``(subject_reference, code_code)`` accelerates ``code_code`` queries
+        only when ``subject_reference`` is also filtered, so it doesn't satisfy a
         standalone ``code=...`` search.
         """
         failures: dict[str, set[str]] = {}
@@ -225,7 +225,7 @@ class TestObservationProjectionSchema:
         with SessionLocal() as session:
             row = session.execute(select(ObservationProjectionSchema)).scalar_one_or_none()
             assert row is not None
-            assert row.subject_ref == f"Patient/{pid}"
+            assert row.subject_reference == f"Patient/{pid}"
             assert row.code_code == "8867-4"
             assert row.code_system == "http://loinc.org"
             assert row.status == "final"
@@ -257,7 +257,7 @@ class TestEncounterProjectionSchema:
             assert row is not None
             assert row.status == "completed"
             assert row.class_code == "AMB"
-            assert row.subject_ref == f"Patient/{pid}"
+            assert row.subject_reference == f"Patient/{pid}"
             assert row.period_start is not None
             assert row.period_end is not None
 
@@ -281,4 +281,4 @@ class TestAllergyIntoleranceProjectionSchema:
             assert row.criticality == "high"
             assert row.clinical_status == "active"
             assert row.code_code == "227037002"
-            assert row.patient_ref == f"Patient/{pid}"
+            assert row.patient_reference == f"Patient/{pid}"

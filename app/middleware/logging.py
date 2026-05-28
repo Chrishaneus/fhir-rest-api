@@ -16,14 +16,14 @@ async def log_requests(request: Request, call_next) -> Response:
     request_id = request.headers.get("x-request-id") or uuid.uuid4().hex
     start = time.perf_counter()
     response = await call_next(request)
-    ms = round((time.perf_counter() - start) * 1000, 1)
+    duration_ms = round((time.perf_counter() - start) * 1000, 1)
     logger.info(
         "request",
         extra={
             "method": request.method,
             "path": request.url.path,
             "status": response.status_code,
-            "duration_ms": ms,
+            "duration_ms": duration_ms,
             "request_id": request_id,
         },
     )

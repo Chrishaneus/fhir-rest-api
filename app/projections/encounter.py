@@ -24,8 +24,8 @@ class EncounterProjection(Projection):
         "class": "class_code",
     }
     REFERENCE_PARAMS = {
-        "subject": ("subject_ref", "Patient"),
-        "patient": ("subject_ref", "Patient"),
+        "subject": ("subject_reference", "Patient"),
+        "patient": ("subject_reference", "Patient"),
     }
     DATE_PARAMS = {
         "date": "period_start",
@@ -45,7 +45,7 @@ class EncounterProjection(Projection):
             class_code = None
 
         return {
-            "subject_ref": reference_of(resource.get("subject")),
+            "subject_reference": reference_of(resource.get("subject")),
             "status": resource.get("status"),
             "class_code": class_code,
             "period_start": period_start(

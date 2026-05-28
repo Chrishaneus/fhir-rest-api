@@ -63,12 +63,12 @@ def first_code(codeable_concept: Any) -> str | None:
     return first_coding(codeable_concept)[1]
 
 
-def reference_of(ref: Any) -> str | None:
+def reference_of(value: Any) -> str | None:
     """Return the ``"reference"`` string from a Reference object."""
-    if not isinstance(ref, dict):
+    if not isinstance(value, dict):
         return None
-    value = ref.get("reference")
-    return value if isinstance(value, str) else None
+    reference = value.get("reference")
+    return reference if isinstance(reference, str) else None
 
 
 def codeable_reference(value: Any) -> str | None:
@@ -136,20 +136,20 @@ def effective_datetime(resource: dict[str, Any]) -> datetime | None:
     Strategy: prefer ``effectiveDateTime`` (instant), fall back to the start
     of ``effectivePeriod`` (range), then ``effectiveInstant``.
     """
-    dt = parse_fhir_datetime(resource.get("effectiveDateTime"))
-    if dt is not None:
-        return dt
-    dt = period_start(resource.get("effectivePeriod"))
-    if dt is not None:
-        return dt
+    result = parse_fhir_datetime(resource.get("effectiveDateTime"))
+    if result is not None:
+        return result
+    result = period_start(resource.get("effectivePeriod"))
+    if result is not None:
+        return result
     return parse_fhir_datetime(resource.get("effectiveInstant"))
 
 
 def performed_datetime(resource: dict[str, Any]) -> datetime | None:
     """Procedure / similar ``performed[x]`` -> a single timestamp."""
-    dt = parse_fhir_datetime(resource.get("performedDateTime"))
-    if dt is not None:
-        return dt
+    result = parse_fhir_datetime(resource.get("performedDateTime"))
+    if result is not None:
+        return result
     return period_start(resource.get("performedPeriod"))
 
 

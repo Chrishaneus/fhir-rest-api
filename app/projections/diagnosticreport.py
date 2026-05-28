@@ -22,9 +22,9 @@ class DiagnosticReportProjection(Projection):
         "code": "code_code",
     }
     REFERENCE_PARAMS = {
-        "subject": ("subject_ref", "Patient"),
-        "patient": ("subject_ref", "Patient"),
-        "encounter": ("encounter_ref", "Encounter"),
+        "subject": ("subject_reference", "Patient"),
+        "patient": ("subject_reference", "Patient"),
+        "encounter": ("encounter_reference", "Encounter"),
     }
     DATE_PARAMS = {
         "date": "effective_at",
@@ -33,8 +33,8 @@ class DiagnosticReportProjection(Projection):
 
     def extract(self, resource: dict[str, Any]) -> dict[str, Any]:
         return {
-            "subject_ref": reference_of(resource.get("subject")),
-            "encounter_ref": reference_of(resource.get("encounter")),
+            "subject_reference": reference_of(resource.get("subject")),
+            "encounter_reference": reference_of(resource.get("encounter")),
             "status": resource.get("status"),
             "code_code": first_code(resource.get("code")),
             "effective_at": effective_datetime(resource),

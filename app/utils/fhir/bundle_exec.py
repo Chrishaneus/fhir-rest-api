@@ -14,12 +14,12 @@ from fastapi import Request
 from app.store import (
     FHIRStore,
     ResourceVersion,
-    TxCreate,
-    TxDelete,
-    TxOperation,
-    TxRead,
-    TxResult,
-    TxUpdate,
+    TransactionCreate,
+    TransactionDelete,
+    TransactionOperation,
+    TransactionRead,
+    TransactionResult,
+    TransactionUpdate,
     VersionConflictError,
 )
 from app.utils.errors import FHIRHTTPError
@@ -99,13 +99,13 @@ def _process_transaction(
 ) -> dict[str, Any]:
     # Phase 1: parse + validate every entry before touching the DB
     parsed: list[_ParsedEntry] = []
-    for i, entry in enumerate(entries):
-        parsed.append(_parse_entry(entry, base, i))
+    for entry_index, entry in enumerate(entries):
+        parsed.append(_parse_entry(entry, base, entry_index))
 
     # Phase 2: build store operations and execute atomically
-    ops: list[TxOperation] = [_to_tx_operation(parsed_entry) for parsed_entry in parsed]
+    operations: list[TransactionOperation] = [_to_transaction_operation(parsed_entry) for parsed_entry in parsed]
     try:
-        results = store.execute_transaction(ops)
+        results = store.execute_transaction(operations)
     except VersionConflictError as exc:
         raise FHIRHTTPError(412, str(exc), "conflict") from exc
 
@@ -140,21 +140,21 @@ def _process_batch(
     return {"resourceType": "Bundle", "type": "batch-response", "entry": response_entries}
 
 
-def _execute_batch_entry(parsed_entry: _ParsedEntry, store: FHIRStore) -> TxResult:
+def _execute_batch_entry(parsed_entry: _ParsedEntry, store: FHIRStore) -> TransactionResult:
     version: ResourceVersion | None
     if parsed_entry.method == "POST":
         version = store.create(parsed_entry.resource_type, parsed_entry.resource or {})
-        return TxResult(version=version, created=True)
+        return TransactionResult(version=version, created=True)
     if parsed_entry.method == "PUT":
         assert parsed_entry.resource_id is not None
         version, created = store.update(parsed_entry.resource_type, parsed_entry.resource_id, parsed_entry.resource or {}, if_match=parsed_entry.if_match)
-        return TxResult(version=version, created=created)
+        return TransactionResult(version=version, created=created)
     if parsed_entry.method == "DELETE":
         assert parsed_entry.resource_id is not None
         version = store.delete(parsed_entry.resource_type, parsed_entry.resource_id)
         if version is None:
             raise FHIRHTTPError(404, f"{parsed_entry.resource_type}/{parsed_entry.resource_id} was not found", "not-found")
-        return TxResult(version=version)
+        return TransactionResult(version=version)
     # GET
     assert parsed_entry.resource_id is not None
     version = store.latest(parsed_entry.resource_type, parsed_entry.resource_id)
@@ -162,7 +162,7 @@ def _execute_batch_entry(parsed_entry: _ParsedEntry, store: FHIRStore) -> TxResu
         raise FHIRHTTPError(404, f"{parsed_entry.resource_type}/{parsed_entry.resource_id} was not found", "not-found")
     if version.deleted:
         raise FHIRHTTPError(410, f"{parsed_entry.resource_type}/{parsed_entry.resource_id} has been deleted", "deleted")
-    return TxResult(version=version)
+    return TransactionResult(version=version)
 
 
 # ---------------------------------------------------------------------------
@@ -174,11 +174,11 @@ def _parse_entry(entry: dict[str, Any], base: str, index: int) -> _ParsedEntry:
     if not isinstance(entry, dict):
         raise FHIRHTTPError(400, f"Entry {index} is not an object", "structure")
 
-    req = entry.get("request")
-    if not isinstance(req, dict):
+    request_entry = entry.get("request")
+    if not isinstance(request_entry, dict):
         raise FHIRHTTPError(400, f"Entry {index} is missing required 'request' field", "required")
 
-    method = str(req.get("method", "")).upper()
+    method = str(request_entry.get("method", "")).upper()
     if method not in _SUPPORTED_METHODS:
         raise FHIRHTTPError(
             400,
@@ -186,14 +186,14 @@ def _parse_entry(entry: dict[str, Any], base: str, index: int) -> _ParsedEntry:
             "not-supported",
         )
 
-    url = str(req.get("url", ""))
+    url = str(request_entry.get("url", ""))
     if not url:
         raise FHIRHTTPError(400, f"Entry {index}: request.url is required", "required")
 
     resource_type, resource_id = _parse_url(url, base, index)
     assert_resource_type(resource_type)
 
-    if_match = req.get("ifMatch") or None
+    if_match = request_entry.get("ifMatch") or None
     raw_resource = entry.get("resource")
     validated_resource: dict[str, Any] | None = None
 
@@ -201,7 +201,7 @@ def _parse_entry(entry: dict[str, Any], base: str, index: int) -> _ParsedEntry:
         if not isinstance(raw_resource, dict):
             raise FHIRHTTPError(400, f"Entry {index}: POST requires a resource body", "required")
         # Strip id — server assigns it
-        payload = {k: v for k, v in raw_resource.items() if k != "id"}
+        payload = {key: value for key, value in raw_resource.items() if key != "id"}
         validated_resource = validate_request_body(resource_type, payload)
 
     elif method == "PUT":
@@ -234,7 +234,7 @@ def _parse_url(url: str, base: str, index: int) -> tuple[str, str | None]:
             url = url[len(prefix):]
             break
     url = url.lstrip("/").split("?")[0]  # ignore query string (conditional ops not supported)
-    parts = [p for p in url.split("/") if p]
+    parts = [part for part in url.split("/") if part]
     if not parts:
         raise FHIRHTTPError(400, f"Entry {index}: could not parse resource type from URL '{url}'", "invalid")
     return parts[0], parts[1] if len(parts) > 1 else None
@@ -245,18 +245,18 @@ def _parse_url(url: str, base: str, index: int) -> tuple[str, str | None]:
 # ---------------------------------------------------------------------------
 
 
-def _to_tx_operation(parsed_entry: _ParsedEntry) -> TxOperation:
+def _to_transaction_operation(parsed_entry: _ParsedEntry) -> TransactionOperation:
     if parsed_entry.method == "POST":
-        return TxCreate(resource_type=parsed_entry.resource_type, resource=parsed_entry.resource or {})
+        return TransactionCreate(resource_type=parsed_entry.resource_type, resource=parsed_entry.resource or {})
     if parsed_entry.method == "PUT":
         assert parsed_entry.resource_id is not None
-        return TxUpdate(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id, resource=parsed_entry.resource or {}, if_match=parsed_entry.if_match)
+        return TransactionUpdate(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id, resource=parsed_entry.resource or {}, if_match=parsed_entry.if_match)
     if parsed_entry.method == "DELETE":
         assert parsed_entry.resource_id is not None
-        return TxDelete(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id)
+        return TransactionDelete(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id)
     # GET
     assert parsed_entry.resource_id is not None
-    return TxRead(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id)
+    return TransactionRead(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id)
 
 
 # ---------------------------------------------------------------------------
@@ -265,7 +265,7 @@ def _to_tx_operation(parsed_entry: _ParsedEntry) -> TxOperation:
 
 
 def _build_success_entry(
-    parsed_entry: _ParsedEntry, result: TxResult, base: str
+    parsed_entry: _ParsedEntry, result: TransactionResult, base: str
 ) -> dict[str, Any]:
     version = result.version
     entry: dict[str, Any] = {}

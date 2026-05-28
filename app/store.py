@@ -61,14 +61,14 @@ def _apply_python_sort(
     result = list(versions)
     for field, ascending in reversed(sort_fields):
         result.sort(
-            key=lambda v: _sort_key_for_field(v, field),
+            key=lambda version: _sort_key_for_field(version, field),
             reverse=not ascending,
         )
     return result
 
 
 def _last_updated_sql_clause(
-    col: ColumnElement[Any], value: str
+    column: ColumnElement[Any], value: str
 ) -> ColumnElement[bool] | None:
     """Return a SQLAlchemy filter clause for a single ``_lastUpdated`` value.
 
@@ -79,17 +79,17 @@ def _last_updated_sql_clause(
     except ValueError:
         return None
     if prefix == "eq":
-        return and_(col >= start, col <= end)
+        return and_(column >= start, column <= end)
     if prefix == "ne":
-        return not_(and_(col >= start, col <= end))
+        return not_(and_(column >= start, column <= end))
     if prefix in ("gt", "sa"):
-        return col > end
+        return column > end
     if prefix == "ge":
-        return col >= start
+        return column >= start
     if prefix in ("lt", "eb"):
-        return col < start
+        return column < start
     if prefix == "le":
-        return col <= end
+        return column <= end
     return None
 
 
@@ -98,11 +98,12 @@ def _apply_last_updated_filter(
     params: dict[str, list[str]],
 ) -> list["ResourceVersion"]:
     """Post-filter *versions* by every ``_lastUpdated`` value in *params* (AND semantics)."""
-    raw = split_csv_values(params.get("_lastUpdated", []))
-    if not raw:
+    filter_values = split_csv_values(params.get("_lastUpdated", []))
+    if not filter_values:
         return versions
     return [
-        v for v in versions if all(matches_last_updated(v.last_updated, val) for val in raw)
+        version for version in versions
+        if all(matches_last_updated(version.last_updated, last_updated_value) for last_updated_value in filter_values)
     ]
 
 
@@ -126,13 +127,13 @@ class ResourceVersion:
 
 
 @dataclass
-class TxCreate:
+class TransactionCreate:
     resource_type: str
     resource: dict[str, Any]
 
 
 @dataclass
-class TxUpdate:
+class TransactionUpdate:
     resource_type: str
     resource_id: str
     resource: dict[str, Any]
@@ -140,22 +141,22 @@ class TxUpdate:
 
 
 @dataclass
-class TxDelete:
+class TransactionDelete:
     resource_type: str
     resource_id: str
 
 
 @dataclass
-class TxRead:
+class TransactionRead:
     resource_type: str
     resource_id: str
 
 
-TxOperation = Union[TxCreate, TxUpdate, TxDelete, TxRead]
+TransactionOperation = Union[TransactionCreate, TransactionUpdate, TransactionDelete, TransactionRead]
 
 
 @dataclass
-class TxResult:
+class TransactionResult:
     version: ResourceVersion | None
     created: bool = False
 
@@ -352,13 +353,13 @@ class FHIRStore:
                 )
                 projection = projection_registry.for_type(resource_type)
                 if projection is not None:
-                    cols = projection.extract(prepared)
-                    cols.update(
+                    extracted_columns = projection.extract(prepared)
+                    extracted_columns.update(
                         resource_id=resource_id,
                         version_id="1",
                         last_updated=last_updated,
                     )
-                    projection_batches.setdefault(resource_type, []).append(cols)
+                    projection_batches.setdefault(resource_type, []).append(extracted_columns)
                 submitted += 1
                 if len(batch) >= batch_size:
                     flush(batch)
@@ -381,12 +382,12 @@ class FHIRStore:
         self, resource_type: str, resource_id: str, version_id: str
     ) -> ResourceVersion | None:
         with self._session_factory() as session:
-            stmt = select(ResourceVersionRecord).where(
+            statement = select(ResourceVersionRecord).where(
                 ResourceVersionRecord.resource_type == resource_type,
                 ResourceVersionRecord.resource_id == resource_id,
                 ResourceVersionRecord.version_id == version_id,
             )
-            return self._to_version(session.execute(stmt).scalar_one_or_none())
+            return self._to_version(session.execute(statement).scalar_one_or_none())
 
     def search(
         self, resource_type: str, params: dict[str, list[str]]
@@ -400,8 +401,8 @@ class FHIRStore:
             if selected_types:
                 resource_types = selected_types
             else:
-                stmt = select(ResourceVersionRecord.resource_type).distinct()
-                resource_types = [row for (row,) in session.execute(stmt).all()]
+                statement = select(ResourceVersionRecord.resource_type).distinct()
+                resource_types = [row for (row,) in session.execute(statement).all()]
 
             matches: list[ResourceVersion] = []
             for resource_type in resource_types:
@@ -424,14 +425,14 @@ class FHIRStore:
         anchor = self.latest(resource_type, resource_id)
         if anchor is None or anchor.deleted:
             return anchor, []
-        ref = f"{resource_type}/{resource_id}"
+        resource_reference = f"{resource_type}/{resource_id}"
         with self._session_factory() as session:
             if self._is_postgres:
-                linked = self._sql_resource_everything(session, resource_type, ref)
+                linked = self._sql_resource_everything(session, resource_type, resource_reference)
             else:
-                params: dict[str, list[str]] = {"reference": [ref]}
-                stmt = select(ResourceVersionRecord.resource_type).distinct()
-                all_types = [row for (row,) in session.execute(stmt).all()]
+                params: dict[str, list[str]] = {"reference": [resource_reference]}
+                statement = select(ResourceVersionRecord.resource_type).distinct()
+                all_types = [row for (row,) in session.execute(statement).all()]
                 linked = []
                 for linked_type in all_types:
                     if linked_type == resource_type:
@@ -440,14 +441,14 @@ class FHIRStore:
         return anchor, linked
 
     def _sql_resource_everything(
-        self, session: Session, anchor_type: str, ref: str
+        self, session: Session, anchor_type: str, resource_reference: str
     ) -> list[ResourceVersion]:
-        """Postgres-only: find all resources of other types that reference ``ref``.
+        """Postgres-only: find all resources of other types that reference ``resource_reference``.
 
         Uses ``jsonb_path_exists`` with the recursive jsonpath operator ``**``
         so any ``"reference"`` key at any nesting depth (including extensions)
-        is matched.  ``ref`` is bound through a JSONB vars object (``$ref``)
-        rather than interpolated into the path string.
+        is matched.  ``resource_reference`` is bound through a JSONB vars object
+        (``$ref``) rather than interpolated into the path string.
         """
         latest = (
             select(ResourceVersionRecord)
@@ -467,14 +468,14 @@ class FHIRStore:
         LatestRV = aliased(ResourceVersionRecord, latest)
 
         _jpath: ColumnElement[str] = literal_column("'$.**.reference ? (@ == $ref)'::jsonpath")
-        _vars = bindparam(None, {"ref": ref}, type_=JSONB)
+        _vars = bindparam(None, {"ref": resource_reference}, type_=JSONB)
 
-        stmt = select(LatestRV).where(
+        statement = select(LatestRV).where(
             LatestRV.deleted.is_(False),
             func.jsonb_path_exists(LatestRV.content, _jpath, _vars),
         )
-        records = session.execute(stmt).scalars().all()
-        return [v for v in (self._to_version(r) for r in records) if v]
+        records = session.execute(statement).scalars().all()
+        return [version for version in (self._to_version(record) for record in records) if version]
 
     def _dispatch_search(
         self,
@@ -503,7 +504,7 @@ class FHIRStore:
         # projection's build_select filters on its own resource_type in the JOIN.
         projection = projection_registry.for_type(resource_type)
         if projection is not None and projection.supports(
-            {k: v for k, v in params.items() if k != "_type"}
+            {key: value for key, value in params.items() if key != "_type"}
         ):
             return self._projection_search(session, projection, params)
 
@@ -523,10 +524,10 @@ class FHIRStore:
     ) -> list[ResourceVersion]:
         """Run a projection-backed query and materialize to ``ResourceVersion``s."""
         # Strip system-search-only params before passing to the projection.
-        proj_params = {k: v for k, v in params.items() if k != "_type"}
-        stmt = projection.build_select(proj_params)
-        records = session.execute(stmt).scalars().all()
-        return [v for v in (self._to_version(r) for r in records) if v]
+        proj_params = {key: value for key, value in params.items() if key != "_type"}
+        statement = projection.build_select(proj_params)
+        records = session.execute(statement).scalars().all()
+        return [version for version in (self._to_version(record) for record in records) if version]
 
     def _sql_search(
         self,
@@ -556,23 +557,23 @@ class FHIRStore:
         # inside could promote an older version to "latest" within the filtered
         # set and return wrong results.  The full outer filters below still apply
         # for correctness; the inner filters are purely a performance hint.
-        lu_values = split_csv_values(params.get("_lastUpdated", []))
-        inner_lu_filters: list[ColumnElement[bool]] = []
-        for lu_val in lu_values:
+        last_updated_values = split_csv_values(params.get("_lastUpdated", []))
+        inner_last_updated_filters: list[ColumnElement[bool]] = []
+        for last_updated_value in last_updated_values:
             try:
-                prefix, start, end = parse_date_param(lu_val)
+                prefix, start, end = parse_date_param(last_updated_value)
             except ValueError:
                 continue
             if prefix == "ge":
-                inner_lu_filters.append(ResourceVersionRecord.last_updated >= start)
+                inner_last_updated_filters.append(ResourceVersionRecord.last_updated >= start)
             elif prefix in ("gt", "sa"):
-                inner_lu_filters.append(ResourceVersionRecord.last_updated > end)
+                inner_last_updated_filters.append(ResourceVersionRecord.last_updated > end)
             elif prefix == "eq":
-                inner_lu_filters.append(ResourceVersionRecord.last_updated >= start)
+                inner_last_updated_filters.append(ResourceVersionRecord.last_updated >= start)
 
         latest = (
             select(ResourceVersionRecord)
-            .where(ResourceVersionRecord.resource_type == resource_type, *inner_lu_filters)
+            .where(ResourceVersionRecord.resource_type == resource_type, *inner_last_updated_filters)
             .order_by(
                 ResourceVersionRecord.resource_id,
                 ResourceVersionRecord.last_updated.desc(),
@@ -593,8 +594,8 @@ class FHIRStore:
         if id_values:
             filters.append(LatestRV.resource_id.in_(id_values))
 
-        for lu_val in lu_values:
-            clause = _last_updated_sql_clause(LatestRV.last_updated, lu_val)
+        for last_updated_value in last_updated_values:
+            clause = _last_updated_sql_clause(LatestRV.last_updated, last_updated_value)
             if clause is not None:
                 filters.append(clause)
 
@@ -618,13 +619,13 @@ class FHIRStore:
             ]
             filters.append(or_(*or_clauses))
 
-        stmt = (
+        statement = (
             select(LatestRV)
             .where(*filters)
             .order_by(LatestRV.last_updated.desc(), LatestRV.id.desc())
         )
-        records = session.execute(stmt).scalars().all()
-        versions = [v for v in (self._to_version(r) for r in records) if v]
+        records = session.execute(statement).scalars().all()
+        versions = [version for version in (self._to_version(record) for record in records) if version]
         return _apply_python_sort(versions, params)
 
     def _python_search(
@@ -642,18 +643,18 @@ class FHIRStore:
         """
         id_values = split_csv_values(params.get("_id", []))
         other_params = {
-            k: v
-            for k, v in params.items()
-            if k not in IGNORED_SEARCH_PARAMS and k != "_id"
+            key: value
+            for key, value in params.items()
+            if key not in IGNORED_SEARCH_PARAMS and key != "_id"
         }
         if id_values and not other_params:
             results: list[ResourceVersion] = []
-            for rid in id_values:
-                rec = self._latest_record(session, resource_type, rid)
-                if rec and not rec.deleted:
-                    v = self._to_version(rec)
-                    if v:
-                        results.append(v)
+            for resource_id in id_values:
+                record = self._latest_record(session, resource_type, resource_id)
+                if record and not record.deleted:
+                    version = self._to_version(record)
+                    if version:
+                        results.append(version)
             return _apply_last_updated_filter(results, params)
 
         records = self._latest_records_for_type(session, resource_type)
@@ -677,28 +678,28 @@ class FHIRStore:
         limit: int | None = None,
     ) -> list[ResourceVersion]:
         with self._session_factory() as session:
-            stmt = select(ResourceVersionRecord).order_by(
+            statement = select(ResourceVersionRecord).order_by(
                 desc(ResourceVersionRecord.last_updated),
                 desc(ResourceVersionRecord.id),
             )
             if resource_type is not None:
-                stmt = stmt.where(ResourceVersionRecord.resource_type == resource_type)
+                statement = statement.where(ResourceVersionRecord.resource_type == resource_type)
             if resource_id is not None:
-                stmt = stmt.where(ResourceVersionRecord.resource_id == resource_id)
+                statement = statement.where(ResourceVersionRecord.resource_id == resource_id)
             if limit is not None:
-                stmt = stmt.limit(limit)
-            records = session.execute(stmt).scalars().all()
+                statement = statement.limit(limit)
+            records = session.execute(statement).scalars().all()
             return [v for v in (self._to_version(record) for record in records) if v]
 
     def resource_types_in_use(self) -> set[str]:
         with self._session_factory() as session:
-            stmt = select(ResourceVersionRecord.resource_type).distinct()
-            return {row for (row,) in session.execute(stmt).all()}
+            statement = select(ResourceVersionRecord.resource_type).distinct()
+            return {row for (row,) in session.execute(statement).all()}
 
     def _latest_record(
         self, session: Session, resource_type: str, resource_id: str
     ) -> ResourceVersionRecord | None:
-        stmt = (
+        statement = (
             select(ResourceVersionRecord)
             .where(
                 ResourceVersionRecord.resource_type == resource_type,
@@ -707,14 +708,14 @@ class FHIRStore:
             .order_by(desc(ResourceVersionRecord.last_updated), desc(ResourceVersionRecord.id))
             .limit(1)
         )
-        return session.execute(stmt).scalar_one_or_none()
+        return session.execute(statement).scalar_one_or_none()
 
     def _latest_records_for_type(
         self, session: Session, resource_type: str
     ) -> list[ResourceVersionRecord]:
         # Single query: subquery finds the max(id) per resource_id, then join
         # back to get the full row. Uses id as a monotonic proxy for "latest".
-        subq = (
+        subquery = (
             select(
                 ResourceVersionRecord.resource_id,
                 func.max(ResourceVersionRecord.id).label("max_id"),
@@ -723,10 +724,10 @@ class FHIRStore:
             .group_by(ResourceVersionRecord.resource_id)
             .subquery()
         )
-        stmt = select(ResourceVersionRecord).join(
-            subq, ResourceVersionRecord.id == subq.c.max_id
+        statement = select(ResourceVersionRecord).join(
+            subquery, ResourceVersionRecord.id == subquery.c.max_id
         )
-        return list(session.execute(stmt).scalars().all())
+        return list(session.execute(statement).scalars().all())
 
     def _to_version(self, record: ResourceVersionRecord | None) -> ResourceVersion | None:
         if record is None:
@@ -778,30 +779,30 @@ class FHIRStore:
     # Transaction / batch support
     # ------------------------------------------------------------------
 
-    def execute_transaction(self, operations: list[TxOperation]) -> list[TxResult]:
+    def execute_transaction(self, operations: list[TransactionOperation]) -> list[TransactionResult]:
         """Execute *operations* atomically in a single session.
 
         Commits only if every operation succeeds; any exception causes a
         full rollback and is re-raised to the caller.
         """
         with self._lock, self._session_factory() as session:
-            results: list[TxResult] = []
-            for op in operations:
-                results.append(self._execute_tx_op(session, op))
+            results: list[TransactionResult] = []
+            for operation in operations:
+                results.append(self._execute_transaction_op(session, operation))
             session.commit()
             return results
 
-    def _execute_tx_op(self, session: Session, op: TxOperation) -> TxResult:
-        if isinstance(op, TxCreate):
-            return TxResult(version=self._create_in_session(session, op.resource_type, op.resource), created=True)
-        if isinstance(op, TxUpdate):
-            version, created = self._update_in_session(session, op.resource_type, op.resource_id, op.resource, if_match=op.if_match)
-            return TxResult(version=version, created=created)
-        if isinstance(op, TxDelete):
-            return TxResult(version=self._delete_in_session(session, op.resource_type, op.resource_id))
-        # TxRead
+    def _execute_transaction_op(self, session: Session, operation: TransactionOperation) -> TransactionResult:
+        if isinstance(operation, TransactionCreate):
+            return TransactionResult(version=self._create_in_session(session, operation.resource_type, operation.resource), created=True)
+        if isinstance(operation, TransactionUpdate):
+            version, created = self._update_in_session(session, operation.resource_type, operation.resource_id, operation.resource, if_match=operation.if_match)
+            return TransactionResult(version=version, created=created)
+        if isinstance(operation, TransactionDelete):
+            return TransactionResult(version=self._delete_in_session(session, operation.resource_type, operation.resource_id))
+        # TransactionRead
         session.flush()  # make pending writes visible within this transaction
-        return TxResult(version=self._to_version(self._latest_record(session, op.resource_type, op.resource_id)))
+        return TransactionResult(version=self._to_version(self._latest_record(session, operation.resource_type, operation.resource_id)))
 
     def _create_in_session(
         self, session: Session, resource_type: str, resource: dict[str, Any]

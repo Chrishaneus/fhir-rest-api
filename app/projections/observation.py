@@ -3,9 +3,9 @@
 Observation is the hottest table in any real EHR -- vital signs, lab results,
 imaging measurements all flow through it. The projection prioritizes:
 
-* ``subject_ref`` + ``effective_at`` for chart timelines (composite index)
-* ``subject_ref`` + ``code_code`` for "all values of this code for this patient"
-* ``encounter_ref`` for encounter views
+* ``subject_reference`` + ``effective_at`` for chart timelines (composite index)
+* ``subject_reference`` + ``code_code`` for "all values of this code for this patient"
+* ``encounter_reference`` for encounter views
 * ``value_quantity_value`` for numeric range queries (e.g. ``value-quantity=gt140``)
 """
 
@@ -35,9 +35,9 @@ class ObservationProjection(Projection):
         "category": "category_code",
     }
     REFERENCE_PARAMS = {
-        "subject": ("subject_ref", "Patient"),
-        "patient": ("subject_ref", "Patient"),
-        "encounter": ("encounter_ref", "Encounter"),
+        "subject": ("subject_reference", "Patient"),
+        "patient": ("subject_reference", "Patient"),
+        "encounter": ("encounter_reference", "Encounter"),
     }
     DATE_PARAMS = {
         "date": "effective_at",
@@ -51,8 +51,8 @@ class ObservationProjection(Projection):
         code_system, code_code = first_coding(resource.get("code"))
         value_value, value_unit = quantity_parts(resource.get("valueQuantity"))
         return {
-            "subject_ref": reference_of(resource.get("subject")),
-            "encounter_ref": reference_of(resource.get("encounter")),
+            "subject_reference": reference_of(resource.get("subject")),
+            "encounter_reference": reference_of(resource.get("encounter")),
             "status": resource.get("status"),
             "code_system": code_system,
             "code_code": code_code,

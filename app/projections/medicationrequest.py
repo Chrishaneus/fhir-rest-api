@@ -18,9 +18,9 @@ class MedicationRequestProjection(Projection):
         "intent": "intent",
     }
     REFERENCE_PARAMS = {
-        "subject": ("subject_ref", "Patient"),
-        "patient": ("subject_ref", "Patient"),
-        "requester": ("requester_ref", "Practitioner"),
+        "subject": ("subject_reference", "Patient"),
+        "patient": ("subject_reference", "Patient"),
+        "requester": ("requester_reference", "Practitioner"),
     }
     DATE_PARAMS = {
         "authoredon": "authored_on",
@@ -28,11 +28,11 @@ class MedicationRequestProjection(Projection):
 
     def extract(self, resource: dict[str, Any]) -> dict[str, Any]:
         return {
-            "subject_ref": reference_of(resource.get("subject")),
+            "subject_reference": reference_of(resource.get("subject")),
             "status": resource.get("status"),
             "intent": resource.get("intent"),
             "authored_on": parse_fhir_datetime(resource.get("authoredOn")),
-            "requester_ref": reference_of(resource.get("requester")),
+            "requester_reference": reference_of(resource.get("requester")),
         }
 
 

@@ -57,16 +57,16 @@ from app.utils.fhir.search import parse_sort_params, split_csv_values
 # Search-param prefixes supported on date / number params.
 # https://hl7.org/fhir/R5/search.html#prefix
 _PREFIX_OPS = {
-    "eq": lambda col, v: col == v,
-    "ne": lambda col, v: col != v,
-    "gt": lambda col, v: col > v,
-    "lt": lambda col, v: col < v,
-    "ge": lambda col, v: col >= v,
-    "le": lambda col, v: col <= v,
+    "eq": lambda column, value: column == value,
+    "ne": lambda column, value: column != value,
+    "gt": lambda column, value: column > value,
+    "lt": lambda column, value: column < value,
+    "ge": lambda column, value: column >= value,
+    "le": lambda column, value: column <= value,
     # `sa` / `eb` (starts-after / ends-before) collapse to `gt` / `lt` for
     # point-in-time columns. Full period semantics would need two columns.
-    "sa": lambda col, v: col > v,
-    "eb": lambda col, v: col < v,
+    "sa": lambda column, value: column > value,
+    "eb": lambda column, value: column < value,
 }
 
 
@@ -104,7 +104,7 @@ def _parse_number(value: str) -> Decimal | None:
         return None
 
 
-def _last_updated_clause(col: Any, value: str) -> Any:
+def _last_updated_clause(column: Any, value: str) -> Any:
     """Build a SQLAlchemy WHERE clause for one ``_lastUpdated`` value.
 
     Uses FHIR period semantics: partial dates expand to their implied period
@@ -116,17 +116,17 @@ def _last_updated_clause(col: Any, value: str) -> Any:
     except ValueError:
         return None
     if prefix == "eq":
-        return and_(col >= start, col <= end)
+        return and_(column >= start, column <= end)
     if prefix == "ne":
-        return not_(and_(col >= start, col <= end))
+        return not_(and_(column >= start, column <= end))
     if prefix in ("gt", "sa"):
-        return col > end
+        return column > end
     if prefix == "ge":
-        return col >= start
+        return column >= start
     if prefix in ("lt", "eb"):
-        return col < start
+        return column < start
     if prefix == "le":
-        return col <= end
+        return column <= end
     return None
 
 
@@ -173,12 +173,12 @@ class Projection(ABC):
         Computed once per instance (projection singletons) and cached.
         """
         params: set[str] = {"_id", "_lastupdated"}
-        params.update(p.lower() for p in self.TOKEN_PARAMS)
-        params.update(p.lower() for p in self.STRING_PARAMS)
-        params.update(p.lower() for p in self.REFERENCE_PARAMS)
-        params.update(p.lower() for p in self.DATE_PARAMS)
-        params.update(p.lower() for p in self.NUMBER_PARAMS)
-        params.update(p.lower() for p in self.BOOL_PARAMS)
+        params.update(param.lower() for param in self.TOKEN_PARAMS)
+        params.update(param.lower() for param in self.STRING_PARAMS)
+        params.update(param.lower() for param in self.REFERENCE_PARAMS)
+        params.update(param.lower() for param in self.DATE_PARAMS)
+        params.update(param.lower() for param in self.NUMBER_PARAMS)
+        params.update(param.lower() for param in self.BOOL_PARAMS)
         return params
 
     def supports(self, params: dict[str, list[str]]) -> bool:
@@ -207,8 +207,8 @@ class Projection(ABC):
         according to ``_sort`` params; falls back to ``last_updated DESC``
         when ``_sort`` is absent or names only unknown columns.
         """
-        proj = aliased(self.table)
-        proj_table = proj.__table__
+        projection_alias = aliased(self.table)
+        projection_table = projection_alias.__table__
         clauses: list[Any] = []
 
         for key, raw_values in params.items():
@@ -217,37 +217,37 @@ class Projection(ABC):
             values = split_csv_values(raw_values)
             if not values:
                 continue
-            clause = self._param_clause(proj_table, key, values)
+            clause = self._param_clause(projection_table, key, values)
             if clause is not None:
                 clauses.append(clause)
 
         # _lastUpdated is in IGNORED_SEARCH_PARAMS (to keep it out of the JSONB
         # containment loop and resource_matches), so it must be handled here
         # explicitly to push the filter into SQL against the indexed column.
-        for lu_val in split_csv_values(params.get("_lastUpdated", [])):
-            clause = _last_updated_clause(proj_table.c.last_updated, lu_val)
+        for last_updated_value in split_csv_values(params.get("_lastUpdated", [])):
+            clause = _last_updated_clause(projection_table.c.last_updated, last_updated_value)
             if clause is not None:
                 clauses.append(clause)
 
-        rv = aliased(ResourceVersionRecord)
-        stmt = (
-            select(rv)
+        resource_version = aliased(ResourceVersionRecord)
+        statement = (
+            select(resource_version)
             .select_from(
-                proj_table.join(
-                    rv,
+                projection_table.join(
+                    resource_version,
                     and_(
-                        rv.resource_type == self.resource_type,
-                        rv.resource_id == proj_table.c.resource_id,
-                        rv.version_id == proj_table.c.version_id,
+                        resource_version.resource_type == self.resource_type,
+                        resource_version.resource_id == projection_table.c.resource_id,
+                        resource_version.version_id == projection_table.c.version_id,
                     ),
                 )
             )
-            .where(*clauses, rv.deleted.is_(False))
-            .order_by(*self._sort_columns(proj_table, params))
+            .where(*clauses, resource_version.deleted.is_(False))
+            .order_by(*self._sort_columns(projection_table, params))
         )
-        return stmt
+        return statement
 
-    def _sort_columns(self, proj_table: Any, params: dict[str, list[str]]) -> list[Any]:
+    def _sort_columns(self, projection_table: Any, params: dict[str, list[str]]) -> list[Any]:
         """Map ``_sort`` params to SQL ORDER BY expressions on the projection table.
 
         Known FHIR params are mapped to their projection columns. Unknown params
@@ -259,35 +259,35 @@ class Projection(ABC):
 
         # Build a flat param→column name lookup across all param type maps.
         sortable: dict[str, str] = {"_id": "resource_id", "_lastupdated": "last_updated"}
-        for param, col in self.TOKEN_PARAMS.items():
-            sortable[param.lower()] = col
-        for param, col in self.STRING_PARAMS.items():
-            sortable[param.lower()] = col
-        for param, col in self.DATE_PARAMS.items():
-            sortable[param.lower()] = col
-        for param, col in self.NUMBER_PARAMS.items():
-            sortable[param.lower()] = col
-        for param, col in self.BOOL_PARAMS.items():
-            sortable[param.lower()] = col
-        for param, (col, _) in self.REFERENCE_PARAMS.items():
-            sortable[param.lower()] = col
+        for param, column_name in self.TOKEN_PARAMS.items():
+            sortable[param.lower()] = column_name
+        for param, column_name in self.STRING_PARAMS.items():
+            sortable[param.lower()] = column_name
+        for param, column_name in self.DATE_PARAMS.items():
+            sortable[param.lower()] = column_name
+        for param, column_name in self.NUMBER_PARAMS.items():
+            sortable[param.lower()] = column_name
+        for param, column_name in self.BOOL_PARAMS.items():
+            sortable[param.lower()] = column_name
+        for param, (column_name, _) in self.REFERENCE_PARAMS.items():
+            sortable[param.lower()] = column_name
 
         if not sort_fields:
-            return [proj_table.c.last_updated.desc(), proj_table.c.resource_id.asc()]
+            return [projection_table.c.last_updated.desc(), projection_table.c.resource_id.asc()]
 
         order: list[Any] = []
         for field, ascending in sort_fields:
-            col_name = sortable.get(field.lower())
-            if col_name is None:
+            column_name = sortable.get(field.lower())
+            if column_name is None:
                 continue
-            col = proj_table.c[col_name]
-            order.append(asc(col) if ascending else desc(col))
+            column = projection_table.c[column_name]
+            order.append(asc(column) if ascending else desc(column))
 
         if not order:
             # None of the requested fields are sortable in SQL; use default.
-            return [proj_table.c.last_updated.desc(), proj_table.c.resource_id.asc()]
+            return [projection_table.c.last_updated.desc(), projection_table.c.resource_id.asc()]
 
-        order.append(proj_table.c.resource_id.asc())
+        order.append(projection_table.c.resource_id.asc())
         return order
 
     # ------------------------------------------------------------------
@@ -304,13 +304,13 @@ class Projection(ABC):
         resource: dict[str, Any],
     ) -> None:
         """Insert or update one projection row for the given resource."""
-        cols = self.extract(resource)
-        cols.update(
+        extracted_columns = self.extract(resource)
+        extracted_columns.update(
             resource_id=resource_id,
             version_id=version_id,
             last_updated=last_updated,
         )
-        self._upsert_rows(session, [cols])
+        self._upsert_rows(session, [extracted_columns])
 
     def bulk_upsert_rows(
         self,
@@ -327,8 +327,8 @@ class Projection(ABC):
             self._upsert_rows(session, rows)
 
     def delete_row(self, session: Session, resource_id: str) -> None:
-        stmt = delete(self.table).where(self.table.resource_id == resource_id)
-        session.execute(stmt)
+        statement = delete(self.table).where(self.table.resource_id == resource_id)
+        session.execute(statement)
 
     # ------------------------------------------------------------------
     # Internals
@@ -350,26 +350,26 @@ class Projection(ABC):
         columns = self.table.__table__.columns
 
         if dialect == "postgresql":
-            pg_stmt = pg_insert(self.table).values(rows)
+            pg_statement = pg_insert(self.table).values(rows)
             session.execute(
-                pg_stmt.on_conflict_do_update(
+                pg_statement.on_conflict_do_update(
                     index_elements=["resource_id"],
                     set_={
-                        c.name: pg_stmt.excluded[c.name]
-                        for c in columns
-                        if c.name != "resource_id"
+                        column_def.name: pg_statement.excluded[column_def.name]
+                        for column_def in columns
+                        if column_def.name != "resource_id"
                     },
                 )
             )
             return
 
         if dialect == "sqlite":
-            sqlite_stmt = sqlite_insert(self.table).values(rows)
+            sqlite_statement = sqlite_insert(self.table).values(rows)
             session.execute(
-                sqlite_stmt.on_conflict_do_update(
+                sqlite_statement.on_conflict_do_update(
                     index_elements=["resource_id"],
                     set_={
-                        c.name: sqlite_stmt.excluded[c.name]
+                        c.name: sqlite_statement.excluded[c.name]
                         for c in columns
                         if c.name != "resource_id"
                     },
@@ -385,7 +385,7 @@ class Projection(ABC):
 
     def _param_clause(
         self,
-        proj_table: Any,
+        projection_table: Any,
         key: str,
         values: list[str],
     ) -> Any:
@@ -404,47 +404,47 @@ class Projection(ABC):
         lower = key.lower()
 
         if lower == "_id":
-            return proj_table.c.resource_id.in_(values)
+            return projection_table.c.resource_id.in_(values)
 
         if lower == "_lastupdated":
             return self._range_clause(
-                proj_table.c.last_updated, values, _parse_date
+                projection_table.c.last_updated, values, _parse_date
             )
 
         if lower in self.TOKEN_PARAMS:
-            col = proj_table.c[self.TOKEN_PARAMS[lower]]
-            return col.in_(values)
+            column = projection_table.c[self.TOKEN_PARAMS[lower]]
+            return column.in_(values)
 
         if lower in self.STRING_PARAMS:
-            col = proj_table.c[self.STRING_PARAMS[lower]]
+            column = projection_table.c[self.STRING_PARAMS[lower]]
             # FHIR string semantics: "starts with, case-insensitive".
-            return or_(*[func.lower(col).like(v.lower() + "%") for v in values])
+            return or_(*[func.lower(column).like(v.lower() + "%") for v in values])
 
         if lower in self.REFERENCE_PARAMS:
-            col_name, default_type = self.REFERENCE_PARAMS[lower]
-            col = proj_table.c[col_name]
-            return self._reference_clause(col, values, default_type)
+            column_name, default_type = self.REFERENCE_PARAMS[lower]
+            column = projection_table.c[column_name]
+            return self._reference_clause(column, values, default_type)
 
         if lower in self.DATE_PARAMS:
-            col = proj_table.c[self.DATE_PARAMS[lower]]
-            return self._range_clause(col, values, _parse_date)
+            column = projection_table.c[self.DATE_PARAMS[lower]]
+            return self._range_clause(column, values, _parse_date)
 
         if lower in self.NUMBER_PARAMS:
-            col = proj_table.c[self.NUMBER_PARAMS[lower]]
-            return self._range_clause(col, values, _parse_number)
+            column = projection_table.c[self.NUMBER_PARAMS[lower]]
+            return self._range_clause(column, values, _parse_number)
 
         if lower in self.BOOL_PARAMS:
-            col = proj_table.c[self.BOOL_PARAMS[lower]]
+            column = projection_table.c[self.BOOL_PARAMS[lower]]
             _BOOL_MAP = {"true": True, "false": False}
             bool_vals = [_BOOL_MAP[v.lower()] for v in values if v.lower() in _BOOL_MAP]
             if not bool_vals:
-                return col != col
-            return col.in_(bool_vals)
+                return column != column
+            return column.in_(bool_vals)
 
         return None
 
     @staticmethod
-    def _reference_clause(col: Any, values: list[str], default_type: str) -> Any:
+    def _reference_clause(column: Any, values: list[str], default_type: str) -> Any:
         """Build a reference equality clause that accepts ``Type/id`` or bare ``id``."""
         normalized: list[str] = []
         for value in values:
@@ -452,26 +452,26 @@ class Projection(ABC):
                 normalized.append(value)
             else:
                 normalized.append(f"{default_type}/{value}")
-        return col.in_(normalized)
+        return column.in_(normalized)
 
     @staticmethod
-    def _range_clause(col: Any, values: list[str], parser: Any) -> Any:
-        """Build an AND of prefix comparisons (``geX``, ``ltY``, etc.) over ``col``."""
+    def _range_clause(column: Any, values: list[str], parser: Any) -> Any:
+        """Build an AND of prefix comparisons (``geX``, ``ltY``, etc.) over ``column``."""
         parts: list[Any] = []
         for raw in values:
             prefix, body = _parse_prefix(raw)
             parsed = parser(body)
             if parsed is None:
                 continue
-            op = _PREFIX_OPS[prefix]
-            parts.append(op(col, parsed))
+            comparison_operator = _PREFIX_OPS[prefix]
+            parts.append(comparison_operator(column, parsed))
         if not parts:
             # Every value failed to parse. Emit an always-false SQL clause so
             # the query returns no rows rather than silently widening results.
-            # ``col != col`` is always false: for non-NULL values any value
+            # ``column != column`` is always false: for non-NULL values any value
             # equals itself; for NULL, ``NULL != NULL`` yields NULL which is
             # falsy in a WHERE clause.
-            return col != col
+            return column != column
         return and_(*parts)
 
 

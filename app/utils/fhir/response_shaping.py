@@ -22,7 +22,7 @@ def _tag_subsetted(resource: dict[str, Any]) -> dict[str, Any]:
     resource = dict(resource)
     meta = dict(resource.get("meta") or {})
     tags = list(meta.get("tag") or [])
-    if not any(t.get("code") == "SUBSETTED" for t in tags):
+    if not any(tag.get("code") == "SUBSETTED" for tag in tags):
         tags = [*tags, _SUBSETTED_TAG]
     meta["tag"] = tags
     resource["meta"] = meta
@@ -34,36 +34,36 @@ def apply_summary(resource: dict[str, Any], value: str) -> dict[str, Any]:
 
     ``count`` is a bundle-level concern; ignored here.
     """
-    v = value.strip().lower()
-    if v in ("false", "", "count"):
+    summary_mode = value.strip().lower()
+    if summary_mode in ("false", "", "count"):
         return resource
-    if v == "data":
-        shaped = {k: val for k, val in resource.items() if k != "text"}
+    if summary_mode == "data":
+        shaped = {key: field_value for key, field_value in resource.items() if key != "text"}
         return _tag_subsetted(shaped)
     # "true" or "text": keep mandatory fields + text narrative only
-    shaped = {k: val for k, val in resource.items() if k in _ALWAYS_KEEP or k == "text"}
+    shaped = {key: field_value for key, field_value in resource.items() if key in _ALWAYS_KEEP or key == "text"}
     return _tag_subsetted(shaped)
 
 
 def apply_elements(resource: dict[str, Any], elements: list[str]) -> dict[str, Any]:
     """Shape *resource* to only the requested top-level elements (plus mandatory ones)."""
     keep = _ALWAYS_KEEP | frozenset(elements)
-    shaped = {k: val for k, val in resource.items() if k in keep}
+    shaped = {key: field_value for key, field_value in resource.items() if key in keep}
     return _tag_subsetted(shaped)
 
 
 def shape_resource(resource: dict[str, Any], params: dict[str, list[str]]) -> dict[str, Any]:
     """Apply ``_summary`` and ``_elements`` shaping to a single resource dict."""
-    summary_vals = params.get("_summary", [])
-    elements_vals = params.get("_elements", [])
+    summary_values = params.get("_summary", [])
+    elements_values = params.get("_elements", [])
 
-    if summary_vals:
-        resource = apply_summary(resource, summary_vals[-1])
+    if summary_values:
+        resource = apply_summary(resource, summary_values[-1])
 
-    if elements_vals:
+    if elements_values:
         elements: list[str] = []
-        for v in elements_vals:
-            elements.extend(e.strip() for e in v.split(",") if e.strip())
+        for raw_element in elements_values:
+            elements.extend(element.strip() for element in raw_element.split(",") if element.strip())
         if elements:
             resource = apply_elements(resource, elements)
 
@@ -72,8 +72,8 @@ def shape_resource(resource: dict[str, Any], params: dict[str, list[str]]) -> di
 
 def is_count_only(params: dict[str, list[str]]) -> bool:
     """Return True when ``_summary=count`` is active (bundle entries must be omitted)."""
-    vals = params.get("_summary", [])
-    return bool(vals) and vals[-1].strip().lower() == "count"
+    summary_values = params.get("_summary", [])
+    return bool(summary_values) and summary_values[-1].strip().lower() == "count"
 
 
 def shape_bundle(bundle: dict[str, Any], params: dict[str, list[str]]) -> dict[str, Any]:
@@ -82,7 +82,7 @@ def shape_bundle(bundle: dict[str, Any], params: dict[str, list[str]]) -> dict[s
     For ``_summary=count`` the entries are stripped; only ``total`` is kept.
     """
     if is_count_only(params):
-        return {k: v for k, v in bundle.items() if k != "entry"}
+        return {key: bundle_value for key, bundle_value in bundle.items() if key != "entry"}
 
     entries = bundle.get("entry", [])
     shaped_entries: list[dict[str, Any]] = []

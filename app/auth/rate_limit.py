@@ -37,10 +37,10 @@ def _get_client() -> redis.Redis:
 
 def locked_until(username: str) -> datetime | None:
     """Return the lockout expiry if the account is currently locked, else None."""
-    val = _get_client().get(_KEY_LOCKED.format(username))
-    if val is None:
+    raw_expiry = _get_client().get(_KEY_LOCKED.format(username))
+    if raw_expiry is None:
         return None
-    return datetime.fromtimestamp(float(cast(str, val)), tz=UTC)
+    return datetime.fromtimestamp(float(cast(str, raw_expiry)), tz=UTC)
 
 
 def record_failure(username: str) -> None:

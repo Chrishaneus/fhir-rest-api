@@ -43,12 +43,12 @@ class PatientHooks(ResourceHooks):
         # Re-attach the created-at extension if the client's PUT body omitted it.
         if old:
             original = next(
-                (e for e in old.get("extension", []) if e.get("url") == _CREATED_AT_URL),
+                (extension for extension in old.get("extension", []) if extension.get("url") == _CREATED_AT_URL),
                 None,
             )
             if original:
                 existing = new.setdefault("extension", [])
-                if not any(e.get("url") == _CREATED_AT_URL for e in existing):
+                if not any(extension.get("url") == _CREATED_AT_URL for extension in existing):
                     existing.append(original)
 
         return new

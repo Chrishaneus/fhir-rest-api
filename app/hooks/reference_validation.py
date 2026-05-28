@@ -17,7 +17,7 @@ from app.hooks import ResourceHooks, hooks
 from app.utils.errors import FHIRHTTPError
 
 
-def _parse_local_ref(ref: str) -> tuple[str, str] | None:
+def _parse_local_reference(ref: str) -> tuple[str, str] | None:
     """Return ``(ResourceType, id)`` for a relative ``ResourceType/id`` reference.
 
     Returns ``None`` for absolute URLs, URNs, contained references, or anything
@@ -32,25 +32,25 @@ def _parse_local_ref(ref: str) -> tuple[str, str] | None:
     return None
 
 
-def _check_ref(resource: dict[str, Any], field: str) -> None:
+def _check_reference(resource: dict[str, Any], field: str) -> None:
     """Raise 422 if ``resource[field]`` is a local reference that does not exist."""
     value = resource.get(field)
     if not isinstance(value, dict):
         return
-    ref_str = value.get("reference")
-    if not isinstance(ref_str, str) or not ref_str:
+    reference_str = value.get("reference")
+    if not isinstance(reference_str, str) or not reference_str:
         return
-    parsed = _parse_local_ref(ref_str)
+    parsed = _parse_local_reference(reference_str)
     if parsed is None:
         return
-    ref_type, ref_id = parsed
+    reference_type, reference_id = parsed
     from app.store import store  # local import avoids module-load-time circularity
 
-    result = store.latest(ref_type, ref_id)
+    result = store.latest(reference_type, reference_id)
     if result is None or result.deleted:
         raise FHIRHTTPError(
             422,
-            f"Referenced resource {ref_str!r} does not exist",
+            f"Referenced resource {reference_str!r} does not exist",
             "not-found",
         )
 
@@ -68,7 +68,7 @@ class ReferenceValidatingHooks(ResourceHooks):
 
     def _validate(self, resource: dict[str, Any]) -> None:
         for field in self._fields:
-            _check_ref(resource, field)
+            _check_reference(resource, field)
 
     def before_create(self, resource: dict[str, Any]) -> dict[str, Any]:
         self._validate(resource)

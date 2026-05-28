@@ -127,14 +127,14 @@ class OrganizationProjectionSchema(BaseProjection):
 class EncounterProjectionSchema(BaseProjection):
     __tablename__ = "encounter_projection"
 
-    subject_ref: Mapped[str | None] = mapped_column(String(128))
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
     status: Mapped[str | None] = mapped_column(String(32))
     class_code: Mapped[str | None] = mapped_column(String(32))
     period_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     period_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
-        Index("ix_encounter_projection_subject", "subject_ref"),
+        Index("ix_encounter_projection_subject", "subject_reference"),
         Index("ix_encounter_projection_status", "status"),
         Index("ix_encounter_projection_class", "class_code"),
         Index("ix_encounter_projection_period_start", "period_start"),
@@ -156,8 +156,8 @@ class ObservationProjectionSchema(BaseProjection):
 
     __tablename__ = "observation_projection"
 
-    subject_ref: Mapped[str | None] = mapped_column(String(128))
-    encounter_ref: Mapped[str | None] = mapped_column(String(128))
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    encounter_reference: Mapped[str | None] = mapped_column(String(128))
     status: Mapped[str | None] = mapped_column(String(32))
     code_system: Mapped[str | None] = mapped_column(String(255))
     code_code: Mapped[str | None] = mapped_column(String(64))
@@ -169,11 +169,11 @@ class ObservationProjectionSchema(BaseProjection):
     __table_args__ = (
         # Composite indexes for the most common queries (chart timeline,
         # all observations of a specific code for a specific patient).
-        Index("ix_observation_projection_subject_effective", "subject_ref", "effective_at"),
-        Index("ix_observation_projection_subject_code", "subject_ref", "code_code"),
+        Index("ix_observation_projection_subject_effective", "subject_reference", "effective_at"),
+        Index("ix_observation_projection_subject_code", "subject_reference", "code_code"),
         Index("ix_observation_projection_code", "code_code"),
         Index("ix_observation_projection_category", "category_code"),
-        Index("ix_observation_projection_encounter", "encounter_ref"),
+        Index("ix_observation_projection_encounter", "encounter_reference"),
         Index("ix_observation_projection_status", "status"),
         # Standalone single-column index on effective_at: composite indexes
         # only accelerate queries that filter on their leading column, so
@@ -190,15 +190,15 @@ class ObservationProjectionSchema(BaseProjection):
 class ConditionProjectionSchema(BaseProjection):
     __tablename__ = "condition_projection"
 
-    subject_ref: Mapped[str | None] = mapped_column(String(128))
-    encounter_ref: Mapped[str | None] = mapped_column(String(128))
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    encounter_reference: Mapped[str | None] = mapped_column(String(128))
     clinical_status: Mapped[str | None] = mapped_column(String(32))
     code_code: Mapped[str | None] = mapped_column(String(64))
     recorded_date: Mapped[date | None] = mapped_column(Date)
 
     __table_args__ = (
-        Index("ix_condition_projection_subject", "subject_ref"),
-        Index("ix_condition_projection_encounter", "encounter_ref"),
+        Index("ix_condition_projection_subject", "subject_reference"),
+        Index("ix_condition_projection_encounter", "encounter_reference"),
         Index("ix_condition_projection_code", "code_code"),
         Index("ix_condition_projection_clinical_status", "clinical_status"),
         Index("ix_condition_projection_recorded_date", "recorded_date"),
@@ -212,13 +212,13 @@ class ConditionProjectionSchema(BaseProjection):
 class AllergyIntoleranceProjectionSchema(BaseProjection):
     __tablename__ = "allergyintolerance_projection"
 
-    patient_ref: Mapped[str | None] = mapped_column(String(128))
+    patient_reference: Mapped[str | None] = mapped_column(String(128))
     code_code: Mapped[str | None] = mapped_column(String(64))
     clinical_status: Mapped[str | None] = mapped_column(String(32))
     criticality: Mapped[str | None] = mapped_column(String(32))
 
     __table_args__ = (
-        Index("ix_allergyintolerance_projection_patient", "patient_ref"),
+        Index("ix_allergyintolerance_projection_patient", "patient_reference"),
         Index("ix_allergyintolerance_projection_code", "code_code"),
         Index("ix_allergyintolerance_projection_clinical_status", "clinical_status"),
         Index("ix_allergyintolerance_projection_criticality", "criticality"),
@@ -232,17 +232,17 @@ class AllergyIntoleranceProjectionSchema(BaseProjection):
 class MedicationRequestProjectionSchema(BaseProjection):
     __tablename__ = "medicationrequest_projection"
 
-    subject_ref: Mapped[str | None] = mapped_column(String(128))
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
     status: Mapped[str | None] = mapped_column(String(32))
     intent: Mapped[str | None] = mapped_column(String(32))
     authored_on: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    requester_ref: Mapped[str | None] = mapped_column(String(128))
+    requester_reference: Mapped[str | None] = mapped_column(String(128))
 
     __table_args__ = (
-        Index("ix_medicationrequest_projection_subject", "subject_ref"),
+        Index("ix_medicationrequest_projection_subject", "subject_reference"),
         Index("ix_medicationrequest_projection_status", "status"),
         Index("ix_medicationrequest_projection_intent", "intent"),
-        Index("ix_medicationrequest_projection_requester", "requester_ref"),
+        Index("ix_medicationrequest_projection_requester", "requester_reference"),
         Index("ix_medicationrequest_projection_authored_on", "authored_on"),
         Index("ix_medicationrequest_projection_last_updated", "last_updated"),
     )
@@ -254,15 +254,15 @@ class MedicationRequestProjectionSchema(BaseProjection):
 class DiagnosticReportProjectionSchema(BaseProjection):
     __tablename__ = "diagnosticreport_projection"
 
-    subject_ref: Mapped[str | None] = mapped_column(String(128))
-    encounter_ref: Mapped[str | None] = mapped_column(String(128))
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    encounter_reference: Mapped[str | None] = mapped_column(String(128))
     status: Mapped[str | None] = mapped_column(String(32))
     code_code: Mapped[str | None] = mapped_column(String(64))
     effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
-        Index("ix_diagnosticreport_projection_subject", "subject_ref"),
-        Index("ix_diagnosticreport_projection_encounter", "encounter_ref"),
+        Index("ix_diagnosticreport_projection_subject", "subject_reference"),
+        Index("ix_diagnosticreport_projection_encounter", "encounter_reference"),
         Index("ix_diagnosticreport_projection_code", "code_code"),
         Index("ix_diagnosticreport_projection_status", "status"),
         Index("ix_diagnosticreport_projection_effective_at", "effective_at"),
@@ -276,15 +276,15 @@ class DiagnosticReportProjectionSchema(BaseProjection):
 class ProcedureProjectionSchema(BaseProjection):
     __tablename__ = "procedure_projection"
 
-    subject_ref: Mapped[str | None] = mapped_column(String(128))
-    encounter_ref: Mapped[str | None] = mapped_column(String(128))
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    encounter_reference: Mapped[str | None] = mapped_column(String(128))
     status: Mapped[str | None] = mapped_column(String(32))
     code_code: Mapped[str | None] = mapped_column(String(64))
     performed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
-        Index("ix_procedure_projection_subject", "subject_ref"),
-        Index("ix_procedure_projection_encounter", "encounter_ref"),
+        Index("ix_procedure_projection_subject", "subject_reference"),
+        Index("ix_procedure_projection_encounter", "encounter_reference"),
         Index("ix_procedure_projection_code", "code_code"),
         Index("ix_procedure_projection_status", "status"),
         Index("ix_procedure_projection_performed_at", "performed_at"),

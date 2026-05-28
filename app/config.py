@@ -42,7 +42,7 @@ DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./fhir.db")
 
 _cors_raw: str = os.getenv("CORS_ORIGINS", "*")
 CORS_ORIGINS: list[str] = (
-    ["*"] if _cors_raw == "*" else [o.strip() for o in _cors_raw.split(",")]
+    ["*"] if _cors_raw == "*" else [origin.strip() for origin in _cors_raw.split(",")]
 )
 
 # ---------------------------------------------------------------------------

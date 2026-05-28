@@ -231,8 +231,8 @@ def validate_fhir_resource(resource_type: str, payload: dict[str, Any]) -> dict[
 
 def _format_pydantic_errors(exc: ValidationError) -> str:
     parts: list[str] = []
-    for err in exc.errors():
-        loc = ".".join(str(part) for part in err.get("loc", ()))
-        msg = err.get("msg", "")
-        parts.append(f"{loc}: {msg}" if loc else msg)
+    for error in exc.errors():
+        error_location = ".".join(str(part) for part in error.get("loc", ()))
+        message = error.get("msg", "")
+        parts.append(f"{error_location}: {message}" if error_location else message)
     return "; ".join(parts) if parts else str(exc)

@@ -19,12 +19,12 @@ class AllergyIntoleranceProjection(Projection):
         "criticality": "criticality",
     }
     REFERENCE_PARAMS = {
-        "patient": ("patient_ref", "Patient"),
+        "patient": ("patient_reference", "Patient"),
     }
 
     def extract(self, resource: dict[str, Any]) -> dict[str, Any]:
         return {
-            "patient_ref": reference_of(resource.get("patient")),
+            "patient_reference": reference_of(resource.get("patient")),
             "code_code": first_code(resource.get("code")),
             "clinical_status": first_code(resource.get("clinicalStatus")),
             "criticality": resource.get("criticality"),

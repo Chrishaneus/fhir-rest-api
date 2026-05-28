@@ -199,8 +199,8 @@ async def patient_everything(patient_id: str, request: Request) -> JSONResponse:
     page, offset, page_size = apply_pagination(all_versions, params)
 
     # Patient is always the "match" entry; everything else is "include"
-    page_patient = [v for v in page if v is patient_version]
-    page_linked = [v for v in page if v is not patient_version]
+    page_patient = [version for version in page if version is patient_version]
+    page_linked = [version for version in page if version is not patient_version]
 
     bundle = bundle_response(
         request, "searchset", page_patient,
