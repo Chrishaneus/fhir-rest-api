@@ -22,6 +22,7 @@ declared before the generic ``{resource_type}/{resource_id}`` routes.
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import parse_qs
 
 import jsonpatch
 from fastapi import APIRouter, Body, Depends, Request
@@ -47,6 +48,15 @@ from app.utils.headers import (
     response_headers,
 )
 from app.utils.outcomes import fhir_json_response
+
+
+def _parse_if_none_exist(header: str) -> dict[str, list[str]]:
+    params = parse_qs(header, keep_blank_values=False)
+    if not params:
+        raise FHIRHTTPError(
+            400, "If-None-Exist header must contain at least one search parameter", "invalid"
+        )
+    return params
 
 router = APIRouter(tags=["resources"], dependencies=[Depends(require_auth)])
 
@@ -102,6 +112,28 @@ async def create_resource(
     payload: dict[str, Any] = Body(...),
 ) -> Response:
     assert_resource_type(resource_type)
+
+    if_none_exist = request.headers.get("if-none-exist")
+    if if_none_exist is not None:
+        search_params = _parse_if_none_exist(if_none_exist)
+        matches = store.search(resource_type, search_params)
+        if len(matches) > 1:
+            raise FHIRHTTPError(
+                412,
+                f"If-None-Exist matched {len(matches)} existing resources — criteria must be unambiguous",
+                "multiple-matches",
+            )
+        if len(matches) == 1:
+            version = matches[0]
+            assert version.resource is not None
+            headers = response_headers(request, resource_type, version.resource["id"], version)
+            return preferred_success_response(
+                version.resource,
+                status_code=200,
+                headers=headers,
+                prefer=request.headers.get("prefer"),
+            )
+
     resource = validate_request_body(resource_type, payload)
 
     hook = hooks.get(resource_type)

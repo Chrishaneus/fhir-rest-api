@@ -61,7 +61,7 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
                         "versioning": "versioned-update",
                         "readHistory": True,
                         "updateCreate": True,
-                        "conditionalCreate": False,
+                        "conditionalCreate": True,
                         "conditionalUpdate": False,
                         "conditionalDelete": "not-supported",
                         "referencePolicy": ["local"],
