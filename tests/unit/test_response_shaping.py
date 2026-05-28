@@ -7,6 +7,8 @@ Two layers:
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -22,7 +24,7 @@ from app.utils.fhir.response_shaping import (
 # Shared test data
 # ---------------------------------------------------------------------------
 
-_FULL = {
+_FULL: dict[str, Any] = {
     "resourceType": "Patient",
     "id": "p1",
     "meta": {"versionId": "1"},

@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import RLock
-from typing import Any
+from typing import Any, Union
 
 from sqlalchemy import ColumnElement, bindparam, desc, func, insert, or_, select
 from sqlalchemy.dialects.postgresql import JSONB
@@ -60,7 +60,7 @@ def _apply_python_sort(
     result = list(versions)
     for field, ascending in reversed(sort_fields):
         result.sort(
-            key=lambda v, f=field: _sort_key_for_field(v, f),
+            key=lambda v: _sort_key_for_field(v, field),
             reverse=not ascending,
         )
     return result
@@ -78,6 +78,46 @@ class ResourceVersion:
     resource: dict[str, Any] | None
     last_updated: datetime
     deleted: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Transaction / batch operation types
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class TxCreate:
+    resource_type: str
+    resource: dict[str, Any]
+
+
+@dataclass
+class TxUpdate:
+    resource_type: str
+    resource_id: str
+    resource: dict[str, Any]
+    if_match: str | None = None
+
+
+@dataclass
+class TxDelete:
+    resource_type: str
+    resource_id: str
+
+
+@dataclass
+class TxRead:
+    resource_type: str
+    resource_id: str
+
+
+TxOperation = Union[TxCreate, TxUpdate, TxDelete, TxRead]
+
+
+@dataclass
+class TxResult:
+    version: ResourceVersion | None
+    created: bool = False
 
 
 class FHIRStore:
@@ -599,6 +639,100 @@ class FHIRStore:
         if projection is None:
             return
         projection.delete_row(session, resource_id)
+
+    # ------------------------------------------------------------------
+    # Transaction / batch support
+    # ------------------------------------------------------------------
+
+    def execute_transaction(self, operations: list[TxOperation]) -> list[TxResult]:
+        """Execute *operations* atomically in a single session.
+
+        Commits only if every operation succeeds; any exception causes a
+        full rollback and is re-raised to the caller.
+        """
+        with self._lock, self._session_factory() as session:
+            results: list[TxResult] = []
+            for op in operations:
+                results.append(self._execute_tx_op(session, op))
+            session.commit()
+            return results
+
+    def _execute_tx_op(self, session: Session, op: TxOperation) -> TxResult:
+        if isinstance(op, TxCreate):
+            return TxResult(version=self._create_in_session(session, op.resource_type, op.resource), created=True)
+        if isinstance(op, TxUpdate):
+            version, created = self._update_in_session(session, op.resource_type, op.resource_id, op.resource, if_match=op.if_match)
+            return TxResult(version=version, created=created)
+        if isinstance(op, TxDelete):
+            return TxResult(version=self._delete_in_session(session, op.resource_type, op.resource_id))
+        # TxRead
+        session.flush()  # make pending writes visible within this transaction
+        return TxResult(version=self._to_version(self._latest_record(session, op.resource_type, op.resource_id)))
+
+    def _create_in_session(
+        self, session: Session, resource_type: str, resource: dict[str, Any]
+    ) -> ResourceVersion:
+        resource_id = uuid.uuid4().hex
+        prepared, last_updated = self._prepare(resource_type, resource_id, "1", resource)
+        session.add(ResourceVersionRecord(
+            resource_type=resource_type,
+            resource_id=resource_id,
+            version_id="1",
+            last_updated=last_updated,
+            deleted=False,
+            content=prepared,
+        ))
+        self._upsert_projection(session, resource_type, resource_id, "1", last_updated, prepared)
+        return ResourceVersion("1", prepared, last_updated, False)
+
+    def _update_in_session(
+        self,
+        session: Session,
+        resource_type: str,
+        resource_id: str,
+        resource: dict[str, Any],
+        *,
+        if_match: str | None = None,
+    ) -> tuple[ResourceVersion, bool]:
+        latest = self._latest_record(session, resource_type, resource_id)
+        if if_match is not None:
+            current_etag = (
+                weak_etag(latest.version_id) if (latest is not None and not latest.deleted) else None
+            )
+            if current_etag is None or if_match != current_etag:
+                raise VersionConflictError("If-Match did not match the current resource version")
+        created = latest is None or latest.deleted
+        next_version_id = str(int(latest.version_id) + 1) if latest else "1"
+        prepared, last_updated = self._prepare(resource_type, resource_id, next_version_id, resource)
+        session.add(ResourceVersionRecord(
+            resource_type=resource_type,
+            resource_id=resource_id,
+            version_id=next_version_id,
+            last_updated=last_updated,
+            deleted=False,
+            content=prepared,
+        ))
+        self._upsert_projection(session, resource_type, resource_id, next_version_id, last_updated, prepared)
+        return ResourceVersion(next_version_id, prepared, last_updated, False), created
+
+    def _delete_in_session(
+        self, session: Session, resource_type: str, resource_id: str
+    ) -> ResourceVersion | None:
+        latest = self._latest_record(session, resource_type, resource_id)
+        if latest is None or latest.deleted:
+            return None
+        next_version_id = str(int(latest.version_id) + 1)
+        last_updated = now_utc()
+        session.add(ResourceVersionRecord(
+            resource_type=resource_type,
+            resource_id=resource_id,
+            version_id=next_version_id,
+            last_updated=last_updated,
+            deleted=True,
+            content=None,
+        ))
+        self._delete_projection(session, resource_type, resource_id)
+        return ResourceVersion(next_version_id, None, last_updated, True)
 
     def _prepare(
         self,

@@ -7,11 +7,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import JSONResponse
 
 from app.auth.dependencies import require_auth
 from app.store import store
+from app.utils.fhir.bundle_exec import process_bundle
 from app.utils.fhir.bundles import bundle_response
 from app.utils.fhir.capability import capability_statement
 from app.utils.fhir.response_shaping import shape_bundle
@@ -44,6 +45,15 @@ async def system_history(request: Request) -> JSONResponse:
     entries = store.history(limit=1000)
     bundle = bundle_response(request, "history", entries, total=len(entries))
     return fhir_json_response(shape_bundle(bundle, params))
+
+
+@router.post("/", dependencies=[Depends(require_auth)])
+async def transaction_or_batch(
+    request: Request,
+    payload: dict = Body(...),
+) -> JSONResponse:
+    result = process_bundle(payload, store, request)
+    return fhir_json_response(result)
 
 
 @router.get("/", dependencies=[Depends(require_auth)])

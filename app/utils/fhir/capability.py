@@ -51,6 +51,8 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
                     {"code": "capabilities"},
                     {"code": "search-system"},
                     {"code": "history-system"},
+                    {"code": "transaction"},
+                    {"code": "batch"},
                 ],
                 "resource": [
                     {
