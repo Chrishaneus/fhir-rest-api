@@ -43,7 +43,7 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any, ClassVar
 
-from sqlalchemy import Select, and_, asc, delete, desc, func, insert, or_, select
+from sqlalchemy import Select, and_, asc, delete, desc, func, insert, not_, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session, aliased
@@ -51,6 +51,7 @@ from sqlalchemy.orm import Session, aliased
 from app.db.models import ResourceVersionRecord
 from app.db.projection_models import BaseProjection
 from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
+from app.utils.fhir.date_search import parse_date_param
 from app.utils.fhir.search import parse_sort_params, split_csv_values
 
 # Search-param prefixes supported on date / number params.
@@ -101,6 +102,32 @@ def _parse_number(value: str) -> Decimal | None:
         return Decimal(value)
     except (InvalidOperation, ValueError):
         return None
+
+
+def _last_updated_clause(col: Any, value: str) -> Any:
+    """Build a SQLAlchemy WHERE clause for one ``_lastUpdated`` value.
+
+    Uses FHIR period semantics: partial dates expand to their implied period
+    so ``eq2024-01-15`` matches any instant within that day, not just midnight.
+    Returns ``None`` if the value cannot be parsed.
+    """
+    try:
+        prefix, start, end = parse_date_param(value)
+    except ValueError:
+        return None
+    if prefix == "eq":
+        return and_(col >= start, col <= end)
+    if prefix == "ne":
+        return not_(and_(col >= start, col <= end))
+    if prefix in ("gt", "sa"):
+        return col > end
+    if prefix == "ge":
+        return col >= start
+    if prefix in ("lt", "eb"):
+        return col < start
+    if prefix == "le":
+        return col <= end
+    return None
 
 
 class Projection(ABC):
@@ -191,6 +218,14 @@ class Projection(ABC):
             if not values:
                 continue
             clause = self._param_clause(proj_table, key, values)
+            if clause is not None:
+                clauses.append(clause)
+
+        # _lastUpdated is in IGNORED_SEARCH_PARAMS (to keep it out of the JSONB
+        # containment loop and resource_matches), so it must be handled here
+        # explicitly to push the filter into SQL against the indexed column.
+        for lu_val in split_csv_values(params.get("_lastUpdated", [])):
+            clause = _last_updated_clause(proj_table.c.last_updated, lu_val)
             if clause is not None:
                 clauses.append(clause)
 

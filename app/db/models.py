@@ -45,4 +45,5 @@ class ResourceVersionRecord(Base):
             name="uq_resource_versions_type_id_version",
         ),
         Index("ix_resource_versions_type_id", "resource_type", "resource_id"),
+        Index("ix_resource_versions_type_last_updated", "resource_type", "last_updated"),
     )

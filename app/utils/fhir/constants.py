@@ -56,4 +56,9 @@ IGNORED_SEARCH_PARAMS = {
     # ``Projection.supports`` and from being treated as an unknown filter
     # in the JSONB containment loop.
     "_count",
+    # ``_lastUpdated`` is handled by dedicated column-level filters in
+    # ``_sql_search`` and ``_python_search`` (and by ``_range_clause`` in
+    # the projection path), so it must be excluded from the generic JSONB
+    # containment loop which cannot apply prefix semantics or period expansion.
+    "_lastUpdated",
 }

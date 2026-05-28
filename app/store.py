@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from threading import RLock
 from typing import Any, Union
 
-from sqlalchemy import ColumnElement, bindparam, desc, func, insert, literal_column, or_, select
+from sqlalchemy import ColumnElement, and_, bindparam, desc, func, insert, literal_column, not_, or_, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -21,6 +21,7 @@ from app.db.models import ResourceVersionRecord
 from app.db.search import containment_payloads
 from app.projections import registry as projection_registry
 from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
+from app.utils.fhir.date_search import matches_last_updated, parse_date_param
 from app.utils.fhir.search import parse_sort_params, resource_matches, split_csv_values
 from app.utils.time import fhir_instant, now_utc, weak_etag
 
@@ -64,6 +65,45 @@ def _apply_python_sort(
             reverse=not ascending,
         )
     return result
+
+
+def _last_updated_sql_clause(
+    col: ColumnElement[Any], value: str
+) -> ColumnElement[bool] | None:
+    """Return a SQLAlchemy filter clause for a single ``_lastUpdated`` value.
+
+    Returns ``None`` if the value cannot be parsed so callers can skip silently.
+    """
+    try:
+        prefix, start, end = parse_date_param(value)
+    except ValueError:
+        return None
+    if prefix == "eq":
+        return and_(col >= start, col <= end)
+    if prefix == "ne":
+        return not_(and_(col >= start, col <= end))
+    if prefix in ("gt", "sa"):
+        return col > end
+    if prefix == "ge":
+        return col >= start
+    if prefix in ("lt", "eb"):
+        return col < start
+    if prefix == "le":
+        return col <= end
+    return None
+
+
+def _apply_last_updated_filter(
+    versions: list["ResourceVersion"],
+    params: dict[str, list[str]],
+) -> list["ResourceVersion"]:
+    """Post-filter *versions* by every ``_lastUpdated`` value in *params* (AND semantics)."""
+    raw = split_csv_values(params.get("_lastUpdated", []))
+    if not raw:
+        return versions
+    return [
+        v for v in versions if all(matches_last_updated(v.last_updated, val) for val in raw)
+    ]
 
 
 class VersionConflictError(Exception):
@@ -508,9 +548,31 @@ class FHIRStore:
         is the right behavior for an unindexed filter — full table scans
         triggered by an unknown URL param would be a denial-of-service vector.
         """
+        # Push lower-bound _lastUpdated filters *inside* the DISTINCT ON subquery
+        # so Postgres can use the B-tree index on last_updated before materialising
+        # the "latest version per resource" set.  Only lower-bound predicates are
+        # safe to push: ge/gt/sa shrink the scan from the bottom; eq contributes
+        # its start bound.  le/lt/eb/ne have no safe lower bound — pushing them
+        # inside could promote an older version to "latest" within the filtered
+        # set and return wrong results.  The full outer filters below still apply
+        # for correctness; the inner filters are purely a performance hint.
+        lu_values = split_csv_values(params.get("_lastUpdated", []))
+        inner_lu_filters: list[ColumnElement[bool]] = []
+        for lu_val in lu_values:
+            try:
+                prefix, start, end = parse_date_param(lu_val)
+            except ValueError:
+                continue
+            if prefix == "ge":
+                inner_lu_filters.append(ResourceVersionRecord.last_updated >= start)
+            elif prefix in ("gt", "sa"):
+                inner_lu_filters.append(ResourceVersionRecord.last_updated > end)
+            elif prefix == "eq":
+                inner_lu_filters.append(ResourceVersionRecord.last_updated >= start)
+
         latest = (
             select(ResourceVersionRecord)
-            .where(ResourceVersionRecord.resource_type == resource_type)
+            .where(ResourceVersionRecord.resource_type == resource_type, *inner_lu_filters)
             .order_by(
                 ResourceVersionRecord.resource_id,
                 ResourceVersionRecord.last_updated.desc(),
@@ -530,6 +592,11 @@ class FHIRStore:
         id_values = split_csv_values(params.get("_id", []))
         if id_values:
             filters.append(LatestRV.resource_id.in_(id_values))
+
+        for lu_val in lu_values:
+            clause = _last_updated_sql_clause(LatestRV.last_updated, lu_val)
+            if clause is not None:
+                filters.append(clause)
 
         for key, raw_values in params.items():
             # ``_count`` is now in IGNORED_SEARCH_PARAMS; ``_id`` was already
@@ -587,7 +654,7 @@ class FHIRStore:
                     v = self._to_version(rec)
                     if v:
                         results.append(v)
-            return results
+            return _apply_last_updated_filter(results, params)
 
         records = self._latest_records_for_type(session, resource_type)
         matches: list[ResourceVersion] = []
@@ -599,7 +666,8 @@ class FHIRStore:
                 version.resource or {}, params, system_search=system_search
             ):
                 matches.append(version)
-        return _apply_python_sort(matches, params)
+        filtered = _apply_last_updated_filter(matches, params)
+        return _apply_python_sort(filtered, params)
 
     def history(
         self,
