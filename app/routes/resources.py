@@ -14,9 +14,14 @@ Instance-level:
 * `PATCH  /{resource_type}/{id}`                 - patch (JSON Patch)
 * `DELETE /{resource_type}/{id}`                 - delete (tombstone)
 
+Compartment search:
+* `GET    /{compartment_type}/{compartment_id}/{resource_type}` - compartment search
+
 Route order matters here: Starlette matches routes in the order they are
 registered, so the `_history` / `_search` literal-segment routes must be
-declared before the generic `{resource_type}/{resource_id}` routes.
+declared before the generic `{resource_type}/{resource_id}` routes, and the
+compartment search route must follow routes with literal third segments
+(`_history`, `$everything`) to avoid shadowing them.
 """
 
 from __future__ import annotations
@@ -33,6 +38,7 @@ from app.hooks import hooks
 from app.store import VersionConflictError, store
 from app.utils.errors import FHIRHTTPError
 from app.utils.fhir.bundles import bundle_response
+from app.utils.fhir.compartments import SUPPORTED_COMPARTMENTS, get_compartment_params
 from app.utils.fhir.includes import resolve_includes
 from app.utils.fhir.response_shaping import shape_bundle, shape_resource
 from app.utils.fhir.search import apply_pagination, form_and_query_params, query_params
@@ -208,6 +214,59 @@ async def patient_everything(patient_id: str, request: Request) -> JSONResponse:
         offset=offset,
         page_size=page_size,
         included=page_linked,
+    )
+    return fhir_json_response(shape_bundle(bundle, params))
+
+
+@router.get("/{compartment_type}/{compartment_id}/{resource_type}")
+@router.get("/{compartment_type}/{compartment_id}/{resource_type}/")
+async def compartment_search(
+    compartment_type: str,
+    compartment_id: str,
+    resource_type: str,
+    request: Request,
+) -> JSONResponse:
+    if compartment_type not in SUPPORTED_COMPARTMENTS:
+        raise FHIRHTTPError(
+            404,
+            f"Compartment '{compartment_type}' is not supported; supported compartments: "
+            + ", ".join(sorted(SUPPORTED_COMPARTMENTS)),
+            "not-supported",
+        )
+    assert_resource_id(compartment_id)
+    assert_resource_type(resource_type)
+
+    subject = store.latest(compartment_type, compartment_id)
+    if subject is None or subject.deleted:
+        raise FHIRHTTPError(
+            404,
+            f"{compartment_type}/{compartment_id} was not found",
+            "not-found",
+        )
+
+    membership_params = get_compartment_params(compartment_type, resource_type)
+    if membership_params is None:
+        raise FHIRHTTPError(
+            404,
+            f"Resource type '{resource_type}' is not a member of the {compartment_type} compartment",
+            "not-supported",
+        )
+
+    # Inject the compartment membership constraint as the primary reference
+    # filter. The first listed param is the most direct reference and the one
+    # our projections index; additional membership params (e.g. performer)
+    # are OR-linked per the FHIR spec but collapse to the same column for
+    # the resource types that have SQL projections.
+    params = query_params(request)
+    merged_params = {**params, membership_params[0]: [f"{compartment_type}/{compartment_id}"]}
+
+    matches = store.search(resource_type, merged_params)
+    page, offset, page_size = apply_pagination(matches, merged_params)
+    included = resolve_includes(store, resource_type, page, merged_params)
+    bundle = bundle_response(
+        request, "searchset", page,
+        total=len(matches), offset=offset, page_size=page_size,
+        included=included,
     )
     return fhir_json_response(shape_bundle(bundle, params))
 

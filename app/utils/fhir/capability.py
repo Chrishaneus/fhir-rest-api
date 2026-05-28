@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import Request
 
+from app.utils.fhir.compartments import SUPPORTED_COMPARTMENTS
 from app.utils.fhir.constants import FHIR_VERSION, SUPPORTED_INTERACTIONS
 from app.utils.time import STARTUP_TIME, fhir_instant
 
@@ -53,6 +54,10 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
                     {"code": "history-system"},
                     {"code": "transaction"},
                     {"code": "batch"},
+                ],
+                "compartment": [
+                    f"http://hl7.org/fhir/CompartmentDefinition/{compartment_type.lower()}"
+                    for compartment_type in sorted(SUPPORTED_COMPARTMENTS)
                 ],
                 "resource": [
                     {
