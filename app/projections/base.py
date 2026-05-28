@@ -369,9 +369,9 @@ class Projection(ABC):
                 sqlite_statement.on_conflict_do_update(
                     index_elements=["resource_id"],
                     set_={
-                        c.name: sqlite_statement.excluded[c.name]
-                        for c in columns
-                        if c.name != "resource_id"
+                        column_def.name: sqlite_statement.excluded[column_def.name]
+                        for column_def in columns
+                        if column_def.name != "resource_id"
                     },
                 )
             )
@@ -379,8 +379,8 @@ class Projection(ABC):
 
         # Generic fallback: delete-then-insert. Not concurrency-safe but only
         # hit on exotic dialects we don't ship with.
-        ids = [row["resource_id"] for row in rows]
-        session.execute(delete(self.table).where(self.table.resource_id.in_(ids)))
+        resource_ids = [row["resource_id"] for row in rows]
+        session.execute(delete(self.table).where(self.table.resource_id.in_(resource_ids)))
         session.execute(insert(self.table).values(rows))
 
     def _param_clause(
@@ -418,7 +418,7 @@ class Projection(ABC):
         if lower in self.STRING_PARAMS:
             column = projection_table.c[self.STRING_PARAMS[lower]]
             # FHIR string semantics: "starts with, case-insensitive".
-            return or_(*[func.lower(column).like(v.lower() + "%") for v in values])
+            return or_(*[func.lower(column).like(search_value.lower() + "%") for search_value in values])
 
         if lower in self.REFERENCE_PARAMS:
             column_name, default_type = self.REFERENCE_PARAMS[lower]
@@ -436,7 +436,7 @@ class Projection(ABC):
         if lower in self.BOOL_PARAMS:
             column = projection_table.c[self.BOOL_PARAMS[lower]]
             _BOOL_MAP = {"true": True, "false": False}
-            bool_vals = [_BOOL_MAP[v.lower()] for v in values if v.lower() in _BOOL_MAP]
+            bool_vals = [_BOOL_MAP[search_value.lower()] for search_value in values if search_value.lower() in _BOOL_MAP]
             if not bool_vals:
                 return column != column
             return column.in_(bool_vals)
