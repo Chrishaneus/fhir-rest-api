@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 from threading import RLock
 from typing import Any, Union
 
-from sqlalchemy import ColumnElement, bindparam, desc, func, insert, or_, select
+from sqlalchemy import ColumnElement, bindparam, desc, func, insert, literal_column, or_, select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -369,6 +369,72 @@ class FHIRStore:
                     self._dispatch_search(session, resource_type, params, system_search=True)
                 )
             return matches
+
+    def resource_everything(
+        self, resource_type: str, resource_id: str
+    ) -> tuple[ResourceVersion | None, list[ResourceVersion]]:
+        """Return (anchor_version, linked_versions) for the $everything operation.
+
+        Works for any resource type - Patient, Encounter, Group, etc.
+        On Postgres uses a single ``jsonb_path_exists`` query with the recursive
+        jsonpath ``$.**.reference ? (@ == $ref)`` against the ``jsonb_path_ops``
+        GIN index - O(log N) and catches references at any nesting depth.
+        On SQLite falls back to a Python-level deep scan (used by unit tests).
+        """
+        anchor = self.latest(resource_type, resource_id)
+        if anchor is None or anchor.deleted:
+            return anchor, []
+        ref = f"{resource_type}/{resource_id}"
+        with self._session_factory() as session:
+            if self._is_postgres:
+                linked = self._sql_resource_everything(session, resource_type, ref)
+            else:
+                params: dict[str, list[str]] = {"reference": [ref]}
+                stmt = select(ResourceVersionRecord.resource_type).distinct()
+                all_types = [row for (row,) in session.execute(stmt).all()]
+                linked = []
+                for rt in all_types:
+                    if rt == resource_type:
+                        continue
+                    linked.extend(self._python_search(session, rt, params))
+        return anchor, linked
+
+    def _sql_resource_everything(
+        self, session: Session, anchor_type: str, ref: str
+    ) -> list[ResourceVersion]:
+        """Postgres-only: find all resources of other types that reference ``ref``.
+
+        Uses ``jsonb_path_exists`` with the recursive jsonpath operator ``**``
+        so any ``"reference"`` key at any nesting depth (including extensions)
+        is matched.  ``ref`` is bound through a JSONB vars object (``$ref``)
+        rather than interpolated into the path string.
+        """
+        latest = (
+            select(ResourceVersionRecord)
+            .where(ResourceVersionRecord.resource_type != anchor_type)
+            .order_by(
+                ResourceVersionRecord.resource_type,
+                ResourceVersionRecord.resource_id,
+                ResourceVersionRecord.last_updated.desc(),
+                ResourceVersionRecord.id.desc(),
+            )
+            .distinct(
+                ResourceVersionRecord.resource_type,
+                ResourceVersionRecord.resource_id,
+            )
+            .subquery()
+        )
+        LatestRV = aliased(ResourceVersionRecord, latest)
+
+        _jpath: ColumnElement[str] = literal_column("'$.**.reference ? (@ == $ref)'::jsonpath")
+        _vars = bindparam(None, {"ref": ref}, type_=JSONB)
+
+        stmt = select(LatestRV).where(
+            LatestRV.deleted.is_(False),
+            func.jsonb_path_exists(LatestRV.content, _jpath, _vars),
+        )
+        records = session.execute(stmt).scalars().all()
+        return [v for v in (self._to_version(r) for r in records) if v]
 
     def _dispatch_search(
         self,

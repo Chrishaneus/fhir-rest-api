@@ -153,6 +153,33 @@ async def instance_history(
     return fhir_json_response(shape_bundle(bundle, params))
 
 
+@router.get("/Patient/{patient_id}/$everything")
+async def patient_everything(patient_id: str, request: Request) -> JSONResponse:
+    assert_resource_id(patient_id)
+    patient_version, linked = store.resource_everything("Patient", patient_id)
+    if patient_version is None:
+        raise FHIRHTTPError(404, f"Patient/{patient_id} was not found", "not-found")
+    if patient_version.deleted:
+        raise FHIRHTTPError(410, f"Patient/{patient_id} has been deleted", "deleted")
+
+    params = query_params(request)
+    all_versions = [patient_version] + linked
+    page, offset, page_size = apply_pagination(all_versions, params)
+
+    # Patient is always the "match" entry; everything else is "include"
+    page_patient = [v for v in page if v is patient_version]
+    page_linked = [v for v in page if v is not patient_version]
+
+    bundle = bundle_response(
+        request, "searchset", page_patient,
+        total=len(all_versions),
+        offset=offset,
+        page_size=page_size,
+        included=page_linked,
+    )
+    return fhir_json_response(shape_bundle(bundle, params))
+
+
 @router.get("/{resource_type}/{resource_id}")
 @router.get("/{resource_type}/{resource_id}/")
 async def read_resource(resource_type: str, resource_id: str, request: Request) -> Response:
