@@ -29,24 +29,24 @@ def parse_date_param(value: str) -> tuple[str, datetime, datetime]:
     Raises ``ValueError`` for unrecognised formats.
     """
     value = value.strip()
-    m = _PREFIX_RE.match(value)
-    if not m:
+    prefix_match = _PREFIX_RE.match(value)
+    if not prefix_match:
         raise ValueError(f"Cannot parse date search value: {value!r}")
-    prefix = m.group(1) or "eq"
-    date_str = m.group(2).strip()
+    prefix = prefix_match.group(1) or "eq"
+    date_str = prefix_match.group(2).strip()
     start, end = _to_period(date_str)
     return prefix, start, end
 
 
-def _to_period(s: str) -> tuple[datetime, datetime]:
-    if _YEAR_RE.match(s):
-        year = int(s)
+def _to_period(value: str) -> tuple[datetime, datetime]:
+    if _YEAR_RE.match(value):
+        year = int(value)
         start = datetime(year, 1, 1, tzinfo=_UTC)
         end = datetime(year + 1, 1, 1, tzinfo=_UTC) - timedelta(microseconds=1)
         return start, end
 
-    if _YEAR_MONTH_RE.match(s):
-        year, month = int(s[:4]), int(s[5:7])
+    if _YEAR_MONTH_RE.match(value):
+        year, month = int(value[:4]), int(value[5:7])
         start = datetime(year, month, 1, tzinfo=_UTC)
         if month == 12:
             end_dt = datetime(year + 1, 1, 1, tzinfo=_UTC) - timedelta(microseconds=1)
@@ -54,15 +54,15 @@ def _to_period(s: str) -> tuple[datetime, datetime]:
             end_dt = datetime(year, month + 1, 1, tzinfo=_UTC) - timedelta(microseconds=1)
         return start, end_dt
 
-    if _DATE_RE.match(s):
-        year, month, day = int(s[:4]), int(s[5:7]), int(s[8:10])
+    if _DATE_RE.match(value):
+        year, month, day = int(value[:4]), int(value[5:7]), int(value[8:10])
         start = datetime(year, month, day, tzinfo=_UTC)
         end = datetime(year, month, day, 23, 59, 59, 999999, tzinfo=_UTC)
         return start, end
 
     # Full datetime — Python 3.11+ fromisoformat handles Z and ±HH:MM
     try:
-        dt = datetime.fromisoformat(s)
+        dt = datetime.fromisoformat(value)
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=_UTC)
         else:
@@ -71,7 +71,7 @@ def _to_period(s: str) -> tuple[datetime, datetime]:
     except ValueError:
         pass
 
-    raise ValueError(f"Cannot parse date: {s!r}")
+    raise ValueError(f"Cannot parse date: {value!r}")
 
 
 def matches_last_updated(last_updated: datetime, value: str) -> bool:
@@ -81,22 +81,22 @@ def matches_last_updated(last_updated: datetime, value: str) -> bool:
     """
     prefix, start, end = parse_date_param(value)
 
-    ts = last_updated
-    if ts.tzinfo is None:
-        ts = ts.replace(tzinfo=_UTC)
+    timestamp = last_updated
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.replace(tzinfo=_UTC)
     else:
-        ts = ts.astimezone(_UTC).replace(tzinfo=_UTC)
+        timestamp = timestamp.astimezone(_UTC).replace(tzinfo=_UTC)
 
     if prefix == "eq":
-        return start <= ts <= end
+        return start <= timestamp <= end
     if prefix == "ne":
-        return not (start <= ts <= end)
+        return not (start <= timestamp <= end)
     if prefix in ("gt", "sa"):
-        return ts > end
+        return timestamp > end
     if prefix == "ge":
-        return ts >= start
+        return timestamp >= start
     if prefix in ("lt", "eb"):
-        return ts < start
+        return timestamp < start
     if prefix == "le":
-        return ts <= end
+        return timestamp <= end
     return False

@@ -103,14 +103,14 @@ def _process_transaction(
         parsed.append(_parse_entry(entry, base, i))
 
     # Phase 2: build store operations and execute atomically
-    ops: list[TxOperation] = [_to_tx_operation(pe) for pe in parsed]
+    ops: list[TxOperation] = [_to_tx_operation(parsed_entry) for parsed_entry in parsed]
     try:
         results = store.execute_transaction(ops)
     except VersionConflictError as exc:
         raise FHIRHTTPError(412, str(exc), "conflict") from exc
 
     response_entries = [
-        _build_success_entry(pe, result, base) for pe, result in zip(parsed, results)
+        _build_success_entry(parsed_entry, result, base) for parsed_entry, result in zip(parsed, results)
     ]
     return {"resourceType": "Bundle", "type": "transaction-response", "entry": response_entries}
 
@@ -128,9 +128,9 @@ def _process_batch(
     response_entries: list[dict[str, Any]] = []
     for i, entry in enumerate(entries):
         try:
-            pe = _parse_entry(entry, base, i)
-            result = _execute_batch_entry(pe, store)
-            response_entries.append(_build_success_entry(pe, result, base))
+            parsed_entry = _parse_entry(entry, base, i)
+            result = _execute_batch_entry(parsed_entry, store)
+            response_entries.append(_build_success_entry(parsed_entry, result, base))
         except FHIRHTTPError as exc:
             response_entries.append(_build_error_entry(exc.status_code, exc.diagnostics, exc.code))
         except VersionConflictError as exc:
@@ -140,28 +140,28 @@ def _process_batch(
     return {"resourceType": "Bundle", "type": "batch-response", "entry": response_entries}
 
 
-def _execute_batch_entry(pe: _ParsedEntry, store: FHIRStore) -> TxResult:
+def _execute_batch_entry(parsed_entry: _ParsedEntry, store: FHIRStore) -> TxResult:
     version: ResourceVersion | None
-    if pe.method == "POST":
-        version = store.create(pe.resource_type, pe.resource or {})
+    if parsed_entry.method == "POST":
+        version = store.create(parsed_entry.resource_type, parsed_entry.resource or {})
         return TxResult(version=version, created=True)
-    if pe.method == "PUT":
-        assert pe.resource_id is not None
-        version, created = store.update(pe.resource_type, pe.resource_id, pe.resource or {}, if_match=pe.if_match)
+    if parsed_entry.method == "PUT":
+        assert parsed_entry.resource_id is not None
+        version, created = store.update(parsed_entry.resource_type, parsed_entry.resource_id, parsed_entry.resource or {}, if_match=parsed_entry.if_match)
         return TxResult(version=version, created=created)
-    if pe.method == "DELETE":
-        assert pe.resource_id is not None
-        version = store.delete(pe.resource_type, pe.resource_id)
+    if parsed_entry.method == "DELETE":
+        assert parsed_entry.resource_id is not None
+        version = store.delete(parsed_entry.resource_type, parsed_entry.resource_id)
         if version is None:
-            raise FHIRHTTPError(404, f"{pe.resource_type}/{pe.resource_id} was not found", "not-found")
+            raise FHIRHTTPError(404, f"{parsed_entry.resource_type}/{parsed_entry.resource_id} was not found", "not-found")
         return TxResult(version=version)
     # GET
-    assert pe.resource_id is not None
-    version = store.latest(pe.resource_type, pe.resource_id)
+    assert parsed_entry.resource_id is not None
+    version = store.latest(parsed_entry.resource_type, parsed_entry.resource_id)
     if version is None:
-        raise FHIRHTTPError(404, f"{pe.resource_type}/{pe.resource_id} was not found", "not-found")
+        raise FHIRHTTPError(404, f"{parsed_entry.resource_type}/{parsed_entry.resource_id} was not found", "not-found")
     if version.deleted:
-        raise FHIRHTTPError(410, f"{pe.resource_type}/{pe.resource_id} has been deleted", "deleted")
+        raise FHIRHTTPError(410, f"{parsed_entry.resource_type}/{parsed_entry.resource_id} has been deleted", "deleted")
     return TxResult(version=version)
 
 
@@ -245,18 +245,18 @@ def _parse_url(url: str, base: str, index: int) -> tuple[str, str | None]:
 # ---------------------------------------------------------------------------
 
 
-def _to_tx_operation(pe: _ParsedEntry) -> TxOperation:
-    if pe.method == "POST":
-        return TxCreate(resource_type=pe.resource_type, resource=pe.resource or {})
-    if pe.method == "PUT":
-        assert pe.resource_id is not None
-        return TxUpdate(resource_type=pe.resource_type, resource_id=pe.resource_id, resource=pe.resource or {}, if_match=pe.if_match)
-    if pe.method == "DELETE":
-        assert pe.resource_id is not None
-        return TxDelete(resource_type=pe.resource_type, resource_id=pe.resource_id)
+def _to_tx_operation(parsed_entry: _ParsedEntry) -> TxOperation:
+    if parsed_entry.method == "POST":
+        return TxCreate(resource_type=parsed_entry.resource_type, resource=parsed_entry.resource or {})
+    if parsed_entry.method == "PUT":
+        assert parsed_entry.resource_id is not None
+        return TxUpdate(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id, resource=parsed_entry.resource or {}, if_match=parsed_entry.if_match)
+    if parsed_entry.method == "DELETE":
+        assert parsed_entry.resource_id is not None
+        return TxDelete(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id)
     # GET
-    assert pe.resource_id is not None
-    return TxRead(resource_type=pe.resource_type, resource_id=pe.resource_id)
+    assert parsed_entry.resource_id is not None
+    return TxRead(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id)
 
 
 # ---------------------------------------------------------------------------
@@ -265,7 +265,7 @@ def _to_tx_operation(pe: _ParsedEntry) -> TxOperation:
 
 
 def _build_success_entry(
-    pe: _ParsedEntry, result: TxResult, base: str
+    parsed_entry: _ParsedEntry, result: TxResult, base: str
 ) -> dict[str, Any]:
     version = result.version
     entry: dict[str, Any] = {}
@@ -275,10 +275,10 @@ def _build_success_entry(
         entry["response"] = {"status": "204 No Content"}
         return entry
 
-    resource_type = pe.resource_type
-    resource_id = version.resource["id"] if version.resource else pe.resource_id
+    resource_type = parsed_entry.resource_type
+    resource_id = version.resource["id"] if version.resource else parsed_entry.resource_id
 
-    if pe.method == "DELETE":
+    if parsed_entry.method == "DELETE":
         entry["response"] = {
             "status": "204 No Content",
             "etag": weak_etag(version.version_id),
@@ -298,7 +298,7 @@ def _build_success_entry(
         "etag": weak_etag(version.version_id),
         "lastModified": fhir_instant(version.last_updated),
     }
-    if pe.method in ("POST", "PUT"):
+    if parsed_entry.method in ("POST", "PUT"):
         response["location"] = f"{full_url}/_history/{version.version_id}"
 
     entry["response"] = response

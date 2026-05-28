@@ -12,10 +12,10 @@ from app.utils.time import fhir_instant, now_utc, weak_etag
 
 def _paged_url(url: str, offset: int, count: int) -> str:
     parsed = urlparse(url)
-    qp = parse_qs(parsed.query, keep_blank_values=True)
-    qp["_offset"] = [str(offset)]
-    qp["_count"] = [str(count)]
-    return urlunparse(parsed._replace(query=urlencode(qp, doseq=True)))
+    query_params = parse_qs(parsed.query, keep_blank_values=True)
+    query_params["_offset"] = [str(offset)]
+    query_params["_count"] = [str(count)]
+    return urlunparse(parsed._replace(query=urlencode(query_params, doseq=True)))
 
 
 def _warning_entry(diagnostics: str) -> dict[str, Any]:

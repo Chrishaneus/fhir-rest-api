@@ -296,15 +296,15 @@ class FHIRStore:
             # its own dialect-aware upsert at flush time.
             projection_batches: dict[str, list[dict[str, Any]]] = {}
 
-            def flush(b: list[dict[str, Any]]) -> None:
-                if not b:
+            def flush(batch: list[dict[str, Any]]) -> None:
+                if not batch:
                     return
                 # Each branch builds and executes its own statement: the
                 # dialect-specific Insert subclasses can't share a typed local.
                 if dialect == "postgresql":
                     session.execute(
                         pg_insert(ResourceVersionRecord)
-                        .values(b)
+                        .values(batch)
                         .on_conflict_do_nothing(
                             index_elements=[
                                 "resource_type",
@@ -316,7 +316,7 @@ class FHIRStore:
                 elif dialect == "sqlite":
                     session.execute(
                         sqlite_insert(ResourceVersionRecord)
-                        .values(b)
+                        .values(batch)
                         .on_conflict_do_nothing(
                             index_elements=[
                                 "resource_type",
@@ -326,11 +326,11 @@ class FHIRStore:
                         )
                     )
                 else:
-                    session.execute(insert(ResourceVersionRecord).values(b))
+                    session.execute(insert(ResourceVersionRecord).values(batch))
 
             def flush_projections() -> None:
-                for rt, proj_rows in projection_batches.items():
-                    projection = projection_registry.for_type(rt)
+                for resource_type, proj_rows in projection_batches.items():
+                    projection = projection_registry.for_type(resource_type)
                     if projection is None or not proj_rows:
                         continue
                     projection.bulk_upsert_rows(session, proj_rows)
@@ -433,10 +433,10 @@ class FHIRStore:
                 stmt = select(ResourceVersionRecord.resource_type).distinct()
                 all_types = [row for (row,) in session.execute(stmt).all()]
                 linked = []
-                for rt in all_types:
-                    if rt == resource_type:
+                for linked_type in all_types:
+                    if linked_type == resource_type:
                         continue
-                    linked.extend(self._python_search(session, rt, params))
+                    linked.extend(self._python_search(session, linked_type, params))
         return anchor, linked
 
     def _sql_resource_everything(

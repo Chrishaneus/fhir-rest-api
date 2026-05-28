@@ -45,27 +45,27 @@ def locked_until(username: str) -> datetime | None:
 
 def record_failure(username: str) -> None:
     """Increment the failure counter; lock the account when the limit is hit."""
-    r = _get_client()
+    client = _get_client()
     key_attempts = _KEY_ATTEMPTS.format(username)
     key_locked = _KEY_LOCKED.format(username)
     lockout_seconds = LOCKOUT_MINUTES * 60
 
-    count = cast(int, r.incr(key_attempts))
-    r.expire(key_attempts, lockout_seconds)
+    count = cast(int, client.incr(key_attempts))
+    client.expire(key_attempts, lockout_seconds)
 
     if count >= MAX_ATTEMPTS:
         expiry = datetime.now(UTC) + timedelta(minutes=LOCKOUT_MINUTES)
-        r.set(key_locked, expiry.timestamp(), ex=lockout_seconds)
+        client.set(key_locked, expiry.timestamp(), ex=lockout_seconds)
 
 
 def reset(username: str) -> None:
     """Clear failures and any lockout on successful login."""
-    r = _get_client()
-    r.delete(_KEY_ATTEMPTS.format(username), _KEY_LOCKED.format(username))
+    client = _get_client()
+    client.delete(_KEY_ATTEMPTS.format(username), _KEY_LOCKED.format(username))
 
 
 def clear_all() -> None:
     """Flush all rate-limit state. For use between tests only."""
-    r = _get_client()
-    for key in r.scan_iter("fhir:login:*"):
-        r.delete(key)
+    client = _get_client()
+    for key in client.scan_iter("fhir:login:*"):
+        client.delete(key)

@@ -43,11 +43,11 @@ def first_name_part(resource: dict[str, Any], part: str) -> str | None:
     return None
 
 
-def first_coding(cc: Any) -> tuple[str | None, str | None]:
+def first_coding(codeable_concept: Any) -> tuple[str | None, str | None]:
     """Return ``(system, code)`` for the first coding in a CodeableConcept."""
-    if not isinstance(cc, dict):
+    if not isinstance(codeable_concept, dict):
         return None, None
-    coding = first(cc.get("coding"))
+    coding = first(codeable_concept.get("coding"))
     if not isinstance(coding, dict):
         return None, None
     system = coding.get("system")
@@ -58,9 +58,9 @@ def first_coding(cc: Any) -> tuple[str | None, str | None]:
     )
 
 
-def first_code(cc: Any) -> str | None:
+def first_code(codeable_concept: Any) -> str | None:
     """Shortcut for ``first_coding`` when only the ``code`` is needed."""
-    return first_coding(cc)[1]
+    return first_coding(codeable_concept)[1]
 
 
 def reference_of(ref: Any) -> str | None:

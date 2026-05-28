@@ -26,11 +26,11 @@ _SUPPORTED_FORMATS = {
 
 
 async def format_negotiation(request: Request, call_next) -> Response:
-    raw = request.query_params.get("_format", "").strip()
+    raw_format = request.query_params.get("_format", "").strip()
     # In query strings '+' decodes as a space character; re-encode so that
     # "application/fhir+json" passed without %-encoding still matches.
-    fmt = raw.replace(" ", "+").lower()
-    if fmt and fmt not in _SUPPORTED_FORMATS:
+    normalized_format = raw_format.replace(" ", "+").lower()
+    if normalized_format and normalized_format not in _SUPPORTED_FORMATS:
         body = {
             "resourceType": "OperationOutcome",
             "issue": [
@@ -38,7 +38,7 @@ async def format_negotiation(request: Request, call_next) -> Response:
                     "severity": "error",
                     "code": "not-supported",
                     "diagnostics": (
-                        f"Unsupported _format value: {fmt!r}. "
+                        f"Unsupported _format value: {normalized_format!r}. "
                         "This server only supports application/fhir+json."
                     ),
                 }
