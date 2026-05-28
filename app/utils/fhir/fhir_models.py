@@ -11,10 +11,13 @@ https://build.fhir.org/resourcelist.html for FHIR R5.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fhir.resources import get_fhir_model_class as _get_fhir_model_class
 from pydantic import ValidationError
+
+if TYPE_CHECKING:
+    from fhir_core.fhirabstractmodel import FHIRAbstractModel
 
 from app.utils.errors import FHIRHTTPError
 
@@ -187,7 +190,7 @@ def is_known_resource_type(resource_type: str) -> bool:
     return resource_type in KNOWN_RESOURCE_TYPES
 
 
-def get_fhir_resource_class(resource_type: str):
+def get_fhir_resource_class(resource_type: str) -> type[FHIRAbstractModel] | None:
     """Return the ``fhir.resources`` Pydantic model class for a resource type."""
     if not is_known_resource_type(resource_type):
         return None
