@@ -44,6 +44,10 @@ class TestMetadata:
             assert expected in advertised
         assert len(advertised) >= 150
 
+    def test_declares_patch_format(self, client: TestClient) -> None:
+        body = client.get("/metadata").json()
+        assert "application/json-patch+json" in body["patchFormat"]
+
 
 class TestErrors:
     def test_type_mismatch_in_body_returns_400(self, client: TestClient) -> None:

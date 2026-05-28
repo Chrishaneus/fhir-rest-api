@@ -14,6 +14,7 @@ from app.auth.dependencies import require_auth
 from app.store import store
 from app.utils.fhir.bundles import bundle_response
 from app.utils.fhir.capability import capability_statement
+from app.utils.fhir.response_shaping import shape_bundle
 from app.utils.fhir.search import apply_pagination, query_params
 from app.utils.fhir.validation import configured_resource_types
 from app.utils.outcomes import fhir_json_response, operation_outcome
@@ -39,8 +40,10 @@ async def metadata(request: Request) -> JSONResponse:
 @router.get("/_history", dependencies=[Depends(require_auth)])
 @router.get("/_history/", dependencies=[Depends(require_auth)])
 async def system_history(request: Request) -> JSONResponse:
+    params = query_params(request)
     entries = store.history(limit=1000)
-    return fhir_json_response(bundle_response(request, "history", entries, total=len(entries)))
+    bundle = bundle_response(request, "history", entries, total=len(entries))
+    return fhir_json_response(shape_bundle(bundle, params))
 
 
 @router.get("/", dependencies=[Depends(require_auth)])
@@ -56,6 +59,5 @@ async def root_or_system_search(request: Request) -> JSONResponse:
         )
     matches = store.system_search(params)
     page, offset, page_size = apply_pagination(matches, params)
-    return fhir_json_response(
-        bundle_response(request, "searchset", page, total=len(matches), offset=offset, page_size=page_size)
-    )
+    bundle = bundle_response(request, "searchset", page, total=len(matches), offset=offset, page_size=page_size)
+    return fhir_json_response(shape_bundle(bundle, params))

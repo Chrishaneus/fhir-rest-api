@@ -19,6 +19,7 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
         "kind": "instance",
         "fhirVersion": FHIR_VERSION,
         "format": ["json"],
+        "patchFormat": ["application/json-patch+json"],
         "implementation": {
             "description": "Python FastAPI FHIR REST layer",
             "url": base,
