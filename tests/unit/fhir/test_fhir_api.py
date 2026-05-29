@@ -159,6 +159,58 @@ class TestHistory:
         assert body["type"] == "history"
         assert body["total"] >= 1
 
+    def test_instance_history_count_limits_entries(self, client: TestClient) -> None:
+        body = client.post("/Patient", json=patient("HistPage")).json()
+        pid = body["id"]
+        for i in range(3):
+            client.put(f"/Patient/{pid}", json={**body, "active": bool(i % 2)})
+        r = client.get(f"/Patient/{pid}/_history?_count=2")
+        assert r.status_code == 200
+        bundle = r.json()
+        assert bundle["total"] == 4
+        assert len(bundle["entry"]) == 2
+
+    def test_instance_history_next_link_present(self, client: TestClient) -> None:
+        body = client.post("/Patient", json=patient("HistNext")).json()
+        pid = body["id"]
+        for i in range(3):
+            client.put(f"/Patient/{pid}", json={**body, "active": bool(i % 2)})
+        r = client.get(f"/Patient/{pid}/_history?_count=2")
+        assert any(link["relation"] == "next" for link in r.json()["link"])
+
+    def test_instance_history_offset_skips_entries(self, client: TestClient) -> None:
+        body = client.post("/Patient", json=patient("HistOffset")).json()
+        pid = body["id"]
+        for i in range(3):
+            client.put(f"/Patient/{pid}", json={**body, "active": bool(i % 2)})
+        r_all = client.get(f"/Patient/{pid}/_history")
+        r_page = client.get(f"/Patient/{pid}/_history?_count=2&_offset=2")
+        assert r_page.json()["total"] == 4
+        assert len(r_page.json()["entry"]) == 2
+        all_ids = [e["resource"]["meta"]["versionId"] for e in r_all.json()["entry"] if e.get("resource")]
+        page_ids = [e["resource"]["meta"]["versionId"] for e in r_page.json()["entry"] if e.get("resource")]
+        assert page_ids == all_ids[2:4]
+
+    def test_type_history_pagination(self, client: TestClient) -> None:
+        for i in range(3):
+            client.post("/Patient", json=patient(f"TypePage{i}"))
+        r = client.get("/Patient/_history?_count=2")
+        assert r.status_code == 200
+        bundle = r.json()
+        assert bundle["total"] >= 3
+        assert len(bundle["entry"]) == 2
+        assert any(link["relation"] == "next" for link in bundle["link"])
+
+    def test_system_history_pagination(self, client: TestClient) -> None:
+        for i in range(3):
+            client.post("/Patient", json=patient(f"SysPage{i}"))
+        r = client.get("/_history?_count=2")
+        assert r.status_code == 200
+        bundle = r.json()
+        assert bundle["total"] >= 3
+        assert len(bundle["entry"]) == 2
+        assert any(link["relation"] == "next" for link in bundle["link"])
+
 
 class TestSearch:
     def test_by_family_returns_matching_bundle(self, client: TestClient) -> None:

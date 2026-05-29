@@ -76,7 +76,8 @@ async def type_history(resource_type: str, request: Request) -> JSONResponse:
     assert_resource_type(resource_type)
     params = query_params(request)
     entries = store.history(resource_type=resource_type)
-    bundle = bundle_response(request, "history", entries, total=len(entries))
+    page, offset, page_size = apply_pagination(entries, params)
+    bundle = bundle_response(request, "history", page, total=len(entries), offset=offset, page_size=page_size)
     return fhir_json_response(shape_bundle(bundle, params))
 
 
@@ -202,7 +203,8 @@ async def instance_history(
     entries = store.history(resource_type=resource_type, resource_id=resource_id)
     if not entries:
         raise FHIRHTTPError(404, "Resource was not found", "not-found")
-    bundle = bundle_response(request, "history", entries, total=len(entries))
+    page, offset, page_size = apply_pagination(entries, params)
+    bundle = bundle_response(request, "history", page, total=len(entries), offset=offset, page_size=page_size)
     return fhir_json_response(shape_bundle(bundle, params))
 
 

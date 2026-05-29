@@ -42,8 +42,9 @@ async def metadata(request: Request) -> JSONResponse:
 @router.get("/_history/", dependencies=[Depends(require_auth)])
 async def system_history(request: Request) -> JSONResponse:
     params = query_params(request)
-    entries = store.history(limit=1000)
-    bundle = bundle_response(request, "history", entries, total=len(entries))
+    entries = store.history()
+    page, offset, page_size = apply_pagination(entries, params)
+    bundle = bundle_response(request, "history", page, total=len(entries), offset=offset, page_size=page_size)
     return fhir_json_response(shape_bundle(bundle, params))
 
 

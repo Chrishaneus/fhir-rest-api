@@ -685,7 +685,7 @@
     },
     {
       "name": "History",
-      "description": "Version history interactions. Reads instance, type, and system history bundles. Run after the Patient CRUD folder \u00e2\u20ac\u201d the patient will have been created, updated twice (PUT + PATCH), and deleted, so the history bundle should contain at least 3 entries. Version 1 may return 410 Gone after the DELETE.",
+      "description": "Version history interactions. Reads instance, type, and system history bundles. Run after the Patient CRUD folder \u2014 the patient will have been created, updated twice (PUT + PATCH), and deleted, so the history bundle should contain at least 3 entries. Version 1 may return 410 Gone after the DELETE. Pagination is supported via ?_count and ?_offset on all history endpoints; total always reflects the full history regardless of the page size.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient/{{patientId}}/_history",
@@ -910,6 +910,142 @@
               ],
               "path": [
                 "_history"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{patientId}}/_history?_count=1 (paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Entry count respects _count', () => {",
+                  "    pm.expect(pm.response.json().entry.length).to.be.at.most(1);",
+                  "});",
+                  "pm.test('Total reflects full history not just the page', () => {",
+                  "    pm.expect(pm.response.json().total).to.be.above(0);",
+                  "});",
+                  "pm.test('Next link present when history has more entries', () => {",
+                  "    const links = pm.response.json().link || [];",
+                  "    pm.expect(links.some(l => l.relation === 'next')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{patientId}}/_history?_count=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{patientId}}",
+                "_history"
+              ],
+              "query": [
+                {
+                  "key": "_count",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{patientId}}/_history?_count=1&_offset=1 (page 2)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns history Bundle', () => {",
+                  "    pm.expect(pm.response.json().type).to.eql('history');",
+                  "});",
+                  "pm.test('Total unchanged from page 1', () => {",
+                  "    pm.expect(pm.response.json().total).to.be.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{patientId}}/_history?_count=1&_offset=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{patientId}}",
+                "_history"
+              ],
+              "query": [
+                {
+                  "key": "_count",
+                  "value": "1"
+                },
+                {
+                  "key": "_offset",
+                  "value": "1"
+                }
               ]
             }
           },
