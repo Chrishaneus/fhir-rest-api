@@ -64,7 +64,6 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        # Emit DROP before CREATE for columns that changed type.
         compare_type=True,
     )
 

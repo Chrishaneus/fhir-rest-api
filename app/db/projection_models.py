@@ -290,3 +290,489 @@ class ProcedureProjectionSchema(BaseProjection):
         Index("ix_procedure_projection_performed_at", "performed_at"),
         Index("ix_procedure_projection_last_updated", "last_updated"),
     )
+
+
+# --- PractitionerRole -------------------------------------------------------
+
+
+class PractitionerRoleProjectionSchema(BaseProjection):
+    __tablename__ = "practitionerrole_projection"
+
+    practitioner_reference: Mapped[str | None] = mapped_column(String(128))
+    organization_reference: Mapped[str | None] = mapped_column(String(128))
+    role_code: Mapped[str | None] = mapped_column(String(64))
+    active: Mapped[bool | None] = mapped_column(Boolean)
+
+    __table_args__ = (
+        Index("ix_practitionerrole_projection_practitioner", "practitioner_reference"),
+        Index("ix_practitionerrole_projection_organization", "organization_reference"),
+        Index("ix_practitionerrole_projection_role", "role_code"),
+        Index("ix_practitionerrole_projection_active", "active"),
+        Index("ix_practitionerrole_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Location ----------------------------------------------------------------
+
+
+class LocationProjectionSchema(BaseProjection):
+    __tablename__ = "location_projection"
+
+    name: Mapped[str | None] = mapped_column(String(255))
+    status: Mapped[str | None] = mapped_column(String(32))
+    type_code: Mapped[str | None] = mapped_column(String(64))
+    organization_reference: Mapped[str | None] = mapped_column(String(128))
+
+    __table_args__ = (
+        Index("ix_location_projection_name", "name"),
+        Index("ix_location_projection_status", "status"),
+        Index("ix_location_projection_type", "type_code"),
+        Index("ix_location_projection_organization", "organization_reference"),
+        Index("ix_location_projection_last_updated", "last_updated"),
+    )
+
+
+# --- RelatedPerson -----------------------------------------------------------
+
+
+class RelatedPersonProjectionSchema(BaseProjection):
+    __tablename__ = "relatedperson_projection"
+
+    patient_reference: Mapped[str | None] = mapped_column(String(128))
+    family: Mapped[str | None] = mapped_column(String(255))
+    active: Mapped[bool | None] = mapped_column(Boolean)
+
+    __table_args__ = (
+        Index("ix_relatedperson_projection_patient", "patient_reference"),
+        Index("ix_relatedperson_projection_family", "family"),
+        Index("ix_relatedperson_projection_active", "active"),
+        Index("ix_relatedperson_projection_last_updated", "last_updated"),
+    )
+
+
+# --- EpisodeOfCare -----------------------------------------------------------
+
+
+class EpisodeOfCareProjectionSchema(BaseProjection):
+    __tablename__ = "episodeofcare_projection"
+
+    patient_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    period_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_episodeofcare_projection_patient", "patient_reference"),
+        Index("ix_episodeofcare_projection_status", "status"),
+        Index("ix_episodeofcare_projection_period_start", "period_start"),
+        Index("ix_episodeofcare_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Schedule ----------------------------------------------------------------
+
+
+class ScheduleProjectionSchema(BaseProjection):
+    __tablename__ = "schedule_projection"
+
+    actor_reference: Mapped[str | None] = mapped_column(String(128))
+    active: Mapped[bool | None] = mapped_column(Boolean)
+
+    __table_args__ = (
+        Index("ix_schedule_projection_actor", "actor_reference"),
+        Index("ix_schedule_projection_active", "active"),
+        Index("ix_schedule_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Slot --------------------------------------------------------------------
+
+
+class SlotProjectionSchema(BaseProjection):
+    __tablename__ = "slot_projection"
+
+    schedule_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    start_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_slot_projection_schedule", "schedule_reference"),
+        Index("ix_slot_projection_status", "status"),
+        Index("ix_slot_projection_start_at", "start_at"),
+        Index("ix_slot_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Appointment -------------------------------------------------------------
+
+
+class AppointmentProjectionSchema(BaseProjection):
+    __tablename__ = "appointment_projection"
+
+    patient_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    start_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_appointment_projection_patient", "patient_reference"),
+        Index("ix_appointment_projection_status", "status"),
+        Index("ix_appointment_projection_start_at", "start_at"),
+        Index("ix_appointment_projection_last_updated", "last_updated"),
+    )
+
+
+# --- FamilyMemberHistory -----------------------------------------------------
+
+
+class FamilyMemberHistoryProjectionSchema(BaseProjection):
+    __tablename__ = "familymemberhistory_projection"
+
+    patient_reference: Mapped[str | None] = mapped_column(String(128))
+    relationship_code: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str | None] = mapped_column(String(32))
+
+    __table_args__ = (
+        Index("ix_familymemberhistory_projection_patient", "patient_reference"),
+        Index("ix_familymemberhistory_projection_relationship", "relationship_code"),
+        Index("ix_familymemberhistory_projection_status", "status"),
+        Index("ix_familymemberhistory_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Immunization ------------------------------------------------------------
+
+
+class ImmunizationProjectionSchema(BaseProjection):
+    __tablename__ = "immunization_projection"
+
+    patient_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    vaccine_code: Mapped[str | None] = mapped_column(String(64))
+    occurrence_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_immunization_projection_patient", "patient_reference"),
+        Index("ix_immunization_projection_status", "status"),
+        Index("ix_immunization_projection_vaccine_code", "vaccine_code"),
+        Index("ix_immunization_projection_occurrence_at", "occurrence_at"),
+        Index("ix_immunization_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Specimen ----------------------------------------------------------------
+
+
+class SpecimenProjectionSchema(BaseProjection):
+    __tablename__ = "specimen_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    type_code: Mapped[str | None] = mapped_column(String(64))
+    collected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str | None] = mapped_column(String(32))
+
+    __table_args__ = (
+        Index("ix_specimen_projection_subject", "subject_reference"),
+        Index("ix_specimen_projection_type", "type_code"),
+        Index("ix_specimen_projection_collected_at", "collected_at"),
+        Index("ix_specimen_projection_status", "status"),
+        Index("ix_specimen_projection_last_updated", "last_updated"),
+    )
+
+
+# --- ImagingStudy ------------------------------------------------------------
+
+
+class ImagingStudyProjectionSchema(BaseProjection):
+    __tablename__ = "imagingstudy_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    encounter_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_imagingstudy_projection_subject", "subject_reference"),
+        Index("ix_imagingstudy_projection_encounter", "encounter_reference"),
+        Index("ix_imagingstudy_projection_status", "status"),
+        Index("ix_imagingstudy_projection_started_at", "started_at"),
+        Index("ix_imagingstudy_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Medication --------------------------------------------------------------
+
+
+class MedicationProjectionSchema(BaseProjection):
+    __tablename__ = "medication_projection"
+
+    code_code: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str | None] = mapped_column(String(32))
+
+    __table_args__ = (
+        Index("ix_medication_projection_code", "code_code"),
+        Index("ix_medication_projection_status", "status"),
+        Index("ix_medication_projection_last_updated", "last_updated"),
+    )
+
+
+# --- MedicationStatement -----------------------------------------------------
+
+
+class MedicationStatementProjectionSchema(BaseProjection):
+    __tablename__ = "medicationstatement_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    effective_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_medicationstatement_projection_subject", "subject_reference"),
+        Index("ix_medicationstatement_projection_status", "status"),
+        Index("ix_medicationstatement_projection_effective_at", "effective_at"),
+        Index("ix_medicationstatement_projection_last_updated", "last_updated"),
+    )
+
+
+# --- MedicationDispense ------------------------------------------------------
+
+
+class MedicationDispenseProjectionSchema(BaseProjection):
+    __tablename__ = "medicationdispense_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    when_handed_over: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_medicationdispense_projection_subject", "subject_reference"),
+        Index("ix_medicationdispense_projection_status", "status"),
+        Index("ix_medicationdispense_projection_when_handed_over", "when_handed_over"),
+        Index("ix_medicationdispense_projection_last_updated", "last_updated"),
+    )
+
+
+# --- MedicationAdministration ------------------------------------------------
+
+
+class MedicationAdministrationProjectionSchema(BaseProjection):
+    __tablename__ = "medicationadministration_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    encounter_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    occurrence_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_medicationadministration_projection_subject", "subject_reference"),
+        Index("ix_medicationadministration_projection_encounter", "encounter_reference"),
+        Index("ix_medicationadministration_projection_status", "status"),
+        Index("ix_medicationadministration_projection_occurrence_at", "occurrence_at"),
+        Index("ix_medicationadministration_projection_last_updated", "last_updated"),
+    )
+
+
+# --- CarePlan ----------------------------------------------------------------
+
+
+class CarePlanProjectionSchema(BaseProjection):
+    __tablename__ = "careplan_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    encounter_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+
+    __table_args__ = (
+        Index("ix_careplan_projection_subject", "subject_reference"),
+        Index("ix_careplan_projection_encounter", "encounter_reference"),
+        Index("ix_careplan_projection_status", "status"),
+        Index("ix_careplan_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Goal --------------------------------------------------------------------
+
+
+class GoalProjectionSchema(BaseProjection):
+    __tablename__ = "goal_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    lifecycle_status: Mapped[str | None] = mapped_column(String(32))
+    start_date: Mapped[date | None] = mapped_column(Date)
+
+    __table_args__ = (
+        Index("ix_goal_projection_subject", "subject_reference"),
+        Index("ix_goal_projection_lifecycle_status", "lifecycle_status"),
+        Index("ix_goal_projection_start_date", "start_date"),
+        Index("ix_goal_projection_last_updated", "last_updated"),
+    )
+
+
+# --- ServiceRequest ----------------------------------------------------------
+
+
+class ServiceRequestProjectionSchema(BaseProjection):
+    __tablename__ = "servicerequest_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    encounter_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    authored_on: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_servicerequest_projection_subject", "subject_reference"),
+        Index("ix_servicerequest_projection_encounter", "encounter_reference"),
+        Index("ix_servicerequest_projection_status", "status"),
+        Index("ix_servicerequest_projection_authored_on", "authored_on"),
+        Index("ix_servicerequest_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Task --------------------------------------------------------------------
+
+
+class TaskProjectionSchema(BaseProjection):
+    __tablename__ = "task_projection"
+
+    status: Mapped[str | None] = mapped_column(String(32))
+    intent: Mapped[str | None] = mapped_column(String(32))
+    authored_on: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    owner_reference: Mapped[str | None] = mapped_column(String(128))
+
+    __table_args__ = (
+        Index("ix_task_projection_status", "status"),
+        Index("ix_task_projection_intent", "intent"),
+        Index("ix_task_projection_authored_on", "authored_on"),
+        Index("ix_task_projection_owner", "owner_reference"),
+        Index("ix_task_projection_last_updated", "last_updated"),
+    )
+
+
+# --- NutritionOrder ----------------------------------------------------------
+
+
+class NutritionOrderProjectionSchema(BaseProjection):
+    __tablename__ = "nutritionorder_projection"
+
+    patient_reference: Mapped[str | None] = mapped_column(String(128))
+    encounter_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+
+    __table_args__ = (
+        Index("ix_nutritionorder_projection_patient", "patient_reference"),
+        Index("ix_nutritionorder_projection_encounter", "encounter_reference"),
+        Index("ix_nutritionorder_projection_status", "status"),
+        Index("ix_nutritionorder_projection_last_updated", "last_updated"),
+    )
+
+
+# --- DocumentReference -------------------------------------------------------
+
+
+class DocumentReferenceProjectionSchema(BaseProjection):
+    __tablename__ = "documentreference_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    doc_status: Mapped[str | None] = mapped_column(String(32))
+    type_code: Mapped[str | None] = mapped_column(String(64))
+    doc_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_documentreference_projection_subject", "subject_reference"),
+        Index("ix_documentreference_projection_status", "status"),
+        Index("ix_documentreference_projection_doc_status", "doc_status"),
+        Index("ix_documentreference_projection_type", "type_code"),
+        Index("ix_documentreference_projection_doc_date", "doc_date"),
+        Index("ix_documentreference_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Composition -------------------------------------------------------------
+
+
+class CompositionProjectionSchema(BaseProjection):
+    __tablename__ = "composition_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    encounter_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    type_code: Mapped[str | None] = mapped_column(String(64))
+    doc_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_composition_projection_subject", "subject_reference"),
+        Index("ix_composition_projection_encounter", "encounter_reference"),
+        Index("ix_composition_projection_status", "status"),
+        Index("ix_composition_projection_type", "type_code"),
+        Index("ix_composition_projection_doc_date", "doc_date"),
+        Index("ix_composition_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Coverage ----------------------------------------------------------------
+
+
+class CoverageProjectionSchema(BaseProjection):
+    __tablename__ = "coverage_projection"
+
+    beneficiary_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+
+    __table_args__ = (
+        Index("ix_coverage_projection_beneficiary", "beneficiary_reference"),
+        Index("ix_coverage_projection_status", "status"),
+        Index("ix_coverage_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Claim -------------------------------------------------------------------
+
+
+class ClaimProjectionSchema(BaseProjection):
+    __tablename__ = "claim_projection"
+
+    patient_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    created_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_claim_projection_patient", "patient_reference"),
+        Index("ix_claim_projection_status", "status"),
+        Index("ix_claim_projection_created_at", "created_at"),
+        Index("ix_claim_projection_last_updated", "last_updated"),
+    )
+
+
+# --- Communication -----------------------------------------------------------
+
+
+class CommunicationProjectionSchema(BaseProjection):
+    __tablename__ = "communication_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_communication_projection_subject", "subject_reference"),
+        Index("ix_communication_projection_status", "status"),
+        Index("ix_communication_projection_sent_at", "sent_at"),
+        Index("ix_communication_projection_last_updated", "last_updated"),
+    )
+
+
+# --- CommunicationRequest ----------------------------------------------------
+
+
+class CommunicationRequestProjectionSchema(BaseProjection):
+    __tablename__ = "communicationrequest_projection"
+
+    subject_reference: Mapped[str | None] = mapped_column(String(128))
+    status: Mapped[str | None] = mapped_column(String(32))
+    authored_on: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        Index("ix_communicationrequest_projection_subject", "subject_reference"),
+        Index("ix_communicationrequest_projection_status", "status"),
+        Index("ix_communicationrequest_projection_authored_on", "authored_on"),
+        Index("ix_communicationrequest_projection_last_updated", "last_updated"),
+    )

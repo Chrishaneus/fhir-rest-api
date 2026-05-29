@@ -46,4 +46,17 @@ class ResourceVersionRecord(Base):
         ),
         Index("ix_resource_versions_type_id", "resource_type", "resource_id"),
         Index("ix_resource_versions_type_last_updated", "resource_type", "last_updated"),
+        # GIN indexes for JSONB containment search (Postgres only; SQLite falls
+        # back to a plain B-tree index which is unused but harmless in tests).
+        Index(
+            "ix_resource_versions_content_gin",
+            "content",
+            postgresql_using="gin",
+        ),
+        Index(
+            "ix_resource_versions_content_path_ops",
+            "content",
+            postgresql_using="gin",
+            postgresql_ops={"content": "jsonb_path_ops"},
+        ),
     )

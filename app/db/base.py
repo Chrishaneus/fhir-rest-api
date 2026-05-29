@@ -33,12 +33,13 @@ class Base(DeclarativeBase):
 
 
 def init_db() -> None:
-    """Create all tables. Safe to call at startup and in tests."""
-    from app.db import auth_models, models, projection_models  # noqa: F401 - register tables
+    """Import all ORM models so Base.metadata is fully populated.
 
-    Base.metadata.create_all(bind=engine)
-    _ensure_projection_indexes()
-    _create_postgres_indexes()
+    Schema is managed exclusively via Alembic migrations (`alembic upgrade
+    head`). This function no longer calls create_all; it exists only to
+    trigger the model imports so the metadata is ready before any query runs.
+    """
+    from app.db import auth_models, models, projection_models  # noqa: F401
 
 
 def reset_db() -> None:
@@ -54,38 +55,3 @@ def reset_db() -> None:
             conn.execute(table.delete())
 
 
-def _ensure_projection_indexes() -> None:
-    """Create any projection indexes missing from an already-existing table.
-
-    `Base.metadata.create_all` adds the indexes declared in
-    `__table_args__` only when it creates the table itself. If a deployment
-    is upgrading from an older codebase that had the table but a smaller set
-    of indexes, the new indexes would otherwise never be created. We re-issue
-    `CREATE INDEX IF NOT EXISTS` for every index on every `*_index` table
-    so adding a new index becomes a code-only change.
-    """
-    from app.db import projection_models  # noqa: F401 - register models
-
-    with engine.begin() as conn:
-        for table in Base.metadata.tables.values():
-            if not table.name.endswith("_index"):
-                continue
-            for index in table.indexes:
-                index.create(conn, checkfirst=True)
-
-
-def _create_postgres_indexes() -> None:
-    """Create Postgres-only indexes that SQLAlchemy's DDL can't express portably."""
-    if engine.dialect.name != "postgresql":
-        return
-    from sqlalchemy import text
-
-    with engine.begin() as conn:
-        # GIN index with jsonb_path_ops supports `content @> '...'::jsonb` lookups
-        # in O(log n) and is more compact than the default jsonb_ops class.
-        conn.execute(
-            text(
-                "CREATE INDEX IF NOT EXISTS ix_resource_versions_content_gin "
-                "ON resource_versions USING GIN (content jsonb_path_ops)"
-            )
-        )
