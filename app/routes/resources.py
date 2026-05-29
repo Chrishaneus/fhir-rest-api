@@ -4,6 +4,7 @@ Type-level:
 * `GET    /{resource_type}/_history`      - history Bundle for a resource type
 * `POST   /{resource_type}/_search`       - search Bundle (POST form)
 * `GET    /{resource_type}`               - search Bundle (GET query)
+* `POST   /{resource_type}/$validate`     - validate without persisting
 * `POST   /{resource_type}`               - create
 
 Instance-level:
@@ -53,7 +54,7 @@ from app.utils.headers import (
     read_headers,
     response_headers,
 )
-from app.utils.outcomes import fhir_json_response
+from app.utils.outcomes import fhir_json_response, operation_outcome
 
 
 def _parse_if_none_exist(header: str) -> dict[str, list[str]]:
@@ -156,6 +157,19 @@ async def create_resource(
         status_code=201,
         headers=headers,
         prefer=request.headers.get("prefer"),
+    )
+
+
+@router.post("/{resource_type}/$validate")
+@router.post("/{resource_type}/$validate/")
+async def validate_resource_type(
+    resource_type: str,
+    payload: dict[str, Any] = Body(...),
+) -> JSONResponse:
+    assert_resource_type(resource_type)
+    validate_request_body(resource_type, payload)
+    return fhir_json_response(
+        operation_outcome("Validation passed", severity="information", code="informational"),
     )
 
 

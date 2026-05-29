@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "11111111-2222-3333-4444-555555555555",
     "name": "FHIR REST API",
-    "description": "End-to-end tests for the Python FastAPI FHIR R5 REST server.\n\nRun the full collection in order — Auth registers a unique user and saves a Bearer token, which all subsequent requests inherit. The Patient folder creates a resource whose ID is stored in `patientId`. The Sort folder seeds additional patients to verify `_sort` ordering. The Include / RevInclude folder seeds a fresh patient and observation to test `_include` / `_revinclude`, saving their IDs to `includePatientId` and `includeObsId`. The Reference Validation folder verifies that dangling local references are rejected with 422. The _format Negotiation folder tests `?_format` parameter support (JSON accepted, XML → 406). The Conditional Create folder tests the `If-None-Exist` header (0 matches → 201, 1 match → 200, 2+ → 412). The $everything folder tests `GET /<resource>/{id}/$everything`. The Transaction / Batch Bundle folder tests `POST /` bundle processing. The _summary / _elements folder tests response shaping via `?_summary` and `?_elements`. The _lastUpdated folder tests date-prefix search via `?_lastUpdated`.\n\n**Base URL:** `http://localhost:8000`  \n**Auth:** JWT Bearer (token saved automatically after Login)",
+    "description": "End-to-end tests for the Python FastAPI FHIR R5 REST server.\n\nRun the full collection in order \u00e2\u20ac\u201d Auth registers a unique user and saves a Bearer token, which all subsequent requests inherit. The Patient folder creates a resource whose ID is stored in `patientId`. The Sort folder seeds additional patients to verify `_sort` ordering. The Include / RevInclude folder seeds a fresh patient and observation to test `_include` / `_revinclude`, saving their IDs to `includePatientId` and `includeObsId`. The Reference Validation folder verifies that dangling local references are rejected with 422. The _format Negotiation folder tests `?_format` parameter support (JSON accepted, XML \u00e2\u2020\u2019 406). The Conditional Create folder tests the `If-None-Exist` header (0 matches \u00e2\u2020\u2019 201, 1 match \u00e2\u2020\u2019 200, 2+ \u00e2\u2020\u2019 412). The $everything folder tests `GET /<resource>/{id}/$everything`. The Transaction / Batch Bundle folder tests `POST /` bundle processing. The _summary / _elements folder tests response shaping via `?_summary` and `?_elements`. The _lastUpdated folder tests date-prefix search via `?_lastUpdated`. The $validate folder tests `POST /{type}/$validate` without persisting.\n\n**Base URL:** `http://localhost:8000`  \n**Auth:** JWT Bearer (token saved automatically after Login)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "55269035"
   },
@@ -29,16 +29,32 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
             "header": [],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["health"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
             }
           },
           "response": []
@@ -61,16 +77,37 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Accept", "value": "application/fhir+json"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/metadata",
-              "host": ["{{baseUrl}}"],
-              "path": ["metadata"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metadata"
+              ]
             }
           },
           "response": []
@@ -110,20 +147,38 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"Secret!123\",\n  \"email\": \"{{username}}@example.com\",\n  \"role\": \"clinician\"\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             }
           },
           "response": []
@@ -153,20 +208,38 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"Secret!123\"\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           },
           "response": []
@@ -175,7 +248,7 @@
     },
     {
       "name": "Patient",
-      "description": "Full CRUD lifecycle for a Patient resource. Create saves the new resource ID to `patientId`, which Read, Update, Patch, and Delete all reference. Run these in order: Create → Read → Search → PUT → PATCH → Delete. The DELETE at the end tombstones the resource so History requests can demonstrate the deleted version.",
+      "description": "Full CRUD lifecycle for a Patient resource. Create saves the new resource ID to `patientId`, which Read, Update, Patch, and Delete all reference. Run these in order: Create \u00e2\u2020\u2019 Read \u00e2\u2020\u2019 Search \u00e2\u2020\u2019 PUT \u00e2\u2020\u2019 PATCH \u00e2\u2020\u2019 Delete. The DELETE at the end tombstones the resource so History requests can demonstrate the deleted version.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient (Create)",
@@ -203,23 +276,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"Smith\", \"given\": [\"Jane\"]}],\n  \"gender\": \"female\",\n  \"birthDate\": \"1990-04-15\"\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -247,19 +338,42 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Accept",        "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/fhir+json"
+              }
             ],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient/{{patientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "{{patientId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{patientId}}"
+              ]
             }
           },
           "response": []
@@ -285,17 +399,43 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient?family=Smith",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"],
-              "query": [{"key": "family", "value": "Smith"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "family",
+                  "value": "Smith"
+                }
+              ]
             }
           },
           "response": []
@@ -320,22 +460,42 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "body": {
               "mode": "urlencoded",
               "urlencoded": [
-                {"key": "family", "value": "Smith"},
-                {"key": "gender", "value": "female"}
+                {
+                  "key": "family",
+                  "value": "Smith"
+                },
+                {
+                  "key": "gender",
+                  "value": "female"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/Patient/_search",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "_search"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "_search"
+              ]
             }
           },
           "response": []
@@ -364,23 +524,42 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "PUT",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"id\": \"{{patientId}}\",\n  \"name\": [{\"family\": \"Smith\", \"given\": [\"Jane\", \"Marie\"]}],\n  \"gender\": \"female\",\n  \"birthDate\": \"1990-04-15\",\n  \"active\": true\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient/{{patientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "{{patientId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{patientId}}"
+              ]
             }
           },
           "response": []
@@ -408,23 +587,42 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "PATCH",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/json-patch+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json-patch+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "[{\"op\": \"replace\", \"path\": \"/active\", \"value\": false}]",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient/{{patientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "{{patientId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{patientId}}"
+              ]
             }
           },
           "response": []
@@ -447,16 +645,38 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "DELETE",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient/{{patientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "{{patientId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{patientId}}"
+              ]
             }
           },
           "response": []
@@ -465,7 +685,7 @@
     },
     {
       "name": "History",
-      "description": "Version history interactions. Reads instance, type, and system history bundles. Run after the Patient CRUD folder — the patient will have been created, updated twice (PUT + PATCH), and deleted, so the history bundle should contain at least 3 entries. Version 1 may return 410 Gone after the DELETE.",
+      "description": "Version history interactions. Reads instance, type, and system history bundles. Run after the Patient CRUD folder \u00e2\u20ac\u201d the patient will have been created, updated twice (PUT + PATCH), and deleted, so the history bundle should contain at least 3 entries. Version 1 may return 410 Gone after the DELETE.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient/{{patientId}}/_history",
@@ -488,16 +708,39 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient/{{patientId}}/_history",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "{{patientId}}", "_history"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{patientId}}",
+                "_history"
+              ]
             }
           },
           "response": []
@@ -523,16 +766,40 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient/{{patientId}}/_history/1",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "{{patientId}}", "_history", "1"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{patientId}}",
+                "_history",
+                "1"
+              ]
             }
           },
           "response": []
@@ -557,16 +824,38 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient/_history",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "_history"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "_history"
+              ]
             }
           },
           "response": []
@@ -591,16 +880,37 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/_history",
-              "host": ["{{baseUrl}}"],
-              "path": ["_history"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "_history"
+              ]
             }
           },
           "response": []
@@ -609,7 +919,7 @@
     },
     {
       "name": "Observation",
-      "description": "Search interactions for Observation resources. Demonstrates subject reference filtering, LOINC code filtering, date range filtering with `ge`/`le` prefixes, and pagination via `_count`/`_offset`. These requests return empty bundles if no Observations have been created — that is still a valid 200 searchset response.",
+      "description": "Search interactions for Observation resources. Demonstrates subject reference filtering, LOINC code filtering, date range filtering with `ge`/`le` prefixes, and pagination via `_count`/`_offset`. These requests return empty bundles if no Observations have been created \u00e2\u20ac\u201d that is still a valid 200 searchset response.",
       "item": [
         {
           "name": "{{baseUrl}}/Observation?subject=Patient/{{patientId}}",
@@ -631,17 +941,43 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Observation?subject=Patient/{{patientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["Observation"],
-              "query": [{"key": "subject", "value": "Patient/{{patientId}}"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ],
+              "query": [
+                {
+                  "key": "subject",
+                  "value": "Patient/{{patientId}}"
+                }
+              ]
             }
           },
           "response": []
@@ -666,17 +1002,43 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Observation?code=8867-4",
-              "host": ["{{baseUrl}}"],
-              "path": ["Observation"],
-              "query": [{"key": "code", "value": "8867-4"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "8867-4"
+                }
+              ]
             }
           },
           "response": []
@@ -701,19 +1063,46 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Observation?date=ge2024-01-01&date=le2024-12-31",
-              "host": ["{{baseUrl}}"],
-              "path": ["Observation"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ],
               "query": [
-                {"key": "date", "value": "ge2024-01-01"},
-                {"key": "date", "value": "le2024-12-31"}
+                {
+                  "key": "date",
+                  "value": "ge2024-01-01"
+                },
+                {
+                  "key": "date",
+                  "value": "le2024-12-31"
+                }
               ]
             }
           },
@@ -743,19 +1132,46 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Observation?_count=10&_offset=0",
-              "host": ["{{baseUrl}}"],
-              "path": ["Observation"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ],
               "query": [
-                {"key": "_count",  "value": "10"},
-                {"key": "_offset", "value": "0"}
+                {
+                  "key": "_count",
+                  "value": "10"
+                },
+                {
+                  "key": "_offset",
+                  "value": "0"
+                }
               ]
             }
           },
@@ -765,7 +1181,7 @@
     },
     {
       "name": "Condition, AllergyIntolerance, MedicationRequest",
-      "description": "Search interactions for common clinical resources linked to the patient. All three filter by subject/patient reference using `patientId`. Empty bundles are expected unless matching resources have been created separately — the tests only assert on the Bundle structure, not entry count.",
+      "description": "Search interactions for common clinical resources linked to the patient. All three filter by subject/patient reference using `patientId`. Empty bundles are expected unless matching resources have been created separately \u00e2\u20ac\u201d the tests only assert on the Bundle structure, not entry count.",
       "item": [
         {
           "name": "{{baseUrl}}/Condition?subject=Patient/{{patientId}}&clinical-status=active",
@@ -787,19 +1203,46 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Condition?subject=Patient/{{patientId}}&clinical-status=active",
-              "host": ["{{baseUrl}}"],
-              "path": ["Condition"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Condition"
+              ],
               "query": [
-                {"key": "subject",         "value": "Patient/{{patientId}}"},
-                {"key": "clinical-status", "value": "active"}
+                {
+                  "key": "subject",
+                  "value": "Patient/{{patientId}}"
+                },
+                {
+                  "key": "clinical-status",
+                  "value": "active"
+                }
               ]
             }
           },
@@ -825,17 +1268,43 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/AllergyIntolerance?patient=Patient/{{patientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["AllergyIntolerance"],
-              "query": [{"key": "patient", "value": "Patient/{{patientId}}"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "AllergyIntolerance"
+              ],
+              "query": [
+                {
+                  "key": "patient",
+                  "value": "Patient/{{patientId}}"
+                }
+              ]
             }
           },
           "response": []
@@ -860,19 +1329,46 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/MedicationRequest?subject=Patient/{{patientId}}&status=active",
-              "host": ["{{baseUrl}}"],
-              "path": ["MedicationRequest"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "MedicationRequest"
+              ],
               "query": [
-                {"key": "subject", "value": "Patient/{{patientId}}"},
-                {"key": "status",  "value": "active"}
+                {
+                  "key": "subject",
+                  "value": "Patient/{{patientId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "active"
+                }
               ]
             }
           },
@@ -899,23 +1395,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"Adams\", \"given\": [\"Amy\"]}],\n  \"gender\": \"female\",\n  \"birthDate\": \"1985-03-12\"\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -935,23 +1449,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"Carter\", \"given\": [\"Chris\"]}],\n  \"gender\": \"male\",\n  \"birthDate\": \"1990-07-04\"\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -987,19 +1519,46 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient?_sort=family&_count=10",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
               "query": [
-                {"key": "_sort",  "value": "family"},
-                {"key": "_count", "value": "10"}
+                {
+                  "key": "_sort",
+                  "value": "family"
+                },
+                {
+                  "key": "_count",
+                  "value": "10"
+                }
               ]
             }
           },
@@ -1032,19 +1591,46 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient?_sort=-family&_count=10",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
               "query": [
-                {"key": "_sort",  "value": "-family"},
-                {"key": "_count", "value": "10"}
+                {
+                  "key": "_sort",
+                  "value": "-family"
+                },
+                {
+                  "key": "_count",
+                  "value": "10"
+                }
               ]
             }
           },
@@ -1075,19 +1661,46 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient?_sort=-birthdate&_count=10",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
               "query": [
-                {"key": "_sort",  "value": "-birthdate"},
-                {"key": "_count", "value": "10"}
+                {
+                  "key": "_sort",
+                  "value": "-birthdate"
+                },
+                {
+                  "key": "_count",
+                  "value": "10"
+                }
               ]
             }
           },
@@ -1119,23 +1732,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"IncludeTest\", \"given\": [\"Sam\"]}],\n  \"gender\": \"unknown\"\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -1160,23 +1791,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"text\": \"Heart rate\"},\n  \"subject\": {\"reference\": \"Patient/{{includePatientId}}\"}\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Observation",
-              "host": ["{{baseUrl}}"],
-              "path": ["Observation"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
             }
           },
           "response": []
@@ -1210,19 +1859,46 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Observation?_id={{includeObsId}}&_include=Observation:subject",
-              "host": ["{{baseUrl}}"],
-              "path": ["Observation"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ],
               "query": [
-                {"key": "_id",      "value": "{{includeObsId}}"},
-                {"key": "_include", "value": "Observation:subject"}
+                {
+                  "key": "_id",
+                  "value": "{{includeObsId}}"
+                },
+                {
+                  "key": "_include",
+                  "value": "Observation:subject"
+                }
               ]
             }
           },
@@ -1248,19 +1924,46 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Observation?_id={{includeObsId}}&_include=Observation:subject:Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Observation"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ],
               "query": [
-                {"key": "_id",      "value": "{{includeObsId}}"},
-                {"key": "_include", "value": "Observation:subject:Patient"}
+                {
+                  "key": "_id",
+                  "value": "{{includeObsId}}"
+                },
+                {
+                  "key": "_include",
+                  "value": "Observation:subject:Patient"
+                }
               ]
             }
           },
@@ -1292,19 +1995,46 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient?_id={{includePatientId}}&_revinclude=Observation:subject",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
               "query": [
-                {"key": "_id",         "value": "{{includePatientId}}"},
-                {"key": "_revinclude", "value": "Observation:subject"}
+                {
+                  "key": "_id",
+                  "value": "{{includePatientId}}"
+                },
+                {
+                  "key": "_revinclude",
+                  "value": "Observation:subject"
+                }
               ]
             }
           },
@@ -1314,10 +2044,10 @@
     },
     {
       "name": "Reference Validation",
-      "description": "Verifies that `before_create` / `before_update` hooks reject dangling references with 422 Unprocessable Content. Tests Observation (subject), Condition (subject), and AllergyIntolerance (patient). The happy-path request reuses `includePatientId` set by the Include folder — run Include first, or manually set the variable to a live Patient ID.",
+      "description": "Verifies that `before_create` / `before_update` hooks reject dangling references with 422 Unprocessable Content. Tests Observation (subject), Condition (subject), and AllergyIntolerance (patient). The happy-path request reuses `includePatientId` set by the Include folder \u00e2\u20ac\u201d run Include first, or manually set the variable to a live Patient ID.",
       "item": [
         {
-          "name": "{{baseUrl}}/Observation (dangling subject → 422)",
+          "name": "{{baseUrl}}/Observation (dangling subject \u00e2\u2020\u2019 422)",
           "event": [
             {
               "listen": "test",
@@ -1338,29 +2068,47 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"text\": \"HR\"},\n  \"subject\": {\"reference\": \"Patient/ghost-patient-id\"}\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Observation",
-              "host": ["{{baseUrl}}"],
-              "path": ["Observation"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Observation (valid subject → 201)",
+          "name": "{{baseUrl}}/Observation (valid subject \u00e2\u2020\u2019 201)",
           "event": [
             {
               "listen": "test",
@@ -1377,29 +2125,47 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"text\": \"HR\"},\n  \"subject\": {\"reference\": \"Patient/{{includePatientId}}\"}\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Observation",
-              "host": ["{{baseUrl}}"],
-              "path": ["Observation"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Observation (absolute URL subject — skipped → 201)",
+          "name": "{{baseUrl}}/Observation (absolute URL subject \u00e2\u20ac\u201d skipped \u00e2\u2020\u2019 201)",
           "event": [
             {
               "listen": "test",
@@ -1416,29 +2182,47 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"text\": \"HR\"},\n  \"subject\": {\"reference\": \"https://other.example.com/fhir/Patient/remote-id\"}\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Observation",
-              "host": ["{{baseUrl}}"],
-              "path": ["Observation"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Condition (dangling subject → 422)",
+          "name": "{{baseUrl}}/Condition (dangling subject \u00e2\u2020\u2019 422)",
           "event": [
             {
               "listen": "test",
@@ -1455,29 +2239,47 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Condition\",\n  \"subject\": {\"reference\": \"Patient/ghost-patient-id\"},\n  \"code\": {\"text\": \"Fever\"}\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Condition",
-              "host": ["{{baseUrl}}"],
-              "path": ["Condition"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Condition"
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/AllergyIntolerance (dangling patient → 422)",
+          "name": "{{baseUrl}}/AllergyIntolerance (dangling patient \u00e2\u2020\u2019 422)",
           "event": [
             {
               "listen": "test",
@@ -1494,23 +2296,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"AllergyIntolerance\",\n  \"patient\": {\"reference\": \"Patient/ghost-patient-id\"},\n  \"code\": {\"text\": \"Penicillin\"}\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/AllergyIntolerance",
-              "host": ["{{baseUrl}}"],
-              "path": ["AllergyIntolerance"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "AllergyIntolerance"
+              ]
             }
           },
           "response": []
@@ -1519,10 +2339,10 @@
     },
     {
       "name": "_format Negotiation",
-      "description": "Tests the FHIR R5 ?_format query parameter (§3.1.2). JSON variants (application/fhir+json, json, application/json) pass through normally. XML and unknown formats return 406 OperationOutcome with issue code not-supported. Format negotiation runs before authentication — an unauthenticated request with an unsupported _format returns 406, not 401.",
+      "description": "Tests the FHIR R5 ?_format query parameter (\u00c2\u00a73.1.2). JSON variants (application/fhir+json, json, application/json) pass through normally. XML and unknown formats return 406 OperationOutcome with issue code not-supported. Format negotiation runs before authentication \u00e2\u20ac\u201d an unauthenticated request with an unsupported _format returns 406, not 401.",
       "item": [
         {
-          "name": "{{baseUrl}}/metadata?_format=application/fhir+json (accepted → 200)",
+          "name": "{{baseUrl}}/metadata?_format=application/fhir+json (accepted \u00e2\u2020\u2019 200)",
           "event": [
             {
               "listen": "test",
@@ -1539,23 +2359,44 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
             "header": [],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/metadata?_format=application/fhir+json",
-              "host": ["{{baseUrl}}"],
-              "path": ["metadata"],
-              "query": [{"key": "_format", "value": "application/fhir+json"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metadata"
+              ],
+              "query": [
+                {
+                  "key": "_format",
+                  "value": "application/fhir+json"
+                }
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/metadata?_format=json (shorthand accepted → 200)",
+          "name": "{{baseUrl}}/metadata?_format=json (shorthand accepted \u00e2\u2020\u2019 200)",
           "event": [
             {
               "listen": "test",
@@ -1572,23 +2413,44 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
             "header": [],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/metadata?_format=json",
-              "host": ["{{baseUrl}}"],
-              "path": ["metadata"],
-              "query": [{"key": "_format", "value": "json"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metadata"
+              ],
+              "query": [
+                {
+                  "key": "_format",
+                  "value": "json"
+                }
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/metadata?_format=xml (unsupported → 406)",
+          "name": "{{baseUrl}}/metadata?_format=xml (unsupported \u00e2\u2020\u2019 406)",
           "event": [
             {
               "listen": "test",
@@ -1607,23 +2469,44 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
             "header": [],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/metadata?_format=xml",
-              "host": ["{{baseUrl}}"],
-              "path": ["metadata"],
-              "query": [{"key": "_format", "value": "xml"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metadata"
+              ],
+              "query": [
+                {
+                  "key": "_format",
+                  "value": "xml"
+                }
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient?_format=xml (no auth, format checked before auth → 406)",
+          "name": "{{baseUrl}}/Patient?_format=xml (no auth, format checked before auth \u00e2\u2020\u2019 406)",
           "event": [
             {
               "listen": "test",
@@ -1640,17 +2523,38 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
             "header": [],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient?_format=xml",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"],
-              "query": [{"key": "_format", "value": "xml"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_format",
+                  "value": "xml"
+                }
+              ]
             }
           },
           "response": []
@@ -1659,7 +2563,7 @@
     },
     {
       "name": "Conditional Create",
-      "description": "Tests FHIR R5 conditional create (§11.4.1.1) via the If-None-Exist header. Seeds a patient with a unique identifier (stored in `condIdentifier`). A second POST with If-None-Exist matching that identifier returns 200 with the existing resource — no duplicate is created. Two seeds sharing the same family name followed by a conditional create with that name returns 412 Precondition Failed.",
+      "description": "Tests FHIR R5 conditional create (\u00c2\u00a711.4.1.1) via the If-None-Exist header. Seeds a patient with a unique identifier (stored in `condIdentifier`). A second POST with If-None-Exist matching that identifier returns 200 with the existing resource \u00e2\u20ac\u201d no duplicate is created. Two seeds sharing the same family name followed by a conditional create with that name returns 412 Precondition Failed.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient (seed with unique identifier)",
@@ -1695,29 +2599,47 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"CondTest\"}],\n  \"identifier\": [{\"system\": \"http://example.org/ids\", \"value\": \"{{condIdentifier}}\"}]\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient (If-None-Exist: 1 match → 200, returns existing)",
+          "name": "{{baseUrl}}/Patient (If-None-Exist: 1 match \u00e2\u2020\u2019 200, returns existing)",
           "event": [
             {
               "listen": "test",
@@ -1739,24 +2661,45 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization",  "value": "Bearer {{token}}"},
-              {"key": "Content-Type",   "value": "application/fhir+json"},
-              {"key": "If-None-Exist",  "value": "identifier={{condIdentifier}}"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              },
+              {
+                "key": "If-None-Exist",
+                "value": "identifier={{condIdentifier}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"CondTest\"}],\n  \"identifier\": [{\"system\": \"http://example.org/ids\", \"value\": \"{{condIdentifier}}\"}]\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -1787,23 +2730,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"{{condMultiFamily}}\"}]\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -1823,29 +2784,47 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"{{condMultiFamily}}\"}]\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient (If-None-Exist: 2+ matches → 412)",
+          "name": "{{baseUrl}}/Patient (If-None-Exist: 2+ matches \u00e2\u2020\u2019 412)",
           "event": [
             {
               "listen": "test",
@@ -1862,24 +2841,45 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization",  "value": "Bearer {{token}}"},
-              {"key": "Content-Type",   "value": "application/fhir+json"},
-              {"key": "If-None-Exist",  "value": "name={{condMultiFamily}}"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              },
+              {
+                "key": "If-None-Exist",
+                "value": "name={{condMultiFamily}}"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"{{condMultiFamily}}\"}]\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -1910,23 +2910,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"EverythingTest\", \"given\": [\"Pat\"]}],\n  \"gender\": \"unknown\"\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -1951,23 +2969,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"coding\": [{\"system\": \"http://loinc.org\", \"code\": \"55284-4\"}]},\n  \"subject\": {\"reference\": \"Patient/{{everythingPatientId}}\"}\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Observation",
-              "host": ["{{baseUrl}}"],
-              "path": ["Observation"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
             }
           },
           "response": []
@@ -2004,22 +3040,45 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient/{{everythingPatientId}}/$everything",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "{{everythingPatientId}}", "$everything"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{everythingPatientId}}",
+                "$everything"
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient/no-such-patient-xyz/$everything (→ 404)",
+          "name": "{{baseUrl}}/Patient/no-such-patient-xyz/$everything (\u00e2\u2020\u2019 404)",
           "event": [
             {
               "listen": "test",
@@ -2036,16 +3095,39 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient/no-such-patient-xyz/$everything",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "no-such-patient-xyz", "$everything"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "no-such-patient-xyz",
+                "$everything"
+              ]
             }
           },
           "response": []
@@ -2054,10 +3136,10 @@
     },
     {
       "name": "Transaction / Batch Bundle",
-      "description": "Tests POST / for FHIR R5 transaction and batch bundle processing (§10.2). A transaction bundle validates all entries atomically and commits or rolls back together; a batch bundle processes entries independently with per-entry status codes. A non-Bundle body returns 400. The transaction create saves its new Patient ID to `txPatientId`.",
+      "description": "Tests POST / for FHIR R5 transaction and batch bundle processing (\u00c2\u00a710.2). A transaction bundle validates all entries atomically and commits or rolls back together; a batch bundle processes entries independently with per-entry status codes. A non-Bundle body returns 400. The transaction create saves its new Patient ID to `txPatientId`.",
       "item": [
         {
-          "name": "{{baseUrl}}/ (transaction: create Patient → 200 transaction-response)",
+          "name": "{{baseUrl}}/ (transaction: create Patient \u00e2\u2020\u2019 200 transaction-response)",
           "event": [
             {
               "listen": "test",
@@ -2089,29 +3171,47 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Bundle\",\n  \"type\": \"transaction\",\n  \"entry\": [\n    {\n      \"request\": {\"method\": \"POST\", \"url\": \"Patient\"},\n      \"resource\": {\n        \"resourceType\": \"Patient\",\n        \"name\": [{\"family\": \"TxTest\", \"given\": [\"Trans\"]}],\n        \"gender\": \"unknown\"\n      }\n    }\n  ]\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/",
-              "host": ["{{baseUrl}}"],
-              "path": [""]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/ (batch: create + GET non-existent → 200 with mixed statuses)",
+          "name": "{{baseUrl}}/ (batch: create + GET non-existent \u00e2\u2020\u2019 200 with mixed statuses)",
           "event": [
             {
               "listen": "test",
@@ -2140,29 +3240,47 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Bundle\",\n  \"type\": \"batch\",\n  \"entry\": [\n    {\n      \"request\": {\"method\": \"POST\", \"url\": \"Patient\"},\n      \"resource\": {\n        \"resourceType\": \"Patient\",\n        \"name\": [{\"family\": \"BatchTest\"}]\n      }\n    },\n    {\n      \"request\": {\"method\": \"GET\", \"url\": \"Patient/no-such-id-batch-test\"}\n    }\n  ]\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/",
-              "host": ["{{baseUrl}}"],
-              "path": [""]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/ (non-Bundle body → 400)",
+          "name": "{{baseUrl}}/ (non-Bundle body \u00e2\u2020\u2019 400)",
           "event": [
             {
               "listen": "test",
@@ -2179,23 +3297,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"NotABundle\"}]\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/",
-              "host": ["{{baseUrl}}"],
-              "path": [""]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
             }
           },
           "response": []
@@ -2204,7 +3340,7 @@
     },
     {
       "name": "_summary / _elements",
-      "description": "Tests FHIR R5 response shaping (§3.3.1). Seeds a Patient with narrative text (`shapingPatientId`). _summary=true keeps only id, meta, resourceType, text. _summary=data strips text but retains clinical fields. _summary=count returns total with no entries array. _elements=x,y keeps the named fields plus the mandatory trio (id, meta, resourceType). All shaped responses carry a SUBSETTED meta tag.",
+      "description": "Tests FHIR R5 response shaping (\u00c2\u00a73.3.1). Seeds a Patient with narrative text (`shapingPatientId`). _summary=true keeps only id, meta, resourceType, text. _summary=data strips text but retains clinical fields. _summary=count returns total with no entries array. _elements=x,y keeps the named fields plus the mandatory trio (id, meta, resourceType). All shaped responses carry a SUBSETTED meta tag.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient (seed shaping patient)",
@@ -2226,23 +3362,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"ShapeTest\", \"given\": [\"Alice\"]}],\n  \"birthDate\": \"1990-01-01\",\n  \"text\": {\"status\": \"generated\", \"div\": \"<div>ShapeTest narrative</div>\"}\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -2273,17 +3427,44 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient/{{shapingPatientId}}?_summary=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "{{shapingPatientId}}"],
-              "query": [{"key": "_summary", "value": "true"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{shapingPatientId}}"
+              ],
+              "query": [
+                {
+                  "key": "_summary",
+                  "value": "true"
+                }
+              ]
             }
           },
           "response": []
@@ -2313,17 +3494,44 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient/{{shapingPatientId}}?_summary=data",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "{{shapingPatientId}}"],
-              "query": [{"key": "_summary", "value": "data"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{shapingPatientId}}"
+              ],
+              "query": [
+                {
+                  "key": "_summary",
+                  "value": "data"
+                }
+              ]
             }
           },
           "response": []
@@ -2350,17 +3558,43 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient?_summary=count",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"],
-              "query": [{"key": "_summary", "value": "count"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_summary",
+                  "value": "count"
+                }
+              ]
             }
           },
           "response": []
@@ -2393,17 +3627,44 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient/{{shapingPatientId}}?_elements=name,birthDate",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "{{shapingPatientId}}"],
-              "query": [{"key": "_elements", "value": "name,birthDate"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{shapingPatientId}}"
+              ],
+              "query": [
+                {
+                  "key": "_elements",
+                  "value": "name,birthDate"
+                }
+              ]
             }
           },
           "response": []
@@ -2438,23 +3699,41 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/fhir+json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"LastUpdatedTest\"}]\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -2483,23 +3762,49 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient?_lastUpdated=ge{{lastUpdatedDate}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"],
-              "query": [{"key": "_lastUpdated", "value": "ge{{lastUpdatedDate}}"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_lastUpdated",
+                  "value": "ge{{lastUpdatedDate}}"
+                }
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient?_lastUpdated=ge2099-01-01 (future date → empty)",
+          "name": "{{baseUrl}}/Patient?_lastUpdated=ge2099-01-01 (future date \u00e2\u2020\u2019 empty)",
           "event": [
             {
               "listen": "test",
@@ -2516,23 +3821,49 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient?_lastUpdated=ge2099-01-01",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"],
-              "query": [{"key": "_lastUpdated", "value": "ge2099-01-01"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_lastUpdated",
+                  "value": "ge2099-01-01"
+                }
+              ]
             }
           },
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient?_lastUpdated=lt2000-01-01 (past date → empty)",
+          "name": "{{baseUrl}}/Patient?_lastUpdated=lt2000-01-01 (past date \u00e2\u2020\u2019 empty)",
           "event": [
             {
               "listen": "test",
@@ -2549,17 +3880,285 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient?_lastUpdated=lt2000-01-01",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"],
-              "query": [{"key": "_lastUpdated", "value": "lt2000-01-01"}]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_lastUpdated",
+                  "value": "lt2000-01-01"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "$validate",
+      "description": "Tests POST /{type}/$validate (FHIR R5 \u00a74.9.3). Validates a resource against the fhir.resources Pydantic model without persisting it. A valid resource returns 200 with an informational OperationOutcome; an invalid resource returns 422; an unknown type returns 404. The CapabilityStatement advertises $validate for every resource type.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient/$validate (valid \u2192 200 informational)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});",
+                  "pm.test('Issue severity is information', () => {",
+                  "    const issue = pm.response.json().issue[0];",
+                  "    pm.expect(issue.severity).to.eql('information');",
+                  "    pm.expect(issue.code).to.eql('informational');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"ValidateTest\", \"given\": [\"Sam\"]}],\n  \"gender\": \"unknown\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/$validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "$validate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation/$validate (missing required fields \u2192 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Observation\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation/$validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation",
+                "$validate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Unicorn/$validate (unknown type \u2192 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Unicorn\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Unicorn/$validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Unicorn",
+                "$validate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/metadata (CapabilityStatement advertises $validate)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Every resource type advertises $validate', () => {",
+                  "    const resources = pm.response.json().rest[0].resource;",
+                  "    resources.forEach(r => {",
+                  "        const ops = (r.operation || []).map(op => op.name);",
+                  "        pm.expect(ops, r.type + ' missing $validate').to.include('$validate');",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/metadata",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metadata"
+              ]
             }
           },
           "response": []
@@ -2588,16 +4187,32 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
             "header": [],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -2620,16 +4235,37 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer this.is.invalid"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer this.is.invalid"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Patient",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
             }
           },
           "response": []
@@ -2652,20 +4288,38 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"alice\",\n  \"password\": \"wrong\"\n}",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           },
           "response": []
@@ -2688,16 +4342,37 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "GET",
-            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
-            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/Unicorn",
-              "host": ["{{baseUrl}}"],
-              "path": ["Unicorn"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Unicorn"
+              ]
             }
           },
           "response": []
@@ -2720,23 +4395,42 @@
               }
             }
           ],
-          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
           "request": {
-            "auth": {"type": "inherit"},
+            "auth": {
+              "type": "inherit"
+            },
             "method": "PATCH",
             "header": [
-              {"key": "Authorization", "value": "Bearer {{token}}"},
-              {"key": "Content-Type",  "value": "application/json"}
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "[{\"op\": \"add\", \"path\": \"/active\", \"value\": true}]",
-              "options": {"raw": {"language": "json"}}
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/Patient/{{patientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["Patient", "{{patientId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{patientId}}"
+              ]
             }
           },
           "response": []
@@ -2751,7 +4445,9 @@
         "type": "text/javascript",
         "packages": {},
         "requests": {},
-        "exec": [""]
+        "exec": [
+          ""
+        ]
       }
     },
     {
@@ -2774,20 +4470,65 @@
     }
   ],
   "variable": [
-    {"key": "baseUrl",          "value": "http://localhost:8000"},
-    {"key": "username",         "value": "alice"},
-    {"key": "token",            "value": ""},
-    {"key": "patientId",        "value": ""},
-    {"key": "includePatientId",     "value": ""},
-    {"key": "includeObsId",         "value": ""},
-    {"key": "condIdentifier",       "value": ""},
-    {"key": "condPatientId",        "value": ""},
-    {"key": "condMultiFamily",      "value": ""},
-    {"key": "everythingPatientId",  "value": ""},
-    {"key": "everythingObsId",      "value": ""},
-    {"key": "txPatientId",          "value": ""},
-    {"key": "shapingPatientId",     "value": ""},
-    {"key": "lastUpdatedPatientId", "value": ""},
-    {"key": "lastUpdatedDate",      "value": ""}
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "username",
+      "value": "alice"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "patientId",
+      "value": ""
+    },
+    {
+      "key": "includePatientId",
+      "value": ""
+    },
+    {
+      "key": "includeObsId",
+      "value": ""
+    },
+    {
+      "key": "condIdentifier",
+      "value": ""
+    },
+    {
+      "key": "condPatientId",
+      "value": ""
+    },
+    {
+      "key": "condMultiFamily",
+      "value": ""
+    },
+    {
+      "key": "everythingPatientId",
+      "value": ""
+    },
+    {
+      "key": "everythingObsId",
+      "value": ""
+    },
+    {
+      "key": "txPatientId",
+      "value": ""
+    },
+    {
+      "key": "shapingPatientId",
+      "value": ""
+    },
+    {
+      "key": "lastUpdatedPatientId",
+      "value": ""
+    },
+    {
+      "key": "lastUpdatedDate",
+      "value": ""
+    }
   ]
 }

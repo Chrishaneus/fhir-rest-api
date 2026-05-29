@@ -70,18 +70,22 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
                         "conditionalUpdate": False,
                         "conditionalDelete": "not-supported",
                         "referencePolicy": ["local"],
-                        **(
+                        "operation": [
                             {
-                                "operation": [
+                                "name": "$validate",
+                                "definition": "http://hl7.org/fhir/OperationDefinition/Resource-validate",
+                            },
+                            *(
+                                [
                                     {
                                         "name": "$everything",
                                         "definition": "http://hl7.org/fhir/OperationDefinition/Patient-everything",
                                     }
                                 ]
-                            }
-                            if resource_type == "Patient"
-                            else {}
-                        ),
+                                if resource_type == "Patient"
+                                else []
+                            ),
+                        ],
                     }
                     for resource_type in resource_types
                 ],
