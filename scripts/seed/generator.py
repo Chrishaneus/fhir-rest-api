@@ -28,6 +28,7 @@ reference resolvable without forcing the caller to maintain ordering by hand.
 
 from __future__ import annotations
 
+import base64
 import math
 import random
 from datetime import datetime, timezone
@@ -973,7 +974,7 @@ def gen_document_references(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]
                     attachment=Attachment(
                         contentType="text/plain",
                         language="en-US",
-                        data=note_text.encode("utf-8"),
+                        data=base64.b64encode(note_text.encode("utf-8")),
                         title="Clinical note",
                     )
                 )
@@ -1095,7 +1096,7 @@ def gen_communications(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
                         contentType="text/plain",
                         language="en-US",
                         title="Message",
-                        data=msg.encode("utf-8"),
+                        data=base64.b64encode(msg.encode("utf-8")),
                     )
                 )
             ],
@@ -1122,7 +1123,7 @@ def gen_communication_requests(ctx: BulkContext) -> Iterator[tuple[str, str, dic
                         contentType="text/plain",
                         language="en-US",
                         title="Request",
-                        data=msg.encode("utf-8"),
+                        data=base64.b64encode(msg.encode("utf-8")),
                     )
                 )
             ],

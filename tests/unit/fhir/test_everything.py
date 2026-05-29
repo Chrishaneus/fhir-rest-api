@@ -1,4 +1,4 @@
-"""Unit tests for GET /Patient/{id}/$everything."""
+"""Unit tests for GET /{resource_type}/{id}/$everything."""
 
 from __future__ import annotations
 
@@ -150,6 +150,56 @@ class TestPatientEverythingPagination:
             client.post("/Observation", json=_observation(pid))
         bundle = client.get(f"/Patient/{pid}/$everything?_count=2").json()
         assert any(link["relation"] == "next" for link in bundle["link"])
+
+
+# ---------------------------------------------------------------------------
+# Generic route — non-Patient anchor
+# ---------------------------------------------------------------------------
+
+
+class TestGenericEverything:
+    """Verify the route works for any resource type, not just Patient."""
+
+    def _obs(self) -> dict:
+        return {
+            "resourceType": "Observation",
+            "status": "final",
+            "code": {"coding": [{"system": "http://loinc.org", "code": "1234-5"}]},
+        }
+
+    def test_anchor_returns_200_searchset(self, client: TestClient) -> None:
+        oid = client.post("/Observation", json=self._obs()).json()["id"]
+        r = client.get(f"/Observation/{oid}/$everything")
+        assert r.status_code == 200
+        bundle = r.json()
+        assert bundle["resourceType"] == "Bundle"
+        assert bundle["type"] == "searchset"
+
+    def test_anchor_is_match_entry(self, client: TestClient) -> None:
+        oid = client.post("/Observation", json=self._obs()).json()["id"]
+        bundle = client.get(f"/Observation/{oid}/$everything").json()
+        match_entry = next(e for e in bundle["entry"] if e["search"]["mode"] == "match")
+        assert match_entry["resource"]["id"] == oid
+        assert match_entry["resource"]["resourceType"] == "Observation"
+
+    def test_anchor_alone_has_total_1(self, client: TestClient) -> None:
+        oid = client.post("/Observation", json=self._obs()).json()["id"]
+        bundle = client.get(f"/Observation/{oid}/$everything").json()
+        assert bundle["total"] == 1
+
+    def test_unknown_resource_returns_404(self, client: TestClient) -> None:
+        r = client.get("/Observation/no-such-obs/$everything")
+        assert r.status_code == 404
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+    def test_deleted_resource_returns_410(self, client: TestClient) -> None:
+        oid = client.post("/Observation", json=self._obs()).json()["id"]
+        client.delete(f"/Observation/{oid}")
+        assert client.get(f"/Observation/{oid}/$everything").status_code == 410
+
+    def test_unsupported_type_returns_404(self, client: TestClient) -> None:
+        r = client.get("/Unicorn/some-id/$everything")
+        assert r.status_code == 404
 
 
 # ---------------------------------------------------------------------------

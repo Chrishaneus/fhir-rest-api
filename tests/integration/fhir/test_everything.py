@@ -28,6 +28,14 @@ def _observation(patient_id: str) -> dict:
     }
 
 
+def _standalone_observation() -> dict:
+    return {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "55284-4"}]},
+    }
+
+
 class TestPatientEverything:
     def test_unknown_patient_returns_404(self, client: httpx.Client) -> None:
         r = client.get("/Patient/no-such-patient-xyz/$everything")
@@ -82,3 +90,39 @@ class TestPatientEverything:
         assert len(bundle["entry"]) == 2
         assert bundle["total"] == 5
         assert any(link["relation"] == "next" for link in bundle["link"])
+
+
+class TestGenericEverything:
+    """Verify the route works for any resource type, not just Patient."""
+
+    def test_anchor_returns_200_searchset(self, client: httpx.Client) -> None:
+        oid = _post(client, _standalone_observation())["id"]
+        r = client.get(f"/Observation/{oid}/$everything")
+        assert r.status_code == 200
+        bundle = r.json()
+        assert bundle["resourceType"] == "Bundle"
+        assert bundle["type"] == "searchset"
+
+    def test_anchor_is_match_entry_with_total_1(self, client: httpx.Client) -> None:
+        oid = _post(client, _standalone_observation())["id"]
+        bundle = client.get(f"/Observation/{oid}/$everything").json()
+        assert bundle["total"] == 1
+        match_entry = next(e for e in bundle["entry"] if e["search"]["mode"] == "match")
+        assert match_entry["resource"]["id"] == oid
+        assert match_entry["resource"]["resourceType"] == "Observation"
+
+    def test_unknown_resource_returns_404(self, client: httpx.Client) -> None:
+        r = client.get("/Observation/no-such-obs-xyz/$everything")
+        assert r.status_code == 404
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+    def test_deleted_resource_returns_410(self, client: httpx.Client) -> None:
+        oid = _post(client, _standalone_observation())["id"]
+        client.delete(f"/Observation/{oid}")
+        assert client.get(f"/Observation/{oid}/$everything").status_code == 410
+
+    def test_capability_advertises_everything_for_all_types(self, client: httpx.Client) -> None:
+        meta = client.get("/metadata").json()
+        for resource in meta["rest"][0]["resource"]:
+            ops = [op["name"] for op in resource.get("operation", [])]
+            assert "$everything" in ops, f"$everything missing from {resource['type']}"

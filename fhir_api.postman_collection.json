@@ -3131,6 +3131,129 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation (seed standalone anchor observation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('everythingAnchorObsId', json.id);",
+                  "    console.log('Anchor observation id saved:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"coding\": [{\"system\": \"http://loinc.org\", \"code\": \"55284-4\"}]}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation/{{everythingAnchorObsId}}/$everything (generic route)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "    pm.expect(json.total).to.eql(1);",
+                  "});",
+                  "pm.test('Observation entry has search.mode=match', () => {",
+                  "    const entry = pm.response.json().entry.find(e => e.resource && e.resource.resourceType === 'Observation');",
+                  "    pm.expect(entry).to.not.be.undefined;",
+                  "    pm.expect(entry.search.mode).to.eql('match');",
+                  "    pm.expect(entry.resource.id).to.eql(pm.collectionVariables.get('everythingAnchorObsId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation/{{everythingAnchorObsId}}/$everything",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation",
+                "{{everythingAnchorObsId}}",
+                "$everything"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -4107,7 +4230,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/metadata (CapabilityStatement advertises $validate)",
+          "name": "{{baseUrl}}/metadata (CapabilityStatement advertises $validate and $everything)",
           "event": [
             {
               "listen": "test",
@@ -4122,6 +4245,13 @@
                   "    resources.forEach(r => {",
                   "        const ops = (r.operation || []).map(op => op.name);",
                   "        pm.expect(ops, r.type + ' missing $validate').to.include('$validate');",
+                  "    });",
+                  "});",
+                  "pm.test('Every resource type advertises $everything', () => {",
+                  "    const resources = pm.response.json().rest[0].resource;",
+                  "    resources.forEach(r => {",
+                  "        const ops = (r.operation || []).map(op => op.name);",
+                  "        pm.expect(ops, r.type + ' missing $everything').to.include('$everything');",
                   "    });",
                   "});"
                 ]
@@ -4528,6 +4658,10 @@
     },
     {
       "key": "lastUpdatedDate",
+      "value": ""
+    },
+    {
+      "key": "everythingAnchorObsId",
       "value": ""
     }
   ]
