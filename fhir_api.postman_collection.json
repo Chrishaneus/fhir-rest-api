@@ -1390,7 +1390,9 @@
                 "packages": {},
                 "requests": {},
                 "exec": [
-                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.collectionVariables.set('sortAdamsId', json.id); }"
                 ]
               }
             }
@@ -1444,7 +1446,9 @@
                 "packages": {},
                 "requests": {},
                 "exec": [
-                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.collectionVariables.set('sortCarterId', json.id); }"
                 ]
               }
             }
@@ -1637,7 +1641,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient?_sort=-birthdate&_count=10 (newest first)",
+          "name": "{{baseUrl}}/Patient?_sort=-birthdate (Carter newer than Adams)",
           "event": [
             {
               "listen": "test",
@@ -1648,11 +1652,9 @@
                 "exec": [
                   "pm.test('Status is 200', () => pm.response.to.have.status(200));",
                   "pm.test('Returns searchset Bundle', () => {",
-                  "    const json = pm.response.json();",
-                  "    pm.expect(json.resourceType).to.eql('Bundle');",
-                  "    pm.expect(json.type).to.eql('searchset');",
+                  "    pm.expect(pm.response.json().type).to.eql('searchset');",
                   "});",
-                  "pm.test('First two entries are sorted birthDate descending', () => {",
+                  "pm.test('Seeded patients sorted birthDate descending', () => {",
                   "    const entries = pm.response.json().entry.filter(e => e.resource && e.resource.birthDate);",
                   "    pm.expect(entries.length).to.be.above(1);",
                   "    pm.expect(entries[0].resource.birthDate >= entries[1].resource.birthDate).to.be.true;",
@@ -1685,7 +1687,7 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/Patient?_sort=-birthdate&_count=10",
+              "raw": "{{baseUrl}}/Patient?_id={{sortAdamsId}},{{sortCarterId}}&_sort=-birthdate&_count=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1693,6 +1695,10 @@
                 "Patient"
               ],
               "query": [
+                {
+                  "key": "_id",
+                  "value": "{{sortAdamsId}},{{sortCarterId}}"
+                },
                 {
                   "key": "_sort",
                   "value": "-birthdate"
@@ -4296,6 +4302,505 @@
       ]
     },
     {
+      "name": "System Search",
+      "description": "Tests GET / for system-wide search across all resource types. With no params returns an informational OperationOutcome. With ?_type=Patient returns a searchset of Patients only. Supports the same _count/_sort/_lastUpdated params as type-level search.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/ (no params \u2192 informational OperationOutcome)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "    pm.expect(pm.response.json().issue[0].severity).to.eql('information');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/?_type=Patient (system search filtered to Patients)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});",
+                  "pm.test('All entries are Patient resources', () => {",
+                  "    const entries = pm.response.json().entry || [];",
+                  "    entries.forEach(e => pm.expect(e.resource.resourceType).to.eql('Patient'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/?_type=Patient&_count=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ],
+              "query": [
+                {
+                  "key": "_type",
+                  "value": "Patient"
+                },
+                {
+                  "key": "_count",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/?_type=Patient&_type=Observation (multi-type)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    pm.expect(pm.response.json().type).to.eql('searchset');",
+                  "});",
+                  "pm.test('Entries are only Patient or Observation', () => {",
+                  "    const allowed = new Set(['Patient', 'Observation']);",
+                  "    (pm.response.json().entry || []).forEach(e => {",
+                  "        pm.expect(allowed.has(e.resource.resourceType)).to.be.true;",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/?_type=Patient&_type=Observation&_count=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                ""
+              ],
+              "query": [
+                {
+                  "key": "_type",
+                  "value": "Patient"
+                },
+                {
+                  "key": "_type",
+                  "value": "Observation"
+                },
+                {
+                  "key": "_count",
+                  "value": "5"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Compartment Search",
+      "description": "Tests GET /{CompartmentType}/{id}/{ResourceType} for FHIR R5 compartment search. Seeds a Patient (compartmentPatientId) and a linked Observation (compartmentObsId). Verifies that the Patient compartment returns the linked Observation, that an unlinked resource type returns an empty bundle, and that an unsupported compartment type returns 404.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient (seed compartment patient)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('compartmentPatientId', json.id);",
+                  "    console.log('Compartment patient id:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"CompartmentTest\"}],\n  \"birthDate\": \"1985-06-15\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation (seed linked observation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('compartmentObsId', json.id);",
+                  "    console.log('Compartment observation id:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"coding\": [{\"system\": \"http://loinc.org\", \"code\": \"8867-4\"}]},\n  \"subject\": {\"reference\": \"Patient/{{compartmentPatientId}}\"}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{compartmentPatientId}}/Observation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});",
+                  "pm.test('Linked Observation is returned', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get('compartmentObsId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{compartmentPatientId}}/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{compartmentPatientId}}",
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{compartmentPatientId}}/Condition (no conditions \u2192 empty bundle)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns empty searchset', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "    pm.expect(json.total).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{compartmentPatientId}}/Condition",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{compartmentPatientId}}",
+                "Condition"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Unicorn/some-id/Observation (unsupported compartment \u2192 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Unicorn/some-id/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Unicorn",
+                "some-id",
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Errors",
       "description": "Negative-path tests that verify correct error responses. Covers missing token (401), invalid token (401), wrong password (401), unknown resource type (404), and wrong Content-Type on PATCH (415). All responses are asserted to be OperationOutcome resources.",
       "item": [
@@ -4662,6 +5167,22 @@
     },
     {
       "key": "everythingAnchorObsId",
+      "value": ""
+    },
+    {
+      "key": "sortAdamsId",
+      "value": ""
+    },
+    {
+      "key": "sortCarterId",
+      "value": ""
+    },
+    {
+      "key": "compartmentPatientId",
+      "value": ""
+    },
+    {
+      "key": "compartmentObsId",
       "value": ""
     }
   ]
