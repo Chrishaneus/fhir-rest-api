@@ -27,6 +27,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import app.auth.rate_limit as rate_limit
+import app.utils.cache as resource_cache
 from app.db.base import init_db, reset_db
 from app.hooks import hooks
 from app.main import app
@@ -48,7 +49,9 @@ def _create_schema():
 @pytest.fixture(autouse=True)
 def _clean_database():
     """Delete all rows, restore baseline hooks, and reset rate-limit state before every test."""
-    rate_limit._client = fakeredis.FakeRedis(decode_responses=True)
+    fake = fakeredis.FakeRedis(decode_responses=True)
+    rate_limit._client = fake
+    resource_cache._client = fake
     reset_db()
     hooks.restore(_BASELINE_HOOKS)
     yield
