@@ -277,10 +277,10 @@ class Projection(ABC):
 
         order: list[Any] = []
         for field, ascending in sort_fields:
-            column_name = sortable.get(field.lower())
-            if column_name is None:
+            col_name: str | None = sortable.get(field.lower())
+            if col_name is None:
                 continue
-            column = projection_table.c[column_name]
+            column = projection_table.c[col_name]
             order.append(asc(column) if ascending else desc(column))
 
         if not order:

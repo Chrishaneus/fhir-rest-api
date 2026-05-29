@@ -65,7 +65,7 @@ known-first-party = ["app", "scripts", "tests"]
 python_version = "3.11"
 ignore_missing_imports = true
 warn_unused_ignores = true
-exclude = ["alembic/", "scripts/"]
+exclude = ["alembic/"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit", "tests/integration"]

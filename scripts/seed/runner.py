@@ -82,7 +82,7 @@ def _row_count() -> int:
 def _clear_db() -> None:
     """Truncate resource_versions plus every projection table."""
     projection_tables = [
-        p.table.__tablename__  # type: ignore[attr-defined]
+        p.table.__tablename__
         for p in projection_registry.all()
     ]
     with engine.begin() as conn:

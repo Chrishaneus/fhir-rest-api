@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "11111111-2222-3333-4444-555555555555",
     "name": "FHIR REST API",
-    "description": "End-to-end tests for the Python FastAPI FHIR R5 REST server.\n\nRun the full collection in order — Auth registers a unique user and saves a Bearer token, which all subsequent requests inherit. The Patient folder creates a resource whose ID is stored in `patientId`. The Sort folder seeds additional patients to verify `_sort` ordering. The Include / RevInclude folder seeds a fresh patient and observation to test `_include` / `_revinclude`, saving their IDs to `includePatientId` and `includeObsId`. The Reference Validation folder verifies that dangling local references are rejected with 422.\n\n**Base URL:** `http://localhost:8000`  \n**Auth:** JWT Bearer (token saved automatically after Login)",
+    "description": "End-to-end tests for the Python FastAPI FHIR R5 REST server.\n\nRun the full collection in order — Auth registers a unique user and saves a Bearer token, which all subsequent requests inherit. The Patient folder creates a resource whose ID is stored in `patientId`. The Sort folder seeds additional patients to verify `_sort` ordering. The Include / RevInclude folder seeds a fresh patient and observation to test `_include` / `_revinclude`, saving their IDs to `includePatientId` and `includeObsId`. The Reference Validation folder verifies that dangling local references are rejected with 422. The _format Negotiation folder tests `?_format` parameter support (JSON accepted, XML → 406). The Conditional Create folder tests the `If-None-Exist` header (0 matches → 201, 1 match → 200, 2+ → 412). The $everything folder tests `GET /<resource>/{id}/$everything`. The Transaction / Batch Bundle folder tests `POST /` bundle processing. The _summary / _elements folder tests response shaping via `?_summary` and `?_elements`. The _lastUpdated folder tests date-prefix search via `?_lastUpdated`.\n\n**Base URL:** `http://localhost:8000`  \n**Auth:** JWT Bearer (token saved automatically after Login)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "55269035"
   },
@@ -1518,6 +1518,1055 @@
       ]
     },
     {
+      "name": "_format Negotiation",
+      "description": "Tests the FHIR R5 ?_format query parameter (§3.1.2). JSON variants (application/fhir+json, json, application/json) pass through normally. XML and unknown formats return 406 OperationOutcome with issue code not-supported. Format negotiation runs before authentication — an unauthenticated request with an unsupported _format returns 406, not 401.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/metadata?_format=application/fhir+json (accepted → 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns CapabilityStatement', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('CapabilityStatement');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/metadata?_format=application/fhir+json",
+              "host": ["{{baseUrl}}"],
+              "path": ["metadata"],
+              "query": [{"key": "_format", "value": "application/fhir+json"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/metadata?_format=json (shorthand accepted → 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns CapabilityStatement', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('CapabilityStatement');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/metadata?_format=json",
+              "host": ["{{baseUrl}}"],
+              "path": ["metadata"],
+              "query": [{"key": "_format", "value": "json"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/metadata?_format=xml (unsupported → 406)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 406', () => pm.response.to.have.status(406));",
+                  "pm.test('Returns OperationOutcome with not-supported code', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('OperationOutcome');",
+                  "    pm.expect(json.issue[0].code).to.eql('not-supported');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/metadata?_format=xml",
+              "host": ["{{baseUrl}}"],
+              "path": ["metadata"],
+              "query": [{"key": "_format", "value": "xml"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_format=xml (no auth, format checked before auth → 406)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 406 not 401', () => pm.response.to.have.status(406));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_format=xml",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"],
+              "query": [{"key": "_format", "value": "xml"}]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Conditional Create",
+      "description": "Tests FHIR R5 conditional create (§11.4.1.1) via the If-None-Exist header. Seeds a patient with a unique identifier (stored in `condIdentifier`). A second POST with If-None-Exist matching that identifier returns 200 with the existing resource — no duplicate is created. Two seeds sharing the same family name followed by a conditional create with that name returns 412 Precondition Failed.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient (seed with unique identifier)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.collectionVariables.set('condIdentifier', 'cond-' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns Patient resource', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('Patient');",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('condPatientId', json.id);",
+                  "    console.log('Conditional create patient id:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"CondTest\"}],\n  \"identifier\": [{\"system\": \"http://example.org/ids\", \"value\": \"{{condIdentifier}}\"}]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient (If-None-Exist: 1 match → 200, returns existing)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns same resource (no duplicate)', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Patient');",
+                  "    pm.expect(json.id).to.eql(pm.collectionVariables.get('condPatientId'));",
+                  "});",
+                  "pm.test('ETag header is present', () => {",
+                  "    pm.expect(pm.response.headers.get('ETag')).to.match(/^W\\/\"/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization",  "value": "Bearer {{token}}"},
+              {"key": "Content-Type",   "value": "application/fhir+json"},
+              {"key": "If-None-Exist",  "value": "identifier={{condIdentifier}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"CondTest\"}],\n  \"identifier\": [{\"system\": \"http://example.org/ids\", \"value\": \"{{condIdentifier}}\"}]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient (seed condMulti A)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.collectionVariables.set('condMultiFamily', 'CondMulti-' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"{{condMultiFamily}}\"}]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient (seed condMulti B, same family)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"{{condMultiFamily}}\"}]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient (If-None-Exist: 2+ matches → 412)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 412', () => pm.response.to.have.status(412));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization",  "value": "Bearer {{token}}"},
+              {"key": "Content-Type",   "value": "application/fhir+json"},
+              {"key": "If-None-Exist",  "value": "name={{condMultiFamily}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"{{condMultiFamily}}\"}]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "$everything",
+      "description": "Tests GET /<resource>/{id}/$everything (FHIR R5 instance-level operation). Seeds a Patient (`everythingPatientId`) and a linked Observation (`everythingObsId`), then verifies the returned Bundle contains both: the Patient with search.mode=match and the Observation with search.mode=include. Also verifies 404 for an unknown patient ID.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient (seed everything patient)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('everythingPatientId', json.id);",
+                  "    console.log('Everything patient id saved:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"EverythingTest\", \"given\": [\"Pat\"]}],\n  \"gender\": \"unknown\"\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation (seed linked observation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('everythingObsId', json.id);",
+                  "    console.log('Everything observation id saved:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Observation\",\n  \"status\": \"final\",\n  \"code\": {\"coding\": [{\"system\": \"http://loinc.org\", \"code\": \"55284-4\"}]},\n  \"subject\": {\"reference\": \"Patient/{{everythingPatientId}}\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": ["{{baseUrl}}"],
+              "path": ["Observation"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{everythingPatientId}}/$everything",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "    pm.expect(json.total).to.be.at.least(2);",
+                  "});",
+                  "pm.test('Patient entry has search.mode=match', () => {",
+                  "    const entry = pm.response.json().entry.find(e => e.resource && e.resource.resourceType === 'Patient');",
+                  "    pm.expect(entry).to.not.be.undefined;",
+                  "    pm.expect(entry.search.mode).to.eql('match');",
+                  "});",
+                  "pm.test('Observation entry has search.mode=include', () => {",
+                  "    const entry = pm.response.json().entry.find(e => e.resource && e.resource.resourceType === 'Observation');",
+                  "    pm.expect(entry).to.not.be.undefined;",
+                  "    pm.expect(entry.search.mode).to.eql('include');",
+                  "    pm.expect(entry.resource.id).to.eql(pm.collectionVariables.get('everythingObsId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{everythingPatientId}}/$everything",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "{{everythingPatientId}}", "$everything"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/no-such-patient-xyz/$everything (→ 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient/no-such-patient-xyz/$everything",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "no-such-patient-xyz", "$everything"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Transaction / Batch Bundle",
+      "description": "Tests POST / for FHIR R5 transaction and batch bundle processing (§10.2). A transaction bundle validates all entries atomically and commits or rolls back together; a batch bundle processes entries independently with per-entry status codes. A non-Bundle body returns 400. The transaction create saves its new Patient ID to `txPatientId`.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/ (transaction: create Patient → 200 transaction-response)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns transaction-response Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('transaction-response');",
+                  "});",
+                  "pm.test('Entry response status is 201 Created', () => {",
+                  "    pm.expect(pm.response.json().entry[0].response.status).to.eql('201 Created');",
+                  "});",
+                  "pm.test('Entry response has location and ETag', () => {",
+                  "    const resp = pm.response.json().entry[0].response;",
+                  "    pm.expect(resp).to.have.property('location');",
+                  "    pm.expect(resp.etag).to.match(/^W\\/\"/);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.entry && json.entry[0] && json.entry[0].resource) {",
+                  "    pm.collectionVariables.set('txPatientId', json.entry[0].resource.id);",
+                  "    console.log('Transaction patient id saved:', json.entry[0].resource.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Bundle\",\n  \"type\": \"transaction\",\n  \"entry\": [\n    {\n      \"request\": {\"method\": \"POST\", \"url\": \"Patient\"},\n      \"resource\": {\n        \"resourceType\": \"Patient\",\n        \"name\": [{\"family\": \"TxTest\", \"given\": [\"Trans\"]}],\n        \"gender\": \"unknown\"\n      }\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/ (batch: create + GET non-existent → 200 with mixed statuses)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns batch-response Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('batch-response');",
+                  "});",
+                  "pm.test('Create entry has status 201 Created', () => {",
+                  "    pm.expect(pm.response.json().entry[0].response.status).to.eql('201 Created');",
+                  "});",
+                  "pm.test('GET non-existent entry has status 404 Not Found', () => {",
+                  "    pm.expect(pm.response.json().entry[1].response.status).to.eql('404 Not Found');",
+                  "});",
+                  "pm.test('404 entry has OperationOutcome outcome', () => {",
+                  "    const outcome = pm.response.json().entry[1].response.outcome;",
+                  "    pm.expect(outcome.resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Bundle\",\n  \"type\": \"batch\",\n  \"entry\": [\n    {\n      \"request\": {\"method\": \"POST\", \"url\": \"Patient\"},\n      \"resource\": {\n        \"resourceType\": \"Patient\",\n        \"name\": [{\"family\": \"BatchTest\"}]\n      }\n    },\n    {\n      \"request\": {\"method\": \"GET\", \"url\": \"Patient/no-such-id-batch-test\"}\n    }\n  ]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/ (non-Bundle body → 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"NotABundle\"}]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": ["{{baseUrl}}"],
+              "path": [""]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "_summary / _elements",
+      "description": "Tests FHIR R5 response shaping (§3.3.1). Seeds a Patient with narrative text (`shapingPatientId`). _summary=true keeps only id, meta, resourceType, text. _summary=data strips text but retains clinical fields. _summary=count returns total with no entries array. _elements=x,y keeps the named fields plus the mandatory trio (id, meta, resourceType). All shaped responses carry a SUBSETTED meta tag.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient (seed shaping patient)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('shapingPatientId', json.id);",
+                  "    console.log('Shaping patient id saved:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"ShapeTest\", \"given\": [\"Alice\"]}],\n  \"birthDate\": \"1990-01-01\",\n  \"text\": {\"status\": \"generated\", \"div\": \"<div>ShapeTest narrative</div>\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{shapingPatientId}}?_summary=true",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Only mandatory fields present (no name/birthDate)', () => {",
+                  "    const json = pm.response.json();",
+                  "    const allowed = new Set(['id', 'meta', 'resourceType', 'text']);",
+                  "    Object.keys(json).forEach(k => pm.expect(allowed.has(k), 'unexpected key: ' + k).to.be.true);",
+                  "    pm.expect(json).to.not.have.property('name');",
+                  "    pm.expect(json).to.not.have.property('birthDate');",
+                  "});",
+                  "pm.test('Has SUBSETTED meta tag', () => {",
+                  "    const tags = (pm.response.json().meta || {}).tag || [];",
+                  "    pm.expect(tags.some(t => t.code === 'SUBSETTED')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{shapingPatientId}}?_summary=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "{{shapingPatientId}}"],
+              "query": [{"key": "_summary", "value": "true"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{shapingPatientId}}?_summary=data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Text stripped, clinical fields retained', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.not.have.property('text');",
+                  "    pm.expect(json).to.have.property('name');",
+                  "    pm.expect(json).to.have.property('birthDate');",
+                  "});",
+                  "pm.test('Has SUBSETTED meta tag', () => {",
+                  "    const tags = (pm.response.json().meta || {}).tag || [];",
+                  "    pm.expect(tags.some(t => t.code === 'SUBSETTED')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{shapingPatientId}}?_summary=data",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "{{shapingPatientId}}"],
+              "query": [{"key": "_summary", "value": "data"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_summary=count",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns Bundle with total but no entries', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json).to.have.property('total');",
+                  "    pm.expect(json.total).to.be.above(0);",
+                  "    pm.expect(json).to.not.have.property('entry');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_summary=count",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"],
+              "query": [{"key": "_summary", "value": "count"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{shapingPatientId}}?_elements=name,birthDate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has requested fields plus mandatory trio', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('name');",
+                  "    pm.expect(json).to.have.property('birthDate');",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('resourceType');",
+                  "    pm.expect(json).to.have.property('meta');",
+                  "    pm.expect(json).to.not.have.property('text');",
+                  "});",
+                  "pm.test('Has SUBSETTED meta tag', () => {",
+                  "    const tags = (pm.response.json().meta || {}).tag || [];",
+                  "    pm.expect(tags.some(t => t.code === 'SUBSETTED')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{shapingPatientId}}?_elements=name,birthDate",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient", "{{shapingPatientId}}"],
+              "query": [{"key": "_elements", "value": "name,birthDate"}]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "_lastUpdated",
+      "description": "Tests the _lastUpdated search parameter with FHIR date prefix semantics (ge, lt, eq, etc.) and partial-date period expansion. Seeds a Patient and captures its meta.lastUpdated date into `lastUpdatedDate`. Verifies ge<today> finds the seeded patient, ge2099-01-01 returns an empty bundle, and lt2000-01-01 returns an empty bundle.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient (seed for _lastUpdated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('lastUpdatedPatientId', json.id);",
+                  "    const ts = json.meta && json.meta.lastUpdated;",
+                  "    if (ts) {",
+                  "        pm.collectionVariables.set('lastUpdatedDate', ts.substring(0, 10));",
+                  "    }",
+                  "    console.log('Last updated patient id:', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"},
+              {"key": "Content-Type",  "value": "application/fhir+json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Patient\",\n  \"name\": [{\"family\": \"LastUpdatedTest\"}]\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_lastUpdated=ge{{lastUpdatedDate}} (finds seeded patient)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.resourceType).to.eql('Bundle');",
+                  "    pm.expect(json.type).to.eql('searchset');",
+                  "});",
+                  "pm.test('Seeded patient is in results', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get('lastUpdatedPatientId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_lastUpdated=ge{{lastUpdatedDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"],
+              "query": [{"key": "_lastUpdated", "value": "ge{{lastUpdatedDate}}"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_lastUpdated=ge2099-01-01 (future date → empty)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Total is 0', () => {",
+                  "    pm.expect(pm.response.json().total).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_lastUpdated=ge2099-01-01",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"],
+              "query": [{"key": "_lastUpdated", "value": "ge2099-01-01"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_lastUpdated=lt2000-01-01 (past date → empty)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Total is 0', () => {",
+                  "    pm.expect(pm.response.json().total).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {"disableBodyPruning": true},
+          "request": {
+            "auth": {"type": "inherit"},
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+            "body": {"mode": "raw", "raw": "", "options": {"raw": {"language": "text"}}},
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_lastUpdated=lt2000-01-01",
+              "host": ["{{baseUrl}}"],
+              "path": ["Patient"],
+              "query": [{"key": "_lastUpdated", "value": "lt2000-01-01"}]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Errors",
       "description": "Negative-path tests that verify correct error responses. Covers missing token (401), invalid token (401), wrong password (401), unknown resource type (404), and wrong Content-Type on PATCH (415). All responses are asserted to be OperationOutcome resources.",
       "item": [
@@ -1729,7 +2778,16 @@
     {"key": "username",         "value": "alice"},
     {"key": "token",            "value": ""},
     {"key": "patientId",        "value": ""},
-    {"key": "includePatientId", "value": ""},
-    {"key": "includeObsId",     "value": ""}
+    {"key": "includePatientId",     "value": ""},
+    {"key": "includeObsId",         "value": ""},
+    {"key": "condIdentifier",       "value": ""},
+    {"key": "condPatientId",        "value": ""},
+    {"key": "condMultiFamily",      "value": ""},
+    {"key": "everythingPatientId",  "value": ""},
+    {"key": "everythingObsId",      "value": ""},
+    {"key": "txPatientId",          "value": ""},
+    {"key": "shapingPatientId",     "value": ""},
+    {"key": "lastUpdatedPatientId", "value": ""},
+    {"key": "lastUpdatedDate",      "value": ""}
   ]
 }

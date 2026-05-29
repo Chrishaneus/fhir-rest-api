@@ -68,7 +68,7 @@ def _apply_python_sort(
 
 
 def _last_updated_sql_clause(
-    column: ColumnElement[Any], value: str
+    column: Any, value: str
 ) -> ColumnElement[bool] | None:
     """Return a SQLAlchemy filter clause for a single `_lastUpdated` value.
 
