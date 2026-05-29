@@ -75,16 +75,10 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
                                 "name": "$validate",
                                 "definition": "http://hl7.org/fhir/OperationDefinition/Resource-validate",
                             },
-                            *(
-                                [
-                                    {
-                                        "name": "$everything",
-                                        "definition": "http://hl7.org/fhir/OperationDefinition/Patient-everything",
-                                    }
-                                ]
-                                if resource_type == "Patient"
-                                else []
-                            ),
+                            {
+                                "name": "$everything",
+                                "definition": "http://hl7.org/fhir/OperationDefinition/Resource-everything",
+                            },
                         ],
                     }
                     for resource_type in resource_types

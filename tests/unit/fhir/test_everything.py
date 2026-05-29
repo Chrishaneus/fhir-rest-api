@@ -158,13 +158,11 @@ class TestPatientEverythingPagination:
 
 
 class TestEverythingCapability:
-    def test_operation_advertised_for_patient(self, client: TestClient) -> None:
+    def test_operation_advertised_for_all_resource_types(self, client: TestClient) -> None:
         meta = client.get("/metadata").json()
-        patient_resource = next(
-            r for r in meta["rest"][0]["resource"] if r["type"] == "Patient"
-        )
-        op_names = [op["name"] for op in patient_resource.get("operation", [])]
-        assert "$everything" in op_names
+        for resource in meta["rest"][0]["resource"]:
+            op_names = [op["name"] for op in resource.get("operation", [])]
+            assert "$everything" in op_names, f"$everything missing from {resource['type']}"
 
     def test_operation_definition_url_correct(self, client: TestClient) -> None:
         meta = client.get("/metadata").json()
@@ -172,4 +170,4 @@ class TestEverythingCapability:
             r for r in meta["rest"][0]["resource"] if r["type"] == "Patient"
         )
         everything_op = next(op for op in patient_resource["operation"] if op["name"] == "$everything")
-        assert everything_op["definition"] == "http://hl7.org/fhir/OperationDefinition/Patient-everything"
+        assert everything_op["definition"] == "http://hl7.org/fhir/OperationDefinition/Resource-everything"
