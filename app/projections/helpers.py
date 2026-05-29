@@ -13,7 +13,7 @@ without making the store transaction die over a typo in a single record.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -84,28 +84,63 @@ def codeable_reference(value: Any) -> str | None:
     return reference_of(value.get("reference"))
 
 
+def _expand_partial_date(value: str) -> tuple[int, int, int] | None:
+    """Parse FHIR partial dates (YYYY or YYYY-MM) to a (year, month, day) triple.
+
+    Returns ``None`` for strings that are not a recognisable partial date.
+    Full dates (YYYY-MM-DD) and datetimes are handled by the callers directly.
+    """
+    parts = value.split("-")
+    try:
+        if len(parts) == 1:
+            return int(parts[0]), 1, 1
+        if len(parts) == 2:
+            return int(parts[0]), int(parts[1]), 1
+    except ValueError:
+        pass
+    return None
+
+
 def parse_fhir_datetime(value: Any) -> datetime | None:
-    """Parse a FHIR `instant` / `dateTime` string into a Python `datetime`."""
+    """Parse a FHIR ``instant`` / ``dateTime`` string into a Python ``datetime``.
+
+    Full ISO strings (with time component) are parsed directly.  FHIR R5
+    allows partial ``dateTime`` values (``YYYY`` or ``YYYY-MM``); these are
+    expanded to the start of their implied period at UTC midnight.
+    """
     if not isinstance(value, str) or not value:
         return None
     try:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
-        return None
+        pass
+    triple = _expand_partial_date(value)
+    if triple is not None:
+        return datetime(*triple, tzinfo=timezone.utc)
+    return None
 
 
 def parse_fhir_date(value: Any) -> date | None:
-    """Parse a FHIR `date` (`YYYY-MM-DD`) into a Python `date`."""
+    """Parse a FHIR ``date`` string into a Python ``date``.
+
+    Full ``YYYY-MM-DD`` strings and ISO datetimes are parsed directly.
+    Partial dates (``YYYY`` or ``YYYY-MM``) are expanded to the first day of
+    their implied period so they are stored and sortable rather than dropped.
+    """
     if not isinstance(value, str) or not value:
         return None
     try:
-        # Tolerate full datetimes here too; downstream column is DATE.
         return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
     except ValueError:
-        try:
-            return date.fromisoformat(value)
-        except ValueError:
-            return None
+        pass
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        pass
+    triple = _expand_partial_date(value)
+    if triple is not None:
+        return date(*triple)
+    return None
 
 
 def parse_decimal(value: Any) -> Decimal | None:
