@@ -110,7 +110,7 @@ def _process_transaction(
         raise FHIRHTTPError(412, str(exc), "conflict") from exc
 
     response_entries = [
-        _build_success_entry(parsed_entry, result, base) for parsed_entry, result in zip(parsed, results)
+        _build_success_entry(parsed_entry, result, base) for parsed_entry, result in zip(parsed, results, strict=True)
     ]
     return {"resourceType": "Bundle", "type": "transaction-response", "entry": response_entries}
 

@@ -13,7 +13,7 @@ without making the store transaction die over a typo in a single record.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -116,7 +116,7 @@ def parse_fhir_datetime(value: Any) -> datetime | None:
         pass
     triple = _expand_partial_date(value)
     if triple is not None:
-        return datetime(*triple, tzinfo=timezone.utc)
+        return datetime(*triple, tzinfo=UTC)
     return None
 
 

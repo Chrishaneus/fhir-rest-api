@@ -24,8 +24,8 @@ Example::
 from __future__ import annotations
 
 import functools
-import logging
 import inspect
+import logging
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
 

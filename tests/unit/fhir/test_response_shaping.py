@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
 
 from app.utils.fhir.response_shaping import (

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
 
-_UTC = timezone.utc
+_UTC = UTC
 
 
 def _patient(family: str = "Lu") -> dict:

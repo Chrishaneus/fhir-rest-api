@@ -6,7 +6,7 @@ from typing import Any
 
 from app.db.projection_models import AppointmentProjectionSchema
 from app.projections.base import Projection, registry
-from app.projections.helpers import first, parse_fhir_datetime, reference_of
+from app.projections.helpers import parse_fhir_datetime, reference_of
 
 
 def _patient_ref(resource: dict[str, Any]) -> str | None:

@@ -70,11 +70,11 @@ class HookRegistry:
     def clear(self) -> None:
         self._hooks.clear()
 
-    def snapshot(self) -> dict[str, "ResourceHooks"]:
+    def snapshot(self) -> dict[str, ResourceHooks]:
         """Return a shallow copy of the current registry."""
         return dict(self._hooks)
 
-    def restore(self, snapshot: dict[str, "ResourceHooks"]) -> None:
+    def restore(self, snapshot: dict[str, ResourceHooks]) -> None:
         """Replace the registry with a previously taken snapshot."""
         self._hooks.clear()
         self._hooks.update(snapshot)

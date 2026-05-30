@@ -9,15 +9,26 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import RLock
-from typing import Any, Union
+from typing import Any
 
-import app.utils.cache as cache
-from sqlalchemy import ColumnElement, and_, bindparam, desc, func, insert, literal_column, not_, or_, select
+from sqlalchemy import (
+    ColumnElement,
+    and_,
+    bindparam,
+    desc,
+    func,
+    insert,
+    literal_column,
+    not_,
+    or_,
+    select,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session, aliased, sessionmaker
 
+import app.utils.cache as cache
 from app.db.base import SessionLocal, engine
 from app.db.models import ResourceVersionRecord
 from app.db.search import containment_payloads
@@ -28,7 +39,7 @@ from app.utils.fhir.search import parse_sort_params, resource_matches, split_csv
 from app.utils.time import fhir_instant, now_utc, weak_etag
 
 
-def _sort_key_for_field(version: "ResourceVersion", field: str) -> Any:
+def _sort_key_for_field(version: ResourceVersion, field: str) -> Any:
     """Extract a comparison-safe sort key from a ResourceVersion for one FHIR sort field."""
     lower = field.lower()
     resource = version.resource or {}
@@ -49,9 +60,9 @@ def _sort_key_for_field(version: "ResourceVersion", field: str) -> Any:
 
 
 def _apply_python_sort(
-    versions: list["ResourceVersion"],
+    versions: list[ResourceVersion],
     params: dict[str, list[str]],
-) -> list["ResourceVersion"]:
+) -> list[ResourceVersion]:
     """Re-sort ResourceVersions by `_sort` params using Python comparison.
 
     Applies each sort field in reverse order so the first field in `_sort`
@@ -96,9 +107,9 @@ def _last_updated_sql_clause(
 
 
 def _apply_last_updated_filter(
-    versions: list["ResourceVersion"],
+    versions: list[ResourceVersion],
     params: dict[str, list[str]],
-) -> list["ResourceVersion"]:
+) -> list[ResourceVersion]:
     """Post-filter *versions* by every `_lastUpdated` value in *params* (AND semantics)."""
     filter_values = split_csv_values(params.get("_lastUpdated", []))
     if not filter_values:
@@ -181,7 +192,7 @@ class TransactionRead:
     resource_id: str
 
 
-TransactionOperation = Union[TransactionCreate, TransactionUpdate, TransactionDelete, TransactionRead]
+TransactionOperation = TransactionCreate | TransactionUpdate | TransactionDelete | TransactionRead
 
 
 @dataclass
@@ -862,7 +873,7 @@ class FHIRStore:
                 results.append(self._execute_transaction_op(session, operation))
             session.commit()
 
-        for operation, result in zip(operations, results):
+        for operation, result in zip(operations, results, strict=True):
             if isinstance(operation, TransactionRead) or result.version is None:
                 continue
             resource_id = (

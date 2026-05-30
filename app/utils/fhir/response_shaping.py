@@ -6,7 +6,6 @@ Applied to resource dicts BEFORE serialisation; never persisted.
 
 from __future__ import annotations
 
-import copy
 from typing import Any
 
 _ALWAYS_KEEP = frozenset({"id", "meta", "resourceType"})

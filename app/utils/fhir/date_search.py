@@ -8,9 +8,9 @@ full instants are treated as a point (start == end).
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-_UTC = timezone.utc
+_UTC = UTC
 
 # Optional prefix + the rest
 _PREFIX_RE = re.compile(r"^(eq|ne|lt|le|gt|ge|sa|eb)?(.+)$", re.ASCII)

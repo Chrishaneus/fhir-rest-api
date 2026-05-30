@@ -31,11 +31,11 @@ from __future__ import annotations
 import base64
 import math
 import random
-from datetime import datetime, timezone
-from decimal import Decimal
 from collections import defaultdict
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
 from faker import Faker
@@ -479,8 +479,8 @@ def gen_encounters(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             subject=ctx.random_ref("Patient"),
             serviceProvider=ctx.random_ref("Organization"),
             actualPeriod=Period(
-                start=start.replace(tzinfo=timezone.utc),
-                end=start.replace(hour=(start.hour + 1) % 24, tzinfo=timezone.utc),
+                start=start.replace(tzinfo=UTC),
+                end=start.replace(hour=(start.hour + 1) % 24, tzinfo=UTC),
             ),
         )
         yield _emit(ctx, enc, "Encounter")
@@ -494,7 +494,7 @@ def gen_episodes_of_care(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             status="active",
             patient=ctx.require_ref("Patient"),
             managingOrganization=ctx.random_ref("Organization"),
-            period=Period(start=ctx.faker.date_time_this_decade().replace(tzinfo=timezone.utc)),
+            period=Period(start=ctx.faker.date_time_this_decade().replace(tzinfo=UTC)),
         )
         yield _emit(ctx, ep, "EpisodeOfCare")
 
@@ -507,8 +507,8 @@ def gen_schedules(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             active=True,
             actor=[ctx.require_ref("PractitionerRole")],
             planningHorizon=Period(
-                start=datetime(2026, 1, 1, tzinfo=timezone.utc),
-                end=datetime(2026, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+                start=datetime(2026, 1, 1, tzinfo=UTC),
+                end=datetime(2026, 12, 31, 23, 59, 59, tzinfo=UTC),
             ),
         )
         yield _emit(ctx, sch, "Schedule")
@@ -522,8 +522,8 @@ def gen_slots(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             id=rid,
             schedule=ctx.require_ref("Schedule"),
             status=ctx.rng.choice(["free", "busy", "busy-tentative"]),
-            start=start.replace(tzinfo=timezone.utc),
-            end=start.replace(minute=(start.minute + 30) % 60, tzinfo=timezone.utc),
+            start=start.replace(tzinfo=UTC),
+            end=start.replace(minute=(start.minute + 30) % 60, tzinfo=UTC),
         )
         yield _emit(ctx, slot, "Slot")
 
@@ -536,8 +536,8 @@ def gen_appointments(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             id=rid,
             status=ctx.rng.choice(["booked", "fulfilled", "cancelled", "noshow"]),
             description="Routine follow-up",
-            start=start.replace(tzinfo=timezone.utc),
-            end=start.replace(minute=(start.minute + 30) % 60, tzinfo=timezone.utc),
+            start=start.replace(tzinfo=UTC),
+            end=start.replace(minute=(start.minute + 30) % 60, tzinfo=UTC),
             participant=[
                 AppointmentParticipant(actor=ctx.random_ref("Patient"), status="accepted"),
                 AppointmentParticipant(actor=ctx.random_ref("Practitioner"), status="accepted"),
@@ -564,7 +564,7 @@ def gen_conditions(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             code=_cc("http://snomed.info/sct", snomed, display),
             subject=ctx.require_ref("Patient"),
             encounter=ctx.random_ref("Encounter"),
-            recordedDate=ctx.faker.date_time_this_decade().replace(tzinfo=timezone.utc),
+            recordedDate=ctx.faker.date_time_this_decade().replace(tzinfo=UTC),
         )
         yield _emit(ctx, cond, "Condition")
 
@@ -591,7 +591,7 @@ def gen_allergies(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             criticality=ctx.rng.choice(["low", "high", "unable-to-assess"]),
             code=_cc("http://snomed.info/sct", snomed, display),
             patient=ctx.require_ref("Patient"),
-            recordedDate=ctx.faker.date_time_this_decade().replace(tzinfo=timezone.utc),
+            recordedDate=ctx.faker.date_time_this_decade().replace(tzinfo=UTC),
         )
         yield _emit(ctx, allergy, "AllergyIntolerance")
 
@@ -605,7 +605,7 @@ def gen_family_histories(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             id=rid,
             status="completed",
             patient=ctx.require_ref("Patient"),
-            date=ctx.faker.date_time_this_decade().replace(tzinfo=timezone.utc),
+            date=ctx.faker.date_time_this_decade().replace(tzinfo=UTC),
             name=f"Patient's {display}",
             relationship=_cc(
                 "http://terminology.hl7.org/CodeSystem/v3-RoleCode", code, display
@@ -624,7 +624,7 @@ def gen_procedures(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             code=_cc("http://snomed.info/sct", snomed, display),
             subject=ctx.require_ref("Patient"),
             encounter=ctx.random_ref("Encounter"),
-            occurrenceDateTime=ctx.faker.date_time_this_decade().replace(tzinfo=timezone.utc),
+            occurrenceDateTime=ctx.faker.date_time_this_decade().replace(tzinfo=UTC),
             note=[Annotation(text="Procedure completed without complications.")],
         )
         yield _emit(ctx, proc, "Procedure")
@@ -639,7 +639,7 @@ def gen_immunizations(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             status="completed",
             vaccineCode=_cc("http://hl7.org/fhir/sid/cvx", cvx, display),
             patient=ctx.require_ref("Patient"),
-            occurrenceDateTime=ctx.faker.date_time_this_decade().replace(tzinfo=timezone.utc),
+            occurrenceDateTime=ctx.faker.date_time_this_decade().replace(tzinfo=UTC),
             primarySource=True,
             lotNumber=ctx.faker.bothify(text="??###-###"),
         )
@@ -667,7 +667,7 @@ def gen_observations(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             code=_cc("http://loinc.org", loinc, display),
             subject=ctx.random_ref("Patient"),
             encounter=ctx.random_ref("Encounter"),
-            effectiveDateTime=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            effectiveDateTime=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             valueQuantity=Quantity(
                 value=Decimal(str(value)),
                 unit=unit,
@@ -693,7 +693,7 @@ def gen_specimens(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             type=_cc("http://snomed.info/sct", snomed, display),
             subject=ctx.random_ref("Patient"),
             collection=SpecimenCollection(
-                collectedDateTime=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+                collectedDateTime=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
                 quantity=Quantity(value=Decimal(ctx.rng.randint(2, 20)), unit="mL"),
             ),
         )
@@ -723,8 +723,8 @@ def gen_diagnostic_reports(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             code=_cc("http://loinc.org", loinc, display),
             subject=ctx.random_ref("Patient"),
             encounter=ctx.random_ref("Encounter"),
-            effectiveDateTime=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
-            issued=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            effectiveDateTime=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
+            issued=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             specimen=[specimen] if specimen else None,
             conclusion=ctx.rng.choice(
                 ["Within normal limits.", "Mild abnormality, follow-up suggested.", "Critical value flagged."]
@@ -748,7 +748,7 @@ def gen_imaging_studies(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             status="available",
             subject=ctx.require_ref("Patient"),
             encounter=ctx.random_ref("Encounter"),
-            started=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            started=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             numberOfSeries=1,
             numberOfInstances=2,
             description=f"{mod_display} study",
@@ -800,7 +800,7 @@ def gen_medication_requests(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]
             priority="routine",
             medication=_medication_ref(ctx),
             subject=ctx.require_ref("Patient"),
-            authoredOn=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            authoredOn=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             requester=ctx.random_ref("Practitioner"),
         )
         yield _emit(ctx, mr, "MedicationRequest")
@@ -814,8 +814,8 @@ def gen_medication_statements(ctx: BulkContext) -> Iterator[tuple[str, str, dict
             status="recorded",
             medication=_medication_ref(ctx),
             subject=ctx.require_ref("Patient"),
-            effectiveDateTime=ctx.faker.date_time_this_decade().replace(tzinfo=timezone.utc),
-            dateAsserted=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            effectiveDateTime=ctx.faker.date_time_this_decade().replace(tzinfo=UTC),
+            dateAsserted=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
         )
         yield _emit(ctx, ms, "MedicationStatement")
 
@@ -829,7 +829,7 @@ def gen_medication_dispenses(ctx: BulkContext) -> Iterator[tuple[str, str, dict]
             medication=_medication_ref(ctx),
             subject=ctx.require_ref("Patient"),
             quantity=Quantity(value=Decimal(ctx.rng.randint(7, 90)), unit="tablet"),
-            whenHandedOver=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            whenHandedOver=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
         )
         yield _emit(ctx, md, "MedicationDispense")
 
@@ -843,7 +843,7 @@ def gen_medication_administrations(ctx: BulkContext) -> Iterator[tuple[str, str,
             medication=_medication_ref(ctx),
             subject=ctx.require_ref("Patient"),
             encounter=ctx.random_ref("Encounter"),
-            occurenceDateTime=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            occurenceDateTime=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             dosage=MedicationAdministrationDosage(
                 text="As directed",
                 dose=Quantity(
@@ -867,7 +867,7 @@ def gen_care_plans(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             title="Chronic disease management",
             subject=ctx.require_ref("Patient"),
             encounter=ctx.random_ref("Encounter"),
-            period=Period(start=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc)),
+            period=Period(start=ctx.faker.date_time_this_year().replace(tzinfo=UTC)),
         )
         yield _emit(ctx, cp, "CarePlan")
 
@@ -914,7 +914,7 @@ def gen_service_requests(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             code=CodeableReference(concept=_cc("http://snomed.info/sct", snomed, display)),
             subject=ctx.require_ref("Patient"),
             encounter=ctx.random_ref("Encounter"),
-            authoredOn=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            authoredOn=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             requester=ctx.random_ref("Practitioner"),
         )
         yield _emit(ctx, sr, "ServiceRequest")
@@ -929,7 +929,7 @@ def gen_tasks(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             intent="order",
             priority="routine",
             description="Follow-up action item",
-            authoredOn=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            authoredOn=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             owner=ctx.random_ref("PractitionerRole"),
         )
         yield _emit(ctx, t, "Task")
@@ -950,7 +950,7 @@ def gen_nutrition_orders(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             intent="order",
             subject=ctx.require_ref("Patient"),
             encounter=ctx.random_ref("Encounter"),
-            dateTime=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            dateTime=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             oralDiet=NutritionOrderOralDiet(
                 type=[_cc("http://snomed.info/sct", snomed, display)]
             ),
@@ -968,7 +968,7 @@ def gen_document_references(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]
             docStatus="final",
             type=_cc("http://loinc.org", "11506-3", "Progress note"),
             subject=ctx.random_ref("Patient"),
-            date=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            date=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             content=[
                 DocumentReferenceContent(
                     attachment=Attachment(
@@ -992,7 +992,7 @@ def gen_compositions(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             type=_cc("http://loinc.org", "18842-5", "Discharge summary"),
             subject=[ctx.require_ref("Patient")],
             encounter=ctx.random_ref("Encounter"),
-            date=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            date=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             author=[ctx.require_ref("Practitioner")],
             name=f"discharge-summary-{i:06d}",
             title="Discharge Summary",
@@ -1022,8 +1022,8 @@ def gen_coverages(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             beneficiary=ctx.require_ref("Patient"),
             policyHolder=ctx.random_ref("Patient"),
             period=Period(
-                start=datetime(2026, 1, 1, tzinfo=timezone.utc),
-                end=datetime(2026, 12, 31, tzinfo=timezone.utc),
+                start=datetime(2026, 1, 1, tzinfo=UTC),
+                end=datetime(2026, 12, 31, tzinfo=UTC),
             ),
             insurer=ctx.random_ref("Organization"),
             relationship=_cc(
@@ -1049,7 +1049,7 @@ def gen_claims(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             ),
             use="claim",
             patient=ctx.require_ref("Patient"),
-            created=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            created=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             provider=ctx.random_ref("Organization"),
             priority=_cc(
                 "http://terminology.hl7.org/CodeSystem/processpriority",
@@ -1087,7 +1087,7 @@ def gen_communications(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             status="completed",
             priority="routine",
             subject=ctx.random_ref("Patient"),
-            sent=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            sent=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             sender=ctx.random_ref("Practitioner"),
             recipient=[ctx.require_ref("Practitioner")],
             payload=[
@@ -1114,7 +1114,7 @@ def gen_communication_requests(ctx: BulkContext) -> Iterator[tuple[str, str, dic
             intent="order",
             priority="routine",
             subject=ctx.random_ref("Patient"),
-            authoredOn=ctx.faker.date_time_this_year().replace(tzinfo=timezone.utc),
+            authoredOn=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             requester=ctx.random_ref("Practitioner"),
             recipient=[ctx.require_ref("PractitionerRole")],
             payload=[
