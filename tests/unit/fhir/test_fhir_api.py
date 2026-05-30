@@ -123,6 +123,21 @@ class TestDelete:
     def test_returns_204(self, client: TestClient, created_patient: dict) -> None:
         assert client.delete(f"/Patient/{created_patient['id']}").status_code == 204
 
+    def test_stale_etag_returns_412(self, client: TestClient, created_patient: dict) -> None:
+        r = client.delete(
+            f"/Patient/{created_patient['id']}",
+            headers={"If-Match": 'W/"999"'},
+        )
+        assert r.status_code == 412
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+    def test_matching_etag_deletes_resource(self, client: TestClient, created_patient: dict) -> None:
+        r = client.delete(
+            f"/Patient/{created_patient['id']}",
+            headers={"If-Match": 'W/"1"'},
+        )
+        assert r.status_code == 204
+
     def test_read_after_delete_returns_410(self, client: TestClient, created_patient: dict) -> None:
         client.delete(f"/Patient/{created_patient['id']}")
         r = client.get(f"/Patient/{created_patient['id']}")

@@ -410,7 +410,7 @@ async def patch_resource(
 
 @router.delete("/{resource_type}/{resource_id}")
 @router.delete("/{resource_type}/{resource_id}/")
-async def delete_resource(resource_type: str, resource_id: str) -> Response:
+async def delete_resource(resource_type: str, resource_id: str, request: Request) -> Response:
     assert_resource_type(resource_type)
     assert_resource_id(resource_id)
 
@@ -422,7 +422,10 @@ async def delete_resource(resource_type: str, resource_id: str) -> Response:
     hook = hooks.get(resource_type)
     hook.before_delete(current.resource)
 
-    deleted = store.delete(resource_type, resource_id)
+    try:
+        deleted = store.delete(resource_type, resource_id, if_match=request.headers.get("if-match"))
+    except VersionConflictError as exc:
+        raise FHIRHTTPError(412, str(exc), "conflict") from exc
     if deleted is None:
         raise FHIRHTTPError(404, "Resource was not found", "not-found")
 

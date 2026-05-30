@@ -309,11 +309,23 @@ class FHIRStore:
         ttl=TTL_LATEST,
         serialize=_resource_version_to_json,
     )
-    def delete(self, resource_type: str, resource_id: str) -> ResourceVersion | None:
+    def delete(
+        self,
+        resource_type: str,
+        resource_id: str,
+        *,
+        if_match: str | None = None,
+    ) -> ResourceVersion | None:
         with self._lock, self._session_factory() as session:
             latest = self._latest_record(session, resource_type, resource_id)
             if latest is None or latest.deleted:
                 return None
+            if if_match is not None:
+                current_etag = weak_etag(latest.version_id)
+                if if_match != current_etag:
+                    raise VersionConflictError(
+                        "If-Match did not match the current resource version"
+                    )
             next_version_id = str(int(latest.version_id) + 1)
             last_updated = now_utc()
             session.add(

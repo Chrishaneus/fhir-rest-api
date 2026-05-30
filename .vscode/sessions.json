@@ -1,0 +1,40 @@
+{
+    "$schema": "https://cdn.statically.io/gh/nguyenngoclongdev/cdn/main/schema/v11/terminal-keeper.json",
+    "theme": "tribe",
+    "active": "default",
+    "activateOnStartup": true,
+    "keepExistingTerminals": false,
+    "noClear": true,
+    "sessions": {
+        "default": [
+            {
+                "name": "dev",
+                "autoExecuteCommands": true,
+                "icon": "person",
+                "color": "terminal.ansiGreen",
+                "commands": [
+                    ""
+                ]
+            },
+            [
+                {
+                    "name": "docker:dev",
+                    "autoExecuteCommands": true,
+                    "commands": [
+                        "docker-compose -f docker-compose.yml down",
+                        "docker-compose -f docker-compose.yml up --build -d"
+                    ]
+                }
+            ],
+            [
+                {
+                    "name": "postman:test",
+                    "shellPath": "C:\\Program Files\\Git\\bin\\bash.exe",
+                    "commands": [
+                        "newman run fhir_api.postman_collection.json --env-var \"baseUrl=http://localhost:8000\""
+                    ]
+                }
+            ]
+        ]
+    }
+}
