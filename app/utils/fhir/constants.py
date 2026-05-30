@@ -40,6 +40,16 @@ SUPPORTED_INTERACTIONS = (
     "history-type",
 )
 
+# All underscore-prefixed parameters the server actively handles.  Anything
+# starting with `_` that is NOT in this set is considered unknown and will
+# trigger a 400 when `Prefer: handling=strict` is requested.
+KNOWN_SEARCH_CONTROL_PARAMS: frozenset[str] = frozenset(
+    {
+        "_id",    # logical id filter
+        "_type",  # system-search resource-type filter
+    }
+)
+
 IGNORED_SEARCH_PARAMS = {
     "_format",
     "_pretty",

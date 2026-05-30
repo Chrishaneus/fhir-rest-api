@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import Request
 
 from app.utils.errors import FHIRHTTPError
-from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
+from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS, KNOWN_SEARCH_CONTROL_PARAMS
 from app.utils.fhir.date_search import parse_at_param, parse_since_param
 
 
@@ -83,7 +83,43 @@ def extract_at_param(params: dict[str, list[str]]) -> datetime | None:
         raise FHIRHTTPError(400, f"Invalid _at value: {exc}", "invalid") from exc
 
 
+_ALL_KNOWN_UNDERSCORE_PARAMS = IGNORED_SEARCH_PARAMS | KNOWN_SEARCH_CONTROL_PARAMS
+
+_ALL_KNOWN_UNDERSCORE_PARAMS = IGNORED_SEARCH_PARAMS | KNOWN_SEARCH_CONTROL_PARAMS
+
 _TOTAL_MODES = {"accurate", "none", "estimate"}
+
+
+def extract_handling_mode(prefer: str | None) -> str:
+    """Parse the `handling` token from a `Prefer` header.
+
+    Returns ``"strict"`` or ``"lenient"`` (the default when absent or
+    unrecognised).  Multiple comma-separated tokens are handled correctly:
+    ``Prefer: return=minimal, handling=strict``.
+    """
+    if not prefer:
+        return "lenient"
+    for token in prefer.split(","):
+        token = token.strip()
+        if token.lower().startswith("handling="):
+            mode = token[len("handling="):].strip().lower()
+            if mode in {"lenient", "strict"}:
+                return mode
+    return "lenient"
+
+
+def find_unknown_params(params: dict[str, list[str]]) -> list[str]:
+    """Return any ``_``-prefixed parameter names not recognised by this server.
+
+    Only underscore params are checked — validating non-underscore field names
+    would require a full per-resource search-parameter registry which we do not
+    maintain.  Unknown params are the ones that would be silently ignored in
+    lenient mode but trigger a 400 in strict mode.
+    """
+    return sorted(
+        key for key in params
+        if key.startswith("_") and key not in _ALL_KNOWN_UNDERSCORE_PARAMS
+    )
 
 
 def extract_total_mode(params: dict[str, list[str]]) -> str:

@@ -344,6 +344,57 @@ class TestHistory:
         assert any(link["relation"] == "next" for link in bundle["link"])
 
 
+class TestHandlingPrefer:
+    def test_strict_unknown_underscore_param_returns_400(self, client: TestClient) -> None:
+        response = client.get(
+            "/Patient?_notavalidparam=x",
+            headers={"Prefer": "handling=strict"},
+        )
+        assert response.status_code == 400
+        assert response.json()["resourceType"] == "OperationOutcome"
+        assert "_notavalidparam" in response.json()["issue"][0]["diagnostics"]
+
+    def test_strict_known_params_are_accepted(self, client: TestClient) -> None:
+        response = client.get(
+            "/Patient?_count=5&_sort=family",
+            headers={"Prefer": "handling=strict"},
+        )
+        assert response.status_code == 200
+
+    def test_lenient_unknown_param_is_ignored(self, client: TestClient) -> None:
+        response = client.get(
+            "/Patient?_notavalidparam=x",
+            headers={"Prefer": "handling=lenient"},
+        )
+        assert response.status_code == 200
+
+    def test_no_prefer_header_defaults_to_lenient(self, client: TestClient) -> None:
+        response = client.get("/Patient?_notavalidparam=x")
+        assert response.status_code == 200
+
+    def test_strict_mixed_with_other_prefer_tokens(self, client: TestClient) -> None:
+        response = client.get(
+            "/Patient?_notavalidparam=x",
+            headers={"Prefer": "return=minimal, handling=strict"},
+        )
+        assert response.status_code == 400
+
+    def test_strict_non_underscore_params_are_accepted(self, client: TestClient) -> None:
+        response = client.get(
+            "/Patient?family=Smith",
+            headers={"Prefer": "handling=strict"},
+        )
+        assert response.status_code == 200
+
+    def test_strict_post_search_unknown_param_returns_400(self, client: TestClient) -> None:
+        response = client.post(
+            "/Patient/_search",
+            data={"_notavalidparam": "x"},
+            headers={"Prefer": "handling=strict"},
+        )
+        assert response.status_code == 400
+
+
 class TestSearch:
     def test_by_family_returns_matching_bundle(self, client: TestClient) -> None:
         created = client.post("/Patient", json=patient("SearchOnly")).json()

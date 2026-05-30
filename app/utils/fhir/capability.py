@@ -22,7 +22,11 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
         "format": ["json"],
         "patchFormat": ["application/json-patch+json"],
         "implementation": {
-            "description": "Python FastAPI FHIR REST layer",
+            "description": (
+                "Python FastAPI FHIR R5 REST layer. "
+                "Supported Prefer tokens: return=minimal, return=representation, "
+                "return=OperationOutcome, handling=lenient (default), handling=strict."
+            ),
             "url": base,
         },
         "rest": [

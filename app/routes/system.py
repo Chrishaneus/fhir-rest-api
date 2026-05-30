@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from app.auth.dependencies import require_auth
 from app.store import store
+from app.utils.errors import FHIRHTTPError
 from app.utils.fhir.bundle_exec import process_bundle
 from app.utils.fhir.bundles import bundle_response
 from app.utils.fhir.capability import capability_statement
@@ -19,8 +20,10 @@ from app.utils.fhir.response_shaping import shape_bundle
 from app.utils.fhir.search import (
     apply_pagination,
     extract_at_param,
+    extract_handling_mode,
     extract_since_param,
     extract_total_mode,
+    find_unknown_params,
     query_params,
 )
 from app.utils.fhir.validation import configured_resource_types
@@ -74,6 +77,10 @@ async def root_or_system_search(request: Request) -> JSONResponse:
                 code="informational",
             )
         )
+    if extract_handling_mode(request.headers.get("prefer")) == "strict":
+        unknown = find_unknown_params(params)
+        if unknown:
+            raise FHIRHTTPError(400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported")
     matches = store.system_search(params)
     page, offset, page_size = apply_pagination(matches, params)
     total = None if extract_total_mode(params) == "none" else len(matches)

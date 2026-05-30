@@ -50,8 +50,10 @@ from app.utils.fhir.response_shaping import shape_bundle, shape_resource
 from app.utils.fhir.search import (
     apply_pagination,
     extract_at_param,
+    extract_handling_mode,
     extract_since_param,
     extract_total_mode,
+    find_unknown_params,
     form_and_query_params,
     query_params,
 )
@@ -97,6 +99,10 @@ async def type_history(resource_type: str, request: Request) -> JSONResponse:
 async def post_type_search(resource_type: str, request: Request) -> JSONResponse:
     assert_resource_type(resource_type)
     params = await form_and_query_params(request)
+    if extract_handling_mode(request.headers.get("prefer")) == "strict":
+        unknown = find_unknown_params(params)
+        if unknown:
+            raise FHIRHTTPError(400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported")
     matches = store.search(resource_type, params)
     page, offset, page_size = apply_pagination(matches, params)
     included = resolve_includes(store, resource_type, page, params)
@@ -114,6 +120,10 @@ async def post_type_search(resource_type: str, request: Request) -> JSONResponse
 async def get_type_search(resource_type: str, request: Request) -> JSONResponse:
     assert_resource_type(resource_type)
     params = query_params(request)
+    if extract_handling_mode(request.headers.get("prefer")) == "strict":
+        unknown = find_unknown_params(params)
+        if unknown:
+            raise FHIRHTTPError(400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported")
     matches = store.search(resource_type, params)
     page, offset, page_size = apply_pagination(matches, params)
     included = resolve_includes(store, resource_type, page, params)
@@ -363,6 +373,10 @@ async def compartment_search(
     params = query_params(request)
     merged_params = {**params, membership_params[0]: [f"{compartment_type}/{compartment_id}"]}
 
+    if extract_handling_mode(request.headers.get("prefer")) == "strict":
+        unknown = find_unknown_params(params)
+        if unknown:
+            raise FHIRHTTPError(400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported")
     matches = store.search(resource_type, merged_params)
     page, offset, page_size = apply_pagination(matches, merged_params)
     included = resolve_includes(store, resource_type, page, merged_params)
