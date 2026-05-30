@@ -271,6 +271,33 @@ class TestHistory:
         page_ids = [e["resource"]["meta"]["versionId"] for e in r_page.json()["entry"] if e.get("resource")]
         assert page_ids == all_ids[2:4]
 
+    def test_since_filters_instance_history(self, client: TestClient) -> None:
+        body = client.post("/Patient", json=patient("SinceTest")).json()
+        pid = body["id"]
+        client.put(f"/Patient/{pid}", json={**body, "active": True})
+        # _since with a far-future timestamp returns empty but still 200
+        r = client.get(f"/Patient/{pid}/_history?_since=2099-01-01T00:00:00Z")
+        assert r.status_code == 200
+        assert r.json()["total"] == 0
+
+    def test_since_invalid_value_returns_400(self, client: TestClient) -> None:
+        body = client.post("/Patient", json=patient("SinceBad")).json()
+        r = client.get(f"/Patient/{body['id']}/_history?_since=not-a-date")
+        assert r.status_code == 400
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+    def test_since_filters_type_history(self, client: TestClient) -> None:
+        client.post("/Patient", json=patient("SinceType"))
+        r = client.get("/Patient/_history?_since=2099-01-01T00:00:00Z")
+        assert r.status_code == 200
+        assert r.json()["total"] == 0
+
+    def test_since_filters_system_history(self, client: TestClient) -> None:
+        client.post("/Patient", json=patient("SinceSys"))
+        r = client.get("/_history?_since=2099-01-01T00:00:00Z")
+        assert r.status_code == 200
+        assert r.json()["total"] == 0
+
     def test_type_history_pagination(self, client: TestClient) -> None:
         for i in range(3):
             client.post("/Patient", json=patient(f"TypePage{i}"))

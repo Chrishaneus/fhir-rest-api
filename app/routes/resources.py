@@ -47,7 +47,12 @@ from app.utils.fhir.compartments import SUPPORTED_COMPARTMENTS, get_compartment_
 from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
 from app.utils.fhir.includes import resolve_includes
 from app.utils.fhir.response_shaping import shape_bundle, shape_resource
-from app.utils.fhir.search import apply_pagination, form_and_query_params, query_params
+from app.utils.fhir.search import (
+    apply_pagination,
+    extract_since_param,
+    form_and_query_params,
+    query_params,
+)
 from app.utils.fhir.validation import (
     assert_resource_id,
     assert_resource_type,
@@ -79,7 +84,7 @@ router = APIRouter(tags=["resources"], dependencies=[Depends(require_auth)])
 async def type_history(resource_type: str, request: Request) -> JSONResponse:
     assert_resource_type(resource_type)
     params = query_params(request)
-    entries = store.history(resource_type=resource_type)
+    entries = store.history(resource_type=resource_type, since=extract_since_param(params))
     page, offset, page_size = apply_pagination(entries, params)
     bundle = bundle_response(request, "history", page, total=len(entries), offset=offset, page_size=page_size)
     return fhir_json_response(shape_bundle(bundle, params))
@@ -274,9 +279,10 @@ async def instance_history(
     assert_resource_type(resource_type)
     assert_resource_id(resource_id)
     params = query_params(request)
-    entries = store.history(resource_type=resource_type, resource_id=resource_id)
-    if not entries:
+    since = extract_since_param(params)
+    if store.latest(resource_type, resource_id) is None:
         raise FHIRHTTPError(404, "Resource was not found", "not-found")
+    entries = store.history(resource_type=resource_type, resource_id=resource_id, since=since)
     page, offset, page_size = apply_pagination(entries, params)
     bundle = bundle_response(request, "history", page, total=len(entries), offset=offset, page_size=page_size)
     return fhir_json_response(shape_bundle(bundle, params))

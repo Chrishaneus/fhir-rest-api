@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from fastapi import Request
 
 from app.utils.errors import FHIRHTTPError
 from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
+from app.utils.fhir.date_search import parse_since_param
 
 
 def parse_sort_params(params: dict[str, list[str]]) -> list[tuple[str, bool]]:
@@ -49,6 +51,21 @@ async def form_and_query_params(request: Request) -> dict[str, list[str]]:
     for key, value in form.multi_items():
         params.setdefault(key, []).append(str(value))
     return params
+
+
+def extract_since_param(params: dict[str, list[str]]) -> datetime | None:
+    """Extract and parse `_since` from history query params.
+
+    Returns a UTC datetime, or None if `_since` is absent.
+    Raises 400 on an unrecognisable value.
+    """
+    values = params.get("_since")
+    if not values:
+        return None
+    try:
+        return parse_since_param(values[-1])
+    except ValueError as exc:
+        raise FHIRHTTPError(400, f"Invalid _since value: {exc}", "invalid") from exc
 
 
 def apply_pagination(

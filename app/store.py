@@ -809,6 +809,7 @@ class FHIRStore:
         resource_type: str | None = None,
         resource_id: str | None = None,
         *,
+        since: datetime | None = None,
         limit: int | None = None,
     ) -> list[ResourceVersion]:
         with self._session_factory() as session:
@@ -820,6 +821,8 @@ class FHIRStore:
                 statement = statement.where(ResourceVersionRecord.resource_type == resource_type)
             if resource_id is not None:
                 statement = statement.where(ResourceVersionRecord.resource_id == resource_id)
+            if since is not None:
+                statement = statement.where(ResourceVersionRecord.last_updated > since)
             if limit is not None:
                 statement = statement.limit(limit)
             records = session.execute(statement).scalars().all()

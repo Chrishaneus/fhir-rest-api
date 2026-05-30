@@ -74,6 +74,17 @@ def _to_period(value: str) -> tuple[datetime, datetime]:
     raise ValueError(f"Cannot parse date: {value!r}")
 
 
+def parse_since_param(value: str) -> datetime:
+    """Parse a `_since` instant into a UTC datetime.
+
+    Accepts the same formats as `_to_period`.  For partial dates (YYYY,
+    YYYY-MM, YYYY-MM-DD) the start of the implied period is returned.
+    Raises `ValueError` for unrecognisable input.
+    """
+    start, _ = _to_period(value.strip())
+    return start
+
+
 def matches_last_updated(last_updated: datetime, value: str) -> bool:
     """Return True if *last_updated* satisfies a single `_lastUpdated` search value.
 
