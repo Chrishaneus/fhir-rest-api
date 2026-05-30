@@ -16,7 +16,12 @@ from app.utils.fhir.bundle_exec import process_bundle
 from app.utils.fhir.bundles import bundle_response
 from app.utils.fhir.capability import capability_statement
 from app.utils.fhir.response_shaping import shape_bundle
-from app.utils.fhir.search import apply_pagination, extract_since_param, query_params
+from app.utils.fhir.search import (
+    apply_pagination,
+    extract_at_param,
+    extract_since_param,
+    query_params,
+)
 from app.utils.fhir.validation import configured_resource_types
 from app.utils.outcomes import fhir_json_response, operation_outcome
 
@@ -42,7 +47,7 @@ async def metadata(request: Request) -> JSONResponse:
 @router.get("/_history/", dependencies=[Depends(require_auth)])
 async def system_history(request: Request) -> JSONResponse:
     params = query_params(request)
-    entries = store.history(since=extract_since_param(params))
+    entries = store.history(since=extract_since_param(params), at=extract_at_param(params))
     page, offset, page_size = apply_pagination(entries, params)
     bundle = bundle_response(request, "history", page, total=len(entries), offset=offset, page_size=page_size)
     return fhir_json_response(shape_bundle(bundle, params))

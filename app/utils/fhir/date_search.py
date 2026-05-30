@@ -77,12 +77,24 @@ def _to_period(value: str) -> tuple[datetime, datetime]:
 def parse_since_param(value: str) -> datetime:
     """Parse a `_since` instant into a UTC datetime.
 
-    Accepts the same formats as `_to_period`.  For partial dates (YYYY,
-    YYYY-MM, YYYY-MM-DD) the start of the implied period is returned.
+    Accepts the same formats as `_to_period`.  For partial dates the start
+    of the implied period is returned (everything strictly after that point).
     Raises `ValueError` for unrecognisable input.
     """
     start, _ = _to_period(value.strip())
     return start
+
+
+def parse_at_param(value: str) -> datetime:
+    """Parse a `_at` instant into a UTC datetime.
+
+    Accepts the same formats as `_to_period`.  For partial dates the end
+    of the implied period is returned (everything up to and including that
+    point, e.g. `_at=2024-01` includes all of January 2024).
+    Raises `ValueError` for unrecognisable input.
+    """
+    _, end = _to_period(value.strip())
+    return end
 
 
 def matches_last_updated(last_updated: datetime, value: str) -> bool:

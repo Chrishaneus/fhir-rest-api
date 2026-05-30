@@ -9,7 +9,7 @@ from fastapi import Request
 
 from app.utils.errors import FHIRHTTPError
 from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
-from app.utils.fhir.date_search import parse_since_param
+from app.utils.fhir.date_search import parse_at_param, parse_since_param
 
 
 def parse_sort_params(params: dict[str, list[str]]) -> list[tuple[str, bool]]:
@@ -66,6 +66,21 @@ def extract_since_param(params: dict[str, list[str]]) -> datetime | None:
         return parse_since_param(values[-1])
     except ValueError as exc:
         raise FHIRHTTPError(400, f"Invalid _since value: {exc}", "invalid") from exc
+
+
+def extract_at_param(params: dict[str, list[str]]) -> datetime | None:
+    """Extract and parse `_at` from history query params.
+
+    Returns a UTC datetime representing the end of the implied period, or
+    None if `_at` is absent.  Raises 400 on an unrecognisable value.
+    """
+    values = params.get("_at")
+    if not values:
+        return None
+    try:
+        return parse_at_param(values[-1])
+    except ValueError as exc:
+        raise FHIRHTTPError(400, f"Invalid _at value: {exc}", "invalid") from exc
 
 
 def apply_pagination(

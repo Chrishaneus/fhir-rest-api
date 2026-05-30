@@ -31,10 +31,10 @@ def updated_patient(client: TestClient) -> dict:
 
 class TestMetadata:
     def test_returns_capability_statement(self, client: TestClient) -> None:
-        r = client.get("/metadata")
-        assert r.status_code == 200
-        assert r.headers["content-type"].startswith(FHIR_JSON)
-        body = r.json()
+        response = client.get("/metadata")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith(FHIR_JSON)
+        body = response.json()
         assert body["resourceType"] == "CapabilityStatement"
         assert body["fhirVersion"] == "5.0.0"
 
@@ -52,39 +52,39 @@ class TestMetadata:
 
 class TestErrors:
     def test_type_mismatch_in_body_returns_400(self, client: TestClient) -> None:
-        r = client.post("/Patient", json={"resourceType": "Observation", "status": "final"})
-        assert r.status_code == 400
-        assert r.json()["resourceType"] == "OperationOutcome"
+        response = client.post("/Patient", json={"resourceType": "Observation", "status": "final"})
+        assert response.status_code == 400
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_unknown_resource_type_returns_404(self, client: TestClient) -> None:
-        r = client.post("/NotAResource", json={"resourceType": "NotAResource"})
-        assert r.status_code == 404
-        assert r.json()["resourceType"] == "OperationOutcome"
+        response = client.post("/NotAResource", json={"resourceType": "NotAResource"})
+        assert response.status_code == 404
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_extra_field_returns_422(self, client: TestClient) -> None:
-        r = client.post("/Patient", json={"resourceType": "Patient", "nonsenseField": "x"})
-        assert r.status_code == 422
-        body = r.json()
+        response = client.post("/Patient", json={"resourceType": "Patient", "nonsenseField": "x"})
+        assert response.status_code == 422
+        body = response.json()
         assert body["resourceType"] == "OperationOutcome"
         assert "nonsenseField" in body["issue"][0]["diagnostics"]
 
     def test_validation_error_message_is_readable(self, client: TestClient) -> None:
-        r = client.post("/Patient", json={"resourceType": "Patient", "badField": "x"})
-        assert r.status_code == 422
-        diag = r.json()["issue"][0]["diagnostics"]
-        assert "badField" in diag
-        assert "Extra inputs" in diag
-        assert "pydantic.dev" not in diag
+        response = client.post("/Patient", json={"resourceType": "Patient", "badField": "x"})
+        assert response.status_code == 422
+        diagnostics = response.json()["issue"][0]["diagnostics"]
+        assert "badField" in diagnostics
+        assert "Extra inputs" in diagnostics
+        assert "pydantic.dev" not in diagnostics
 
 
 class TestCreate:
     def test_returns_201_with_fhir_headers(self, client: TestClient) -> None:
-        r = client.post("/Patient", json=patient("Create"))
-        assert r.status_code == 201
-        assert r.headers["etag"] == 'W/"1"'
-        assert "last-modified" in r.headers
-        assert r.headers["location"].endswith("/_history/1")
-        body = r.json()
+        response = client.post("/Patient", json=patient("Create"))
+        assert response.status_code == 201
+        assert response.headers["etag"] == 'W/"1"'
+        assert "last-modified" in response.headers
+        assert response.headers["location"].endswith("/_history/1")
+        body = response.json()
         assert body["resourceType"] == "Patient"
         assert body["id"]
         assert body["meta"]["versionId"] == "1"
@@ -93,93 +93,93 @@ class TestCreate:
 
 class TestRead:
     def test_returns_resource_with_etag(self, client: TestClient, created_patient: dict) -> None:
-        r = client.get(f"/Patient/{created_patient['id']}")
-        assert r.status_code == 200
-        assert r.headers["etag"] == 'W/"1"'
-        assert r.json()["id"] == created_patient["id"]
+        response = client.get(f"/Patient/{created_patient['id']}")
+        assert response.status_code == 200
+        assert response.headers["etag"] == 'W/"1"'
+        assert response.json()["id"] == created_patient["id"]
 
 
 class TestUpdate:
     def test_stale_etag_returns_412(self, client: TestClient, created_patient: dict) -> None:
-        r = client.put(
+        response = client.put(
             f"/Patient/{created_patient['id']}",
             headers={"If-Match": 'W/"999"'},
             json={**created_patient, "active": True},
         )
-        assert r.status_code == 412
-        assert r.json()["resourceType"] == "OperationOutcome"
+        assert response.status_code == 412
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_valid_update_increments_version(self, client: TestClient, created_patient: dict) -> None:
-        r = client.put(
+        response = client.put(
             f"/Patient/{created_patient['id']}",
             headers={"If-Match": 'W/"1"'},
             json={**created_patient, "active": True},
         )
-        assert r.status_code == 200
-        assert r.headers["etag"] == 'W/"2"'
-        assert r.json()["meta"]["versionId"] == "2"
+        assert response.status_code == 200
+        assert response.headers["etag"] == 'W/"2"'
+        assert response.json()["meta"]["versionId"] == "2"
 
 
 class TestConditionalUpdate:
     def test_no_search_params_returns_400(self, client: TestClient) -> None:
-        r = client.put("/Patient", json={"resourceType": "Patient"})
-        assert r.status_code == 400
-        assert r.json()["resourceType"] == "OperationOutcome"
+        response = client.put("/Patient", json={"resourceType": "Patient"})
+        assert response.status_code == 400
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_no_match_creates_resource(self, client: TestClient) -> None:
         family = f"ConditionalNew-{uuid.uuid4().hex[:6]}"
-        r = client.put(f"/Patient?family={family}", json={"resourceType": "Patient", "name": [{"family": family}]})
-        assert r.status_code == 201
-        assert r.json()["name"][0]["family"] == family
+        response = client.put(f"/Patient?family={family}", json={"resourceType": "Patient", "name": [{"family": family}]})
+        assert response.status_code == 201
+        assert response.json()["name"][0]["family"] == family
 
     def test_one_match_updates_resource(self, client: TestClient, created_patient: dict) -> None:
         family = created_patient["name"][0]["family"]
-        r = client.put(
+        response = client.put(
             f"/Patient?family={family}",
             json={**created_patient, "active": True},
         )
-        assert r.status_code == 200
-        assert r.json()["active"] is True
-        assert r.json()["meta"]["versionId"] == "2"
+        assert response.status_code == 200
+        assert response.json()["active"] is True
+        assert response.json()["meta"]["versionId"] == "2"
 
     def test_multiple_matches_returns_412(self, client: TestClient) -> None:
         for _ in range(2):
             client.post("/Patient", json=patient("MultiMatch"))
-        r = client.put("/Patient?family=MultiMatch", json={"resourceType": "Patient"})
-        assert r.status_code == 412
-        assert r.json()["resourceType"] == "OperationOutcome"
+        response = client.put("/Patient?family=MultiMatch", json={"resourceType": "Patient"})
+        assert response.status_code == 412
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_conflicting_body_id_returns_400(self, client: TestClient, created_patient: dict) -> None:
         family = created_patient["name"][0]["family"]
-        r = client.put(
+        response = client.put(
             f"/Patient?family={family}",
             json={**created_patient, "id": "completely-different-id"},
         )
-        assert r.status_code == 400
-        assert r.json()["resourceType"] == "OperationOutcome"
+        assert response.status_code == 400
+        assert response.json()["resourceType"] == "OperationOutcome"
 
 
 class TestConditionalDelete:
     def test_no_search_params_returns_400(self, client: TestClient) -> None:
-        r = client.delete("/Patient")
-        assert r.status_code == 400
-        assert r.json()["resourceType"] == "OperationOutcome"
+        response = client.delete("/Patient")
+        assert response.status_code == 400
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_no_match_returns_204(self, client: TestClient) -> None:
-        r = client.delete("/Patient?family=DoesNotExistXYZ")
-        assert r.status_code == 204
+        response = client.delete("/Patient?family=DoesNotExistXYZ")
+        assert response.status_code == 204
 
     def test_one_match_deletes_resource(self, client: TestClient, created_patient: dict) -> None:
         family = created_patient["name"][0]["family"]
-        r = client.delete(f"/Patient?family={family}")
-        assert r.status_code == 204
+        response = client.delete(f"/Patient?family={family}")
+        assert response.status_code == 204
         assert client.get(f"/Patient/{created_patient['id']}").status_code == 410
 
     def test_multiple_matches_deletes_all(self, client: TestClient) -> None:
         for _ in range(3):
             client.post("/Patient", json=patient("CondDelMulti"))
-        r = client.delete("/Patient?family=CondDelMulti")
-        assert r.status_code == 204
+        response = client.delete("/Patient?family=CondDelMulti")
+        assert response.status_code == 204
         remaining = client.get("/Patient?family=CondDelMulti").json()
         assert remaining["total"] == 0
 
@@ -189,121 +189,146 @@ class TestDelete:
         assert client.delete(f"/Patient/{created_patient['id']}").status_code == 204
 
     def test_stale_etag_returns_412(self, client: TestClient, created_patient: dict) -> None:
-        r = client.delete(
+        response = client.delete(
             f"/Patient/{created_patient['id']}",
             headers={"If-Match": 'W/"999"'},
         )
-        assert r.status_code == 412
-        assert r.json()["resourceType"] == "OperationOutcome"
+        assert response.status_code == 412
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_matching_etag_deletes_resource(self, client: TestClient, created_patient: dict) -> None:
-        r = client.delete(
+        response = client.delete(
             f"/Patient/{created_patient['id']}",
             headers={"If-Match": 'W/"1"'},
         )
-        assert r.status_code == 204
+        assert response.status_code == 204
 
     def test_read_after_delete_returns_410(self, client: TestClient, created_patient: dict) -> None:
         client.delete(f"/Patient/{created_patient['id']}")
-        r = client.get(f"/Patient/{created_patient['id']}")
-        assert r.status_code == 410
-        assert r.json()["resourceType"] == "OperationOutcome"
+        response = client.get(f"/Patient/{created_patient['id']}")
+        assert response.status_code == 410
+        assert response.json()["resourceType"] == "OperationOutcome"
 
 
 class TestHistory:
     def test_vread_returns_specific_version(self, client: TestClient, updated_patient: dict) -> None:
-        r = client.get(f"/Patient/{updated_patient['id']}/_history/1")
-        assert r.status_code == 200
-        assert r.json()["meta"]["versionId"] == "1"
+        response = client.get(f"/Patient/{updated_patient['id']}/_history/1")
+        assert response.status_code == 200
+        assert response.json()["meta"]["versionId"] == "1"
 
     def test_type_history_has_expected_count(self, client: TestClient, updated_patient: dict) -> None:
-        r = client.get(f"/Patient/{updated_patient['id']}/_history")
-        assert r.status_code == 200
-        assert r.json()["type"] == "history"
-        assert r.json()["total"] == 2
+        response = client.get(f"/Patient/{updated_patient['id']}/_history")
+        assert response.status_code == 200
+        assert response.json()["type"] == "history"
+        assert response.json()["total"] == 2
 
     def test_system_history_returns_bundle(self, client: TestClient) -> None:
         client.post("/Patient", json=patient("SysHist"))
-        r = client.get("/_history")
-        assert r.status_code == 200
-        body = r.json()
+        response = client.get("/_history")
+        assert response.status_code == 200
+        body = response.json()
         assert body["resourceType"] == "Bundle"
         assert body["type"] == "history"
         assert body["total"] >= 1
 
     def test_type_level_history_returns_bundle(self, client: TestClient) -> None:
         client.post("/Patient", json=patient("TypeHist"))
-        r = client.get("/Patient/_history")
-        assert r.status_code == 200
-        body = r.json()
+        response = client.get("/Patient/_history")
+        assert response.status_code == 200
+        body = response.json()
         assert body["type"] == "history"
         assert body["total"] >= 1
 
     def test_instance_history_count_limits_entries(self, client: TestClient) -> None:
         body = client.post("/Patient", json=patient("HistPage")).json()
-        pid = body["id"]
+        patient_id = body["id"]
         for i in range(3):
-            client.put(f"/Patient/{pid}", json={**body, "active": bool(i % 2)})
-        r = client.get(f"/Patient/{pid}/_history?_count=2")
-        assert r.status_code == 200
-        bundle = r.json()
+            client.put(f"/Patient/{patient_id}", json={**body, "active": bool(i % 2)})
+        response = client.get(f"/Patient/{patient_id}/_history?_count=2")
+        assert response.status_code == 200
+        bundle = response.json()
         assert bundle["total"] == 4
         assert len(bundle["entry"]) == 2
 
     def test_instance_history_next_link_present(self, client: TestClient) -> None:
         body = client.post("/Patient", json=patient("HistNext")).json()
-        pid = body["id"]
+        patient_id = body["id"]
         for i in range(3):
-            client.put(f"/Patient/{pid}", json={**body, "active": bool(i % 2)})
-        r = client.get(f"/Patient/{pid}/_history?_count=2")
-        assert any(link["relation"] == "next" for link in r.json()["link"])
+            client.put(f"/Patient/{patient_id}", json={**body, "active": bool(i % 2)})
+        response = client.get(f"/Patient/{patient_id}/_history?_count=2")
+        assert any(link["relation"] == "next" for link in response.json()["link"])
 
     def test_instance_history_offset_skips_entries(self, client: TestClient) -> None:
         body = client.post("/Patient", json=patient("HistOffset")).json()
-        pid = body["id"]
+        patient_id = body["id"]
         for i in range(3):
-            client.put(f"/Patient/{pid}", json={**body, "active": bool(i % 2)})
-        r_all = client.get(f"/Patient/{pid}/_history")
-        r_page = client.get(f"/Patient/{pid}/_history?_count=2&_offset=2")
-        assert r_page.json()["total"] == 4
-        assert len(r_page.json()["entry"]) == 2
-        all_ids = [e["resource"]["meta"]["versionId"] for e in r_all.json()["entry"] if e.get("resource")]
-        page_ids = [e["resource"]["meta"]["versionId"] for e in r_page.json()["entry"] if e.get("resource")]
-        assert page_ids == all_ids[2:4]
+            client.put(f"/Patient/{patient_id}", json={**body, "active": bool(i % 2)})
+        all_history_response = client.get(f"/Patient/{patient_id}/_history")
+        paged_history_response = client.get(f"/Patient/{patient_id}/_history?_count=2&_offset=2")
+        assert paged_history_response.json()["total"] == 4
+        assert len(paged_history_response.json()["entry"]) == 2
+        all_version_ids = [entry["resource"]["meta"]["versionId"] for entry in all_history_response.json()["entry"] if entry.get("resource")]
+        paged_version_ids = [entry["resource"]["meta"]["versionId"] for entry in paged_history_response.json()["entry"] if entry.get("resource")]
+        assert paged_version_ids == all_version_ids[2:4]
 
     def test_since_filters_instance_history(self, client: TestClient) -> None:
         body = client.post("/Patient", json=patient("SinceTest")).json()
-        pid = body["id"]
-        client.put(f"/Patient/{pid}", json={**body, "active": True})
-        # _since with a far-future timestamp returns empty but still 200
-        r = client.get(f"/Patient/{pid}/_history?_since=2099-01-01T00:00:00Z")
-        assert r.status_code == 200
-        assert r.json()["total"] == 0
+        patient_id = body["id"]
+        client.put(f"/Patient/{patient_id}", json={**body, "active": True})
+        response = client.get(f"/Patient/{patient_id}/_history?_since=2099-01-01T00:00:00Z")
+        assert response.status_code == 200
+        assert response.json()["total"] == 0
 
     def test_since_invalid_value_returns_400(self, client: TestClient) -> None:
         body = client.post("/Patient", json=patient("SinceBad")).json()
-        r = client.get(f"/Patient/{body['id']}/_history?_since=not-a-date")
-        assert r.status_code == 400
-        assert r.json()["resourceType"] == "OperationOutcome"
+        response = client.get(f"/Patient/{body['id']}/_history?_since=not-a-date")
+        assert response.status_code == 400
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_since_filters_type_history(self, client: TestClient) -> None:
         client.post("/Patient", json=patient("SinceType"))
-        r = client.get("/Patient/_history?_since=2099-01-01T00:00:00Z")
-        assert r.status_code == 200
-        assert r.json()["total"] == 0
+        response = client.get("/Patient/_history?_since=2099-01-01T00:00:00Z")
+        assert response.status_code == 200
+        assert response.json()["total"] == 0
 
     def test_since_filters_system_history(self, client: TestClient) -> None:
         client.post("/Patient", json=patient("SinceSys"))
-        r = client.get("/_history?_since=2099-01-01T00:00:00Z")
-        assert r.status_code == 200
-        assert r.json()["total"] == 0
+        response = client.get("/_history?_since=2099-01-01T00:00:00Z")
+        assert response.status_code == 200
+        assert response.json()["total"] == 0
+
+    def test_at_filters_instance_history(self, client: TestClient) -> None:
+        body = client.post("/Patient", json=patient("AtTest")).json()
+        patient_id = body["id"]
+        client.put(f"/Patient/{patient_id}", json={**body, "active": True})
+        response = client.get(f"/Patient/{patient_id}/_history?_at=1999-01-01T00:00:00Z")
+        assert response.status_code == 200
+        assert response.json()["total"] == 0
+
+    def test_at_invalid_value_returns_400(self, client: TestClient) -> None:
+        body = client.post("/Patient", json=patient("AtBad")).json()
+        response = client.get(f"/Patient/{body['id']}/_history?_at=not-a-date")
+        assert response.status_code == 400
+        assert response.json()["resourceType"] == "OperationOutcome"
+
+    def test_at_filters_type_history(self, client: TestClient) -> None:
+        client.post("/Patient", json=patient("AtType"))
+        response = client.get("/Patient/_history?_at=1999-01-01T00:00:00Z")
+        assert response.status_code == 200
+        assert response.json()["total"] == 0
+
+    def test_at_filters_system_history(self, client: TestClient) -> None:
+        client.post("/Patient", json=patient("AtSys"))
+        response = client.get("/_history?_at=1999-01-01T00:00:00Z")
+        assert response.status_code == 200
+        assert response.json()["total"] == 0
 
     def test_type_history_pagination(self, client: TestClient) -> None:
         for i in range(3):
             client.post("/Patient", json=patient(f"TypePage{i}"))
-        r = client.get("/Patient/_history?_count=2")
-        assert r.status_code == 200
-        bundle = r.json()
+        response = client.get("/Patient/_history?_count=2")
+        assert response.status_code == 200
+        bundle = response.json()
         assert bundle["total"] >= 3
         assert len(bundle["entry"]) == 2
         assert any(link["relation"] == "next" for link in bundle["link"])
@@ -311,9 +336,9 @@ class TestHistory:
     def test_system_history_pagination(self, client: TestClient) -> None:
         for i in range(3):
             client.post("/Patient", json=patient(f"SysPage{i}"))
-        r = client.get("/_history?_count=2")
-        assert r.status_code == 200
-        bundle = r.json()
+        response = client.get("/_history?_count=2")
+        assert response.status_code == 200
+        bundle = response.json()
         assert bundle["total"] >= 3
         assert len(bundle["entry"]) == 2
         assert any(link["relation"] == "next" for link in bundle["link"])
@@ -322,9 +347,9 @@ class TestHistory:
 class TestSearch:
     def test_by_family_returns_matching_bundle(self, client: TestClient) -> None:
         created = client.post("/Patient", json=patient("SearchOnly")).json()
-        r = client.get("/Patient?family=SearchOnly")
-        assert r.status_code == 200
-        body = r.json()
+        response = client.get("/Patient?family=SearchOnly")
+        assert response.status_code == 200
+        body = response.json()
         assert body["resourceType"] == "Bundle"
         assert body["type"] == "searchset"
         assert body["total"] >= 1
@@ -332,23 +357,23 @@ class TestSearch:
 
     def test_post_type_search(self, client: TestClient) -> None:
         created = client.post("/Patient", json=patient("PostSearch")).json()
-        r = client.post("/Patient/_search", data={"family": "PostSearch"})
-        assert r.status_code == 200
-        body = r.json()
+        response = client.post("/Patient/_search", data={"family": "PostSearch"})
+        assert response.status_code == 200
+        body = response.json()
         assert body["type"] == "searchset"
-        assert any(e["resource"]["id"] == created["id"] for e in body["entry"])
+        assert any(entry["resource"]["id"] == created["id"] for entry in body["entry"])
 
     def test_bool_search_active(self, client: TestClient) -> None:
         active = client.post("/Patient", json=patient("Active", active=True)).json()
         inactive = client.post("/Patient", json=patient("Inactive", active=False)).json()
 
-        ids_true = {e["resource"]["id"] for e in client.get("/Patient?active=true").json()["entry"]}
-        assert active["id"] in ids_true
-        assert inactive["id"] not in ids_true
+        ids_active = {entry["resource"]["id"] for entry in client.get("/Patient?active=true").json()["entry"]}
+        assert active["id"] in ids_active
+        assert inactive["id"] not in ids_active
 
-        ids_false = {e["resource"]["id"] for e in client.get("/Patient?active=false").json()["entry"]}
-        assert inactive["id"] in ids_false
-        assert active["id"] not in ids_false
+        ids_inactive = {entry["resource"]["id"] for entry in client.get("/Patient?active=false").json()["entry"]}
+        assert inactive["id"] in ids_inactive
+        assert active["id"] not in ids_inactive
 
 
 class TestPagination:
@@ -359,14 +384,14 @@ class TestPagination:
         page1 = client.get("/Patient?_count=3").json()
         assert len(page1["entry"]) == 3
         assert page1["total"] == 5
-        links1 = {lnk["relation"]: lnk["url"] for lnk in page1["link"]}
+        links1 = {link_entry["relation"]: link_entry["url"] for link_entry in page1["link"]}
         assert "self" in links1
         assert "next" in links1
         assert "previous" not in links1
 
         page2 = client.get("/Patient?_count=3&_offset=3").json()
         assert len(page2["entry"]) == 2
-        links2 = {lnk["relation"]: lnk["url"] for lnk in page2["link"]}
+        links2 = {link_entry["relation"]: link_entry["url"] for link_entry in page2["link"]}
         assert "previous" in links2
         assert "first" in links2
         assert "next" not in links2
@@ -378,39 +403,39 @@ class TestPagination:
 
 class TestPreferHeader:
     def test_return_minimal_gives_empty_body(self, client: TestClient) -> None:
-        r = client.post("/Patient", json=patient("Minimal"), headers={"Prefer": "return=minimal"})
-        assert r.status_code == 201
-        assert r.content == b""
+        response = client.post("/Patient", json=patient("Minimal"), headers={"Prefer": "return=minimal"})
+        assert response.status_code == 201
+        assert response.content == b""
 
     def test_return_operation_outcome(self, client: TestClient) -> None:
-        r = client.post("/Patient", json=patient("OOPrefer"), headers={"Prefer": "return=OperationOutcome"})
-        assert r.status_code == 201
-        assert r.json()["resourceType"] == "OperationOutcome"
+        response = client.post("/Patient", json=patient("OOPrefer"), headers={"Prefer": "return=OperationOutcome"})
+        assert response.status_code == 201
+        assert response.json()["resourceType"] == "OperationOutcome"
 
 
 class TestConditionalRead:
     def test_current_etag_returns_304(self, client: TestClient, created_patient: dict) -> None:
-        r = client.get(f"/Patient/{created_patient['id']}", headers={"If-None-Match": 'W/"1"'})
-        assert r.status_code == 304
+        response = client.get(f"/Patient/{created_patient['id']}", headers={"If-None-Match": 'W/"1"'})
+        assert response.status_code == 304
 
     def test_stale_etag_returns_200(self, client: TestClient, created_patient: dict) -> None:
-        r = client.get(f"/Patient/{created_patient['id']}", headers={"If-None-Match": 'W/"999"'})
-        assert r.status_code == 200
+        response = client.get(f"/Patient/{created_patient['id']}", headers={"If-None-Match": 'W/"999"'})
+        assert response.status_code == 200
 
 
 class TestRequestId:
     def test_generates_request_id_when_absent(self, client: TestClient) -> None:
-        r = client.get("/metadata")
-        assert "x-request-id" in r.headers
-        assert len(r.headers["x-request-id"]) == 32  # uuid4().hex
+        response = client.get("/metadata")
+        assert "x-request-id" in response.headers
+        assert len(response.headers["x-request-id"]) == 32  # uuid4().hex
 
     def test_echoes_client_provided_request_id(self, client: TestClient) -> None:
-        r = client.get("/metadata", headers={"X-Request-ID": "my-correlation-id"})
-        assert r.headers["x-request-id"] == "my-correlation-id"
+        response = client.get("/metadata", headers={"X-Request-ID": "my-correlation-id"})
+        assert response.headers["x-request-id"] == "my-correlation-id"
 
     def test_request_id_consistent_across_resource_endpoints(self, client: TestClient, created_patient: dict) -> None:
-        r = client.get(f"/Patient/{created_patient['id']}", headers={"X-Request-ID": "trace-abc"})
-        assert r.headers["x-request-id"] == "trace-abc"
+        response = client.get(f"/Patient/{created_patient['id']}", headers={"X-Request-ID": "trace-abc"})
+        assert response.headers["x-request-id"] == "trace-abc"
 
 
 class TestSort:
@@ -419,13 +444,13 @@ class TestSort:
         for name in ("Adams", "Carter", "Baker"):
             client.post("/Patient", json=patient(name))
 
-    def _families(self, client: TestClient, qs: str) -> list[str]:
-        r = client.get(f"/Patient{qs}")
-        assert r.status_code == 200
+    def _families(self, client: TestClient, query_string: str) -> list[str]:
+        response = client.get(f"/Patient{query_string}")
+        assert response.status_code == 200
         return [
-            e["resource"]["name"][0]["family"]
-            for e in r.json()["entry"]
-            if "resource" in e
+            entry["resource"]["name"][0]["family"]
+            for entry in response.json()["entry"]
+            if "resource" in entry
         ]
 
     def test_sort_ascending_by_family(self, client: TestClient) -> None:
@@ -438,19 +463,19 @@ class TestSort:
         assert len(self._families(client, "")) == 3
 
     def test_no_outcome_warning_entry(self, client: TestClient) -> None:
-        r = client.get("/Patient?_sort=family")
+        response = client.get("/Patient?_sort=family")
         outcome_entries = [
-            e for e in r.json()["entry"] if e.get("search", {}).get("mode") == "outcome"
+            entry for entry in response.json()["entry"] if entry.get("search", {}).get("mode") == "outcome"
         ]
         assert len(outcome_entries) == 0
 
     def test_post_search_sort(self, client: TestClient) -> None:
-        r = client.post("/Patient/_search", data={"_sort": "family"})
-        assert r.status_code == 200
+        response = client.post("/Patient/_search", data={"_sort": "family"})
+        assert response.status_code == 200
         families = [
-            e["resource"]["name"][0]["family"]
-            for e in r.json()["entry"]
-            if "resource" in e
+            entry["resource"]["name"][0]["family"]
+            for entry in response.json()["entry"]
+            if "resource" in entry
         ]
         assert families == ["Adams", "Baker", "Carter"]
 
@@ -464,43 +489,42 @@ class TestPatch:
         )
 
     def test_patch_adds_field(self, client: TestClient, created_patient: dict) -> None:
-        r = self._patch(client, created_patient["id"], [{"op": "add", "path": "/active", "value": True}])
-        assert r.status_code == 200
-        assert r.json()["active"] is True
+        response = self._patch(client, created_patient["id"], [{"op": "add", "path": "/active", "value": True}])
+        assert response.status_code == 200
+        assert response.json()["active"] is True
 
     def test_patch_replaces_field(self, client: TestClient, created_patient: dict) -> None:
-        ops = [{"op": "replace", "path": "/name/0/family", "value": "Patched"}]
-        r = self._patch(client, created_patient["id"], ops)
-        assert r.status_code == 200
-        assert r.json()["name"][0]["family"] == "Patched"
+        operations = [{"op": "replace", "path": "/name/0/family", "value": "Patched"}]
+        response = self._patch(client, created_patient["id"], operations)
+        assert response.status_code == 200
+        assert response.json()["name"][0]["family"] == "Patched"
 
     def test_patch_increments_version(self, client: TestClient, created_patient: dict) -> None:
-        r = self._patch(client, created_patient["id"], [{"op": "add", "path": "/active", "value": False}])
-        assert r.status_code == 200
-        assert r.headers["etag"] == 'W/"2"'
-        assert r.json()["meta"]["versionId"] == "2"
+        response = self._patch(client, created_patient["id"], [{"op": "add", "path": "/active", "value": False}])
+        assert response.status_code == 200
+        assert response.headers["etag"] == 'W/"2"'
+        assert response.json()["meta"]["versionId"] == "2"
 
     def test_patch_wrong_content_type_returns_415(self, client: TestClient, created_patient: dict) -> None:
-        r = client.patch(
+        response = client.patch(
             f"/Patient/{created_patient['id']}",
             json=[{"op": "add", "path": "/active", "value": True}],
         )
-        assert r.status_code == 415
-        assert r.json()["resourceType"] == "OperationOutcome"
+        assert response.status_code == 415
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_patch_nonexistent_returns_404(self, client: TestClient) -> None:
-        r = self._patch(client, "doesnotexist", [{"op": "add", "path": "/active", "value": True}])
-        assert r.status_code == 404
-        assert r.json()["resourceType"] == "OperationOutcome"
+        response = self._patch(client, "doesnotexist", [{"op": "add", "path": "/active", "value": True}])
+        assert response.status_code == 404
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_patch_invalid_operation_returns_400(self, client: TestClient, created_patient: dict) -> None:
-        r = self._patch(client, created_patient["id"], [{"op": "badop", "path": "/active", "value": True}]
-        )
-        assert r.status_code == 400
-        assert r.json()["resourceType"] == "OperationOutcome"
+        response = self._patch(client, created_patient["id"], [{"op": "badop", "path": "/active", "value": True}])
+        assert response.status_code == 400
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_patch_stale_etag_returns_412(self, client: TestClient, created_patient: dict) -> None:
-        r = client.patch(
+        response = client.patch(
             f"/Patient/{created_patient['id']}",
             content=json.dumps([{"op": "add", "path": "/active", "value": True}]),
             headers={
@@ -508,100 +532,100 @@ class TestPatch:
                 "If-Match": 'W/"999"',
             },
         )
-        assert r.status_code == 412
-        assert r.json()["resourceType"] == "OperationOutcome"
+        assert response.status_code == 412
+        assert response.json()["resourceType"] == "OperationOutcome"
 
 
 class TestIncludes:
     @pytest.fixture
     def patient_with_observation(self, client: TestClient) -> tuple[dict, dict]:
-        p = client.post("/Patient", json=patient("IncludeTest")).json()
-        obs = client.post("/Observation", json={
+        patient_resource = client.post("/Patient", json=patient("IncludeTest")).json()
+        observation = client.post("/Observation", json={
             "resourceType": "Observation",
             "status": "final",
             "code": {"text": "HR"},
-            "subject": {"reference": f"Patient/{p['id']}"},
+            "subject": {"reference": f"Patient/{patient_resource['id']}"},
         }).json()
-        return p, obs
+        return patient_resource, observation
 
     def test_include_observation_subject_fetches_patient(
         self, client: TestClient, patient_with_observation: tuple
     ) -> None:
-        p, obs = patient_with_observation
-        r = client.get(f"/Observation?_id={obs['id']}&_include=Observation:subject")
-        assert r.status_code == 200
-        body = r.json()
+        patient_resource, observation = patient_with_observation
+        response = client.get(f"/Observation?_id={observation['id']}&_include=Observation:subject")
+        assert response.status_code == 200
+        body = response.json()
         entries = body["entry"]
-        match_entries = [e for e in entries if e.get("search", {}).get("mode") == "match"]
-        include_entries = [e for e in entries if e.get("search", {}).get("mode") == "include"]
+        match_entries = [entry for entry in entries if entry.get("search", {}).get("mode") == "match"]
+        include_entries = [entry for entry in entries if entry.get("search", {}).get("mode") == "include"]
         assert len(match_entries) == 1
         assert match_entries[0]["resource"]["resourceType"] == "Observation"
         assert len(include_entries) == 1
         assert include_entries[0]["resource"]["resourceType"] == "Patient"
-        assert include_entries[0]["resource"]["id"] == p["id"]
+        assert include_entries[0]["resource"]["id"] == patient_resource["id"]
 
     def test_include_with_target_type_filter(
         self, client: TestClient, patient_with_observation: tuple
     ) -> None:
-        p, obs = patient_with_observation
-        r = client.get(f"/Observation?_id={obs['id']}&_include=Observation:subject:Patient")
-        assert r.status_code == 200
+        patient_resource, observation = patient_with_observation
+        response = client.get(f"/Observation?_id={observation['id']}&_include=Observation:subject:Patient")
+        assert response.status_code == 200
         include_entries = [
-            e for e in r.json()["entry"]
-            if e.get("search", {}).get("mode") == "include"
+            entry for entry in response.json()["entry"]
+            if entry.get("search", {}).get("mode") == "include"
         ]
         assert len(include_entries) == 1
-        assert include_entries[0]["resource"]["id"] == p["id"]
+        assert include_entries[0]["resource"]["id"] == patient_resource["id"]
 
     def test_include_wrong_target_type_returns_no_includes(
         self, client: TestClient, patient_with_observation: tuple
     ) -> None:
-        _, obs = patient_with_observation
-        r = client.get(f"/Observation?_id={obs['id']}&_include=Observation:subject:Encounter")
-        assert r.status_code == 200
+        _, observation = patient_with_observation
+        response = client.get(f"/Observation?_id={observation['id']}&_include=Observation:subject:Encounter")
+        assert response.status_code == 200
         include_entries = [
-            e for e in r.json()["entry"]
-            if e.get("search", {}).get("mode") == "include"
+            entry for entry in response.json()["entry"]
+            if entry.get("search", {}).get("mode") == "include"
         ]
         assert len(include_entries) == 0
 
     def test_revinclude_observation_subject_appends_observations(
         self, client: TestClient, patient_with_observation: tuple
     ) -> None:
-        p, obs = patient_with_observation
-        r = client.get(f"/Patient?_id={p['id']}&_revinclude=Observation:subject")
-        assert r.status_code == 200
-        body = r.json()
+        patient_resource, observation = patient_with_observation
+        response = client.get(f"/Patient?_id={patient_resource['id']}&_revinclude=Observation:subject")
+        assert response.status_code == 200
+        body = response.json()
         entries = body["entry"]
-        match_entries = [e for e in entries if e.get("search", {}).get("mode") == "match"]
-        include_entries = [e for e in entries if e.get("search", {}).get("mode") == "include"]
+        match_entries = [entry for entry in entries if entry.get("search", {}).get("mode") == "match"]
+        include_entries = [entry for entry in entries if entry.get("search", {}).get("mode") == "include"]
         assert len(match_entries) == 1
         assert match_entries[0]["resource"]["resourceType"] == "Patient"
         assert len(include_entries) == 1
         assert include_entries[0]["resource"]["resourceType"] == "Observation"
-        assert include_entries[0]["resource"]["id"] == obs["id"]
+        assert include_entries[0]["resource"]["id"] == observation["id"]
 
     def test_no_includes_no_mode_on_plain_search(self, client: TestClient) -> None:
         client.post("/Patient", json=patient("NoInclude"))
-        r = client.get("/Patient")
-        assert r.status_code == 200
-        modes = {e.get("search", {}).get("mode") for e in r.json()["entry"]}
+        response = client.get("/Patient")
+        assert response.status_code == 200
+        modes = {entry.get("search", {}).get("mode") for entry in response.json()["entry"]}
         assert modes == {"match"}
 
     def test_search_mode_match_present_without_include_param(
         self, client: TestClient, created_patient: dict
     ) -> None:
-        r = client.get(f"/Patient?_id={created_patient['id']}")
-        assert r.status_code == 200
-        entries = r.json()["entry"]
-        assert all(e.get("search", {}).get("mode") == "match" for e in entries)
+        response = client.get(f"/Patient?_id={created_patient['id']}")
+        assert response.status_code == 200
+        entries = response.json()["entry"]
+        assert all(entry.get("search", {}).get("mode") == "match" for entry in entries)
 
 
 class TestFormatParam:
     def test_json_format_accepted(self, client: TestClient) -> None:
-        r = client.get("/metadata?_format=application/fhir+json")
-        assert r.status_code == 200
-        assert r.json()["resourceType"] == "CapabilityStatement"
+        response = client.get("/metadata?_format=application/fhir+json")
+        assert response.status_code == 200
+        assert response.json()["resourceType"] == "CapabilityStatement"
 
     def test_json_shorthand_accepted(self, client: TestClient) -> None:
         assert client.get("/metadata?_format=json").status_code == 200
@@ -610,9 +634,9 @@ class TestFormatParam:
         assert client.get("/metadata?_format=application/json").status_code == 200
 
     def test_xml_format_returns_406(self, client: TestClient) -> None:
-        r = client.get("/metadata?_format=application/fhir+xml")
-        assert r.status_code == 406
-        body = r.json()
+        response = client.get("/metadata?_format=application/fhir+xml")
+        assert response.status_code == 406
+        body = response.json()
         assert body["resourceType"] == "OperationOutcome"
         assert "application/fhir+xml" in body["issue"][0]["diagnostics"]
 
@@ -620,8 +644,8 @@ class TestFormatParam:
         assert client.get("/Patient?_format=xml").status_code == 406
 
     def test_unknown_format_returns_406(self, client: TestClient) -> None:
-        r = client.get("/metadata?_format=application/pdf")
-        assert r.status_code == 406
+        response = client.get("/metadata?_format=application/pdf")
+        assert response.status_code == 406
 
     def test_no_format_param_unaffected(self, client: TestClient) -> None:
         assert client.get("/metadata").status_code == 200
@@ -641,54 +665,54 @@ class TestReferenceValidation:
         return body
 
     def test_valid_reference_accepted(self, client: TestClient, created_patient: dict) -> None:
-        r = client.post("/Observation", json=self._obs(f"Patient/{created_patient['id']}"))
-        assert r.status_code == 201
+        response = client.post("/Observation", json=self._obs(f"Patient/{created_patient['id']}"))
+        assert response.status_code == 201
 
     def test_nonexistent_subject_returns_422(self, client: TestClient) -> None:
-        r = client.post("/Observation", json=self._obs("Patient/doesnotexist"))
-        assert r.status_code == 422
-        body = r.json()
+        response = client.post("/Observation", json=self._obs("Patient/doesnotexist"))
+        assert response.status_code == 422
+        body = response.json()
         assert body["resourceType"] == "OperationOutcome"
         assert "doesnotexist" in body["issue"][0]["diagnostics"]
 
     def test_absent_subject_field_is_not_required(self, client: TestClient) -> None:
-        r = client.post("/Observation", json=self._obs())
-        assert r.status_code == 201
+        response = client.post("/Observation", json=self._obs())
+        assert response.status_code == 201
 
     def test_absolute_url_reference_is_skipped(self, client: TestClient) -> None:
-        r = client.post(
+        response = client.post(
             "/Observation",
             json=self._obs("https://other-server.example.com/Patient/remote-id"),
         )
-        assert r.status_code == 201
+        assert response.status_code == 201
 
     def test_nonexistent_encounter_returns_422(
         self, client: TestClient, created_patient: dict
     ) -> None:
-        r = client.post(
+        response = client.post(
             "/Observation",
             json=self._obs(
                 f"Patient/{created_patient['id']}",
                 encounter_ref="Encounter/doesnotexist",
             ),
         )
-        assert r.status_code == 422
+        assert response.status_code == 422
 
     def test_update_validates_changed_reference(
         self, client: TestClient, created_patient: dict
     ) -> None:
-        obs = client.post(
+        observation = client.post(
             "/Observation", json=self._obs(f"Patient/{created_patient['id']}")
         ).json()
-        r = client.put(
-            f"/Observation/{obs['id']}",
-            json={**obs, "subject": {"reference": "Patient/ghost"}},
+        response = client.put(
+            f"/Observation/{observation['id']}",
+            json={**observation, "subject": {"reference": "Patient/ghost"}},
         )
-        assert r.status_code == 422
-        assert r.json()["resourceType"] == "OperationOutcome"
+        assert response.status_code == 422
+        assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_allergy_intolerance_validates_patient(self, client: TestClient) -> None:
-        r = client.post(
+        response = client.post(
             "/AllergyIntolerance",
             json={
                 "resourceType": "AllergyIntolerance",
@@ -696,10 +720,10 @@ class TestReferenceValidation:
                 "code": {"text": "Penicillin"},
             },
         )
-        assert r.status_code == 422
+        assert response.status_code == 422
 
     def test_condition_validates_subject(self, client: TestClient) -> None:
-        r = client.post(
+        response = client.post(
             "/Condition",
             json={
                 "resourceType": "Condition",
@@ -707,4 +731,4 @@ class TestReferenceValidation:
                 "code": {"text": "Fever"},
             },
         )
-        assert r.status_code == 422
+        assert response.status_code == 422
