@@ -61,4 +61,7 @@ IGNORED_SEARCH_PARAMS = {
     # the projection path), so it must be excluded from the generic JSONB
     # containment loop which cannot apply prefix semantics or period expansion.
     "_lastUpdated",
+    # `_total` controls whether the bundle total field is included; it is not
+    # a resource field filter and must not reach the search matching logic.
+    "_total",
 }

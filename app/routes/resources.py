@@ -51,6 +51,7 @@ from app.utils.fhir.search import (
     apply_pagination,
     extract_at_param,
     extract_since_param,
+    extract_total_mode,
     form_and_query_params,
     query_params,
 )
@@ -99,9 +100,10 @@ async def post_type_search(resource_type: str, request: Request) -> JSONResponse
     matches = store.search(resource_type, params)
     page, offset, page_size = apply_pagination(matches, params)
     included = resolve_includes(store, resource_type, page, params)
+    total = None if extract_total_mode(params) == "none" else len(matches)
     bundle = bundle_response(
         request, "searchset", page,
-        total=len(matches), offset=offset, page_size=page_size,
+        total=total, offset=offset, page_size=page_size,
         included=included,
     )
     return fhir_json_response(shape_bundle(bundle, params))
@@ -115,9 +117,10 @@ async def get_type_search(resource_type: str, request: Request) -> JSONResponse:
     matches = store.search(resource_type, params)
     page, offset, page_size = apply_pagination(matches, params)
     included = resolve_includes(store, resource_type, page, params)
+    total = None if extract_total_mode(params) == "none" else len(matches)
     bundle = bundle_response(
         request, "searchset", page,
-        total=len(matches), offset=offset, page_size=page_size,
+        total=total, offset=offset, page_size=page_size,
         included=included,
     )
     return fhir_json_response(shape_bundle(bundle, params))
@@ -363,9 +366,10 @@ async def compartment_search(
     matches = store.search(resource_type, merged_params)
     page, offset, page_size = apply_pagination(matches, merged_params)
     included = resolve_includes(store, resource_type, page, merged_params)
+    total = None if extract_total_mode(params) == "none" else len(matches)
     bundle = bundle_response(
         request, "searchset", page,
-        total=len(matches), offset=offset, page_size=page_size,
+        total=total, offset=offset, page_size=page_size,
         included=included,
     )
     return fhir_json_response(shape_bundle(bundle, params))

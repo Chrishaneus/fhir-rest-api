@@ -83,6 +83,28 @@ def extract_at_param(params: dict[str, list[str]]) -> datetime | None:
         raise FHIRHTTPError(400, f"Invalid _at value: {exc}", "invalid") from exc
 
 
+_TOTAL_MODES = {"accurate", "none", "estimate"}
+
+
+def extract_total_mode(params: dict[str, list[str]]) -> str:
+    """Extract the `_total` preference from search query params.
+
+    Returns ``"accurate"`` (the default), ``"none"``, or ``"estimate"``.
+    Raises 400 on an unrecognised value.
+    """
+    values = params.get("_total")
+    if not values:
+        return "accurate"
+    mode = values[-1].strip().lower()
+    if mode not in _TOTAL_MODES:
+        raise FHIRHTTPError(
+            400,
+            f"Invalid _total value '{values[-1]}'; expected one of: accurate, none, estimate",
+            "invalid",
+        )
+    return mode
+
+
 def apply_pagination(
     items: list, params: dict[str, list[str]]
 ) -> tuple[list, int, int | None]:

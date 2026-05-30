@@ -20,6 +20,7 @@ from app.utils.fhir.search import (
     apply_pagination,
     extract_at_param,
     extract_since_param,
+    extract_total_mode,
     query_params,
 )
 from app.utils.fhir.validation import configured_resource_types
@@ -75,5 +76,6 @@ async def root_or_system_search(request: Request) -> JSONResponse:
         )
     matches = store.system_search(params)
     page, offset, page_size = apply_pagination(matches, params)
-    bundle = bundle_response(request, "searchset", page, total=len(matches), offset=offset, page_size=page_size)
+    total = None if extract_total_mode(params) == "none" else len(matches)
+    bundle = bundle_response(request, "searchset", page, total=total, offset=offset, page_size=page_size)
     return fhir_json_response(shape_bundle(bundle, params))

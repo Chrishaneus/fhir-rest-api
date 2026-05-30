@@ -363,6 +363,35 @@ class TestSearch:
         assert body["type"] == "searchset"
         assert any(entry["resource"]["id"] == created["id"] for entry in body["entry"])
 
+    def test_total_none_omits_total_field(self, client: TestClient) -> None:
+        client.post("/Patient", json=patient("TotalNone"))
+        response = client.get("/Patient?family=TotalNone&_total=none")
+        assert response.status_code == 200
+        assert "total" not in response.json()
+
+    def test_total_accurate_includes_total_field(self, client: TestClient) -> None:
+        client.post("/Patient", json=patient("TotalAcc"))
+        response = client.get("/Patient?family=TotalAcc&_total=accurate")
+        assert response.status_code == 200
+        assert response.json()["total"] >= 1
+
+    def test_total_estimate_includes_total_field(self, client: TestClient) -> None:
+        client.post("/Patient", json=patient("TotalEst"))
+        response = client.get("/Patient?family=TotalEst&_total=estimate")
+        assert response.status_code == 200
+        assert response.json()["total"] >= 1
+
+    def test_total_invalid_value_returns_400(self, client: TestClient) -> None:
+        response = client.get("/Patient?_total=bogus")
+        assert response.status_code == 400
+        assert response.json()["resourceType"] == "OperationOutcome"
+
+    def test_total_none_on_post_search(self, client: TestClient) -> None:
+        client.post("/Patient", json=patient("TotalNonePost"))
+        response = client.post("/Patient/_search", data={"family": "TotalNonePost", "_total": "none"})
+        assert response.status_code == 200
+        assert "total" not in response.json()
+
     def test_bool_search_active(self, client: TestClient) -> None:
         active = client.post("/Patient", json=patient("Active", active=True)).json()
         inactive = client.post("/Patient", json=patient("Inactive", active=False)).json()
