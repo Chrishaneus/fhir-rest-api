@@ -498,30 +498,36 @@ async def conditional_delete_resource(resource_type: str, request: Request) -> R
 
     matches = store.search(resource_type, params)
 
-    if len(matches) > 1:
-        raise FHIRHTTPError(
-            412,
-            f"Conditional delete matched {len(matches)} resources — criteria must be unambiguous",
-            "multiple-matches",
-        )
-
     if len(matches) == 0:
         return Response(status_code=204)
 
-    match = matches[0]
-    assert match.resource is not None
-    resource_id = match.resource["id"]
-
     hook = hooks.get(resource_type)
-    hook.before_delete(match.resource)
 
-    deleted = store.delete(resource_type, resource_id)
-    if deleted is None:
-        raise FHIRHTTPError(404, "Resource was not found", "not-found")
+    if len(matches) == 1:
+        match = matches[0]
+        assert match.resource is not None
+        resource_id = match.resource["id"]
+        hook.before_delete(match.resource)
+        deleted = store.delete(resource_type, resource_id)
+        if deleted is None:
+            raise FHIRHTTPError(404, "Resource was not found", "not-found")
+        hook.after_delete(match.resource)
+        return Response(status_code=204, headers=read_headers(deleted))
 
-    hook.after_delete(match.resource)
-
-    return Response(status_code=204, headers=read_headers(deleted))
+    # Build a map of id -> resource content so before/after hooks use the same
+    # snapshot and after_delete is only called for resources that were actually
+    # tombstoned (delete_many silently skips already-deleted resources).
+    resource_by_id: dict[str, dict[str, Any]] = {}
+    for resource_match in matches:
+        assert resource_match.resource is not None
+        resource_by_id[resource_match.resource["id"]] = resource_match.resource
+        hook.before_delete(resource_match.resource)
+    deleted_pairs = store.delete_many(resource_type, list(resource_by_id))
+    deleted_ids = {deleted_id for deleted_id, _ in deleted_pairs}
+    for resource_id, resource in resource_by_id.items():
+        if resource_id in deleted_ids:
+            hook.after_delete(resource)
+    return Response(status_code=204)
 
 
 @router.delete("/{resource_type}/{resource_id}")

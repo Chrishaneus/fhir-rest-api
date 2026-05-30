@@ -44,3 +44,8 @@ services:
 
 volumes:
   fhir_postgres_data:
+
+networks:
+  default:
+    name: fhir_default
+    driver: bridge

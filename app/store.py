@@ -342,6 +342,47 @@ class FHIRStore:
             session.commit()
             return ResourceVersion(next_version_id, None, last_updated, True)
 
+    def delete_many(
+        self,
+        resource_type: str,
+        resource_ids: list[str],
+    ) -> list[tuple[str, ResourceVersion]]:
+        """Delete multiple resources in a single atomic transaction.
+
+        Resources that are already deleted or not found are skipped silently.
+        Returns (resource_id, tombstone) pairs for every resource that was actually deleted.
+        Cache is updated for each tombstone after the commit.
+        """
+        results: list[tuple[str, ResourceVersion]] = []
+        last_updated = now_utc()
+        with self._lock, self._session_factory() as session:
+            for resource_id in resource_ids:
+                latest = self._latest_record(session, resource_type, resource_id)
+                if latest is None or latest.deleted:
+                    continue
+                next_version_id = str(int(latest.version_id) + 1)
+                session.add(
+                    ResourceVersionRecord(
+                        resource_type=resource_type,
+                        resource_id=resource_id,
+                        version_id=next_version_id,
+                        last_updated=last_updated,
+                        deleted=True,
+                        content=None,
+                    )
+                )
+                self._delete_projection(session, resource_type, resource_id)
+                results.append((resource_id, ResourceVersion(next_version_id, None, last_updated, True)))
+            session.commit()
+        for resource_id, tombstone in results:
+            cache.cache_set(
+                _CACHE_KEY_LATEST.format(resource_type, resource_id),
+                tombstone,
+                FHIRStore.TTL_LATEST,
+                _resource_version_to_json,
+            )
+        return results
+
     def bulk_create(
         self,
         rows: Iterable[tuple[str, str, dict[str, Any]]],

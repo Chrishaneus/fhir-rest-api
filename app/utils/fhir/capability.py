@@ -68,7 +68,7 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
                         "updateCreate": True,
                         "conditionalCreate": True,
                         "conditionalUpdate": True,
-                        "conditionalDelete": "single",
+                        "conditionalDelete": "multiple",
                         "referencePolicy": ["local"],
                         "operation": [
                             {

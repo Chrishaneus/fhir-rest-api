@@ -175,12 +175,13 @@ class TestConditionalDelete:
         assert r.status_code == 204
         assert client.get(f"/Patient/{created_patient['id']}").status_code == 410
 
-    def test_multiple_matches_returns_412(self, client: TestClient) -> None:
-        for _ in range(2):
+    def test_multiple_matches_deletes_all(self, client: TestClient) -> None:
+        for _ in range(3):
             client.post("/Patient", json=patient("CondDelMulti"))
         r = client.delete("/Patient?family=CondDelMulti")
-        assert r.status_code == 412
-        assert r.json()["resourceType"] == "OperationOutcome"
+        assert r.status_code == 204
+        remaining = client.get("/Patient?family=CondDelMulti").json()
+        assert remaining["total"] == 0
 
 
 class TestDelete:
