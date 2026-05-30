@@ -510,7 +510,10 @@ async def patch_resource(
 
 @router.delete("/{resource_type}")
 @router.delete("/{resource_type}/")
-async def conditional_delete_resource(resource_type: str, request: Request) -> Response:
+async def conditional_delete_resource(
+    resource_type: str,
+    request: Request,
+) -> Response:
     assert_resource_type(resource_type)
 
     params = query_params(request)
@@ -558,7 +561,11 @@ async def conditional_delete_resource(resource_type: str, request: Request) -> R
 
 @router.delete("/{resource_type}/{resource_id}")
 @router.delete("/{resource_type}/{resource_id}/")
-async def delete_resource(resource_type: str, resource_id: str, request: Request) -> Response:
+async def delete_resource(
+    resource_type: str,
+    resource_id: str,
+    request: Request,
+) -> Response:
     assert_resource_type(resource_type)
     assert_resource_id(resource_id)
 

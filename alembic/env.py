@@ -45,7 +45,7 @@ config.set_main_option("sqlalchemy.url", DATABASE_URL)
 # autogenerate compares the schema.
 # ---------------------------------------------------------------------------
 
-from app.db import auth_models, models, projection_models  # noqa: E402, F401
+from app.db import audit_models, auth_models, models, projection_models  # noqa: E402, F401
 from app.db.base import Base  # noqa: E402
 
 target_metadata = Base.metadata

@@ -3,19 +3,21 @@
 from __future__ import annotations
 
 import jwt
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 import app.config as config
 from app.auth.tokens import verify_token
 from app.db.auth_models import User
 from app.db.base import SessionLocal
+from app.utils.audit import set_actor
 from app.utils.errors import FHIRHTTPError
 
 _bearer = HTTPBearer(auto_error=False)
 
 
 async def require_auth(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> User | None:
     """Verify the Bearer token and return the authenticated User.
@@ -25,6 +27,8 @@ async def require_auth(
     Raises FHIRHTTPError(401) on any auth failure.
     """
     if config.JWT_SECRET is None:
+        request.state.current_user = None
+        set_actor(None)
         return None
 
     if credentials is None:
@@ -45,4 +49,6 @@ async def require_auth(
     if user.token_version != token_version:
         raise FHIRHTTPError(401, "Token has been revoked", "security")
 
+    request.state.current_user = user
+    set_actor(user.username)
     return user
