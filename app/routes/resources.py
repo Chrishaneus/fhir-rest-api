@@ -6,6 +6,7 @@ Type-level:
 * `GET    /{resource_type}`               - search Bundle (GET query)
 * `POST   /{resource_type}/$validate`     - validate without persisting
 * `POST   /{resource_type}`               - create
+* `PUT    /{resource_type}`               - conditional update (search criteria in query string)
 
 Instance-level:
 * `GET    /{resource_type}/{id}/_history/{vid}`  - vread
@@ -28,6 +29,7 @@ compartment search route must follow routes with literal third segments
 
 from __future__ import annotations
 
+import uuid
 from typing import Any
 from urllib.parse import parse_qs
 
@@ -41,6 +43,7 @@ from app.store import VersionConflictError, store
 from app.utils.errors import FHIRHTTPError
 from app.utils.fhir.bundles import bundle_response
 from app.utils.fhir.compartments import SUPPORTED_COMPARTMENTS, get_compartment_params
+from app.utils.fhir.constants import IGNORED_SEARCH_PARAMS
 from app.utils.fhir.includes import resolve_includes
 from app.utils.fhir.response_shaping import shape_bundle, shape_resource
 from app.utils.fhir.search import apply_pagination, form_and_query_params, query_params
@@ -157,6 +160,76 @@ async def create_resource(
     return preferred_success_response(
         version.resource,
         status_code=201,
+        headers=headers,
+        prefer=request.headers.get("prefer"),
+    )
+
+
+@router.put("/{resource_type}")
+@router.put("/{resource_type}/")
+async def conditional_update_resource(
+    resource_type: str,
+    request: Request,
+    payload: dict[str, Any] = Body(...),
+) -> Response:
+    assert_resource_type(resource_type)
+
+    params = query_params(request)
+    search_criteria = {k for k in params if k not in IGNORED_SEARCH_PARAMS}
+    if not search_criteria:
+        raise FHIRHTTPError(
+            400,
+            "Conditional update requires at least one search parameter in the query string",
+            "invalid",
+        )
+
+    matches = store.search(resource_type, params)
+
+    if len(matches) > 1:
+        raise FHIRHTTPError(
+            412,
+            f"Conditional update matched {len(matches)} resources — criteria must be unambiguous",
+            "multiple-matches",
+        )
+
+    body_id: str | None = payload.get("id")
+
+    if len(matches) == 1:
+        assert matches[0].resource is not None
+        matched_id: str = matches[0].resource["id"]
+        if body_id is not None and body_id != matched_id:
+            raise FHIRHTTPError(
+                400,
+                f"Body id '{body_id}' conflicts with the matched resource id '{matched_id}'",
+                "invalid",
+            )
+        resource_id = matched_id
+    else:
+        resource_id = body_id or uuid.uuid4().hex
+
+    resource = validate_request_body(
+        resource_type,
+        {**payload, "id": resource_id},
+        require_id=resource_id,
+    )
+
+    current = store.latest(resource_type, resource_id)
+    hook = hooks.get(resource_type)
+    old_resource = current.resource if current and not current.deleted else None
+    resource = hook.before_update(old_resource, resource)
+
+    try:
+        version, created = store.update(resource_type, resource_id, resource)
+    except VersionConflictError as exc:
+        raise FHIRHTTPError(412, str(exc), "conflict") from exc
+    assert version.resource is not None
+
+    hook.after_update(old_resource, version.resource)
+
+    headers = response_headers(request, resource_type, resource_id, version)
+    return preferred_success_response(
+        version.resource,
+        status_code=201 if created else 200,
         headers=headers,
         prefer=request.headers.get("prefer"),
     )

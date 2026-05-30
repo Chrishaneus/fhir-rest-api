@@ -1,4 +1,5 @@
 import json
+import uuid
 
 import pytest
 from fastapi.testclient import TestClient
@@ -117,6 +118,45 @@ class TestUpdate:
         assert r.status_code == 200
         assert r.headers["etag"] == 'W/"2"'
         assert r.json()["meta"]["versionId"] == "2"
+
+
+class TestConditionalUpdate:
+    def test_no_search_params_returns_400(self, client: TestClient) -> None:
+        r = client.put("/Patient", json={"resourceType": "Patient"})
+        assert r.status_code == 400
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+    def test_no_match_creates_resource(self, client: TestClient) -> None:
+        family = f"ConditionalNew-{uuid.uuid4().hex[:6]}"
+        r = client.put(f"/Patient?family={family}", json={"resourceType": "Patient", "name": [{"family": family}]})
+        assert r.status_code == 201
+        assert r.json()["name"][0]["family"] == family
+
+    def test_one_match_updates_resource(self, client: TestClient, created_patient: dict) -> None:
+        family = created_patient["name"][0]["family"]
+        r = client.put(
+            f"/Patient?family={family}",
+            json={**created_patient, "active": True},
+        )
+        assert r.status_code == 200
+        assert r.json()["active"] is True
+        assert r.json()["meta"]["versionId"] == "2"
+
+    def test_multiple_matches_returns_412(self, client: TestClient) -> None:
+        for _ in range(2):
+            client.post("/Patient", json=patient("MultiMatch"))
+        r = client.put("/Patient?family=MultiMatch", json={"resourceType": "Patient"})
+        assert r.status_code == 412
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+    def test_conflicting_body_id_returns_400(self, client: TestClient, created_patient: dict) -> None:
+        family = created_patient["name"][0]["family"]
+        r = client.put(
+            f"/Patient?family={family}",
+            json={**created_patient, "id": "completely-different-id"},
+        )
+        assert r.status_code == 400
+        assert r.json()["resourceType"] == "OperationOutcome"
 
 
 class TestDelete:
