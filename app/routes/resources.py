@@ -16,6 +16,7 @@ Instance-level:
 * `PUT    /{resource_type}/{id}`                 - update / upsert
 * `PATCH  /{resource_type}/{id}`                 - patch (JSON Patch)
 * `DELETE /{resource_type}/{id}`                 - delete (tombstone)
+* `DELETE /{resource_type}`                      - conditional delete (search criteria in query string)
 
 Compartment search:
 * `GET    /{compartment_type}/{compartment_id}/{resource_type}` - compartment search
@@ -479,6 +480,48 @@ async def patch_resource(
         headers=headers,
         prefer=request.headers.get("prefer"),
     )
+
+
+@router.delete("/{resource_type}")
+@router.delete("/{resource_type}/")
+async def conditional_delete_resource(resource_type: str, request: Request) -> Response:
+    assert_resource_type(resource_type)
+
+    params = query_params(request)
+    search_criteria = {k for k in params if k not in IGNORED_SEARCH_PARAMS}
+    if not search_criteria:
+        raise FHIRHTTPError(
+            400,
+            "Conditional delete requires at least one search parameter in the query string",
+            "invalid",
+        )
+
+    matches = store.search(resource_type, params)
+
+    if len(matches) > 1:
+        raise FHIRHTTPError(
+            412,
+            f"Conditional delete matched {len(matches)} resources — criteria must be unambiguous",
+            "multiple-matches",
+        )
+
+    if len(matches) == 0:
+        return Response(status_code=204)
+
+    match = matches[0]
+    assert match.resource is not None
+    resource_id = match.resource["id"]
+
+    hook = hooks.get(resource_type)
+    hook.before_delete(match.resource)
+
+    deleted = store.delete(resource_type, resource_id)
+    if deleted is None:
+        raise FHIRHTTPError(404, "Resource was not found", "not-found")
+
+    hook.after_delete(match.resource)
+
+    return Response(status_code=204, headers=read_headers(deleted))
 
 
 @router.delete("/{resource_type}/{resource_id}")

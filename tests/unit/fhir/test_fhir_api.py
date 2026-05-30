@@ -159,6 +159,30 @@ class TestConditionalUpdate:
         assert r.json()["resourceType"] == "OperationOutcome"
 
 
+class TestConditionalDelete:
+    def test_no_search_params_returns_400(self, client: TestClient) -> None:
+        r = client.delete("/Patient")
+        assert r.status_code == 400
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+    def test_no_match_returns_204(self, client: TestClient) -> None:
+        r = client.delete("/Patient?family=DoesNotExistXYZ")
+        assert r.status_code == 204
+
+    def test_one_match_deletes_resource(self, client: TestClient, created_patient: dict) -> None:
+        family = created_patient["name"][0]["family"]
+        r = client.delete(f"/Patient?family={family}")
+        assert r.status_code == 204
+        assert client.get(f"/Patient/{created_patient['id']}").status_code == 410
+
+    def test_multiple_matches_returns_412(self, client: TestClient) -> None:
+        for _ in range(2):
+            client.post("/Patient", json=patient("CondDelMulti"))
+        r = client.delete("/Patient?family=CondDelMulti")
+        assert r.status_code == 412
+        assert r.json()["resourceType"] == "OperationOutcome"
+
+
 class TestDelete:
     def test_returns_204(self, client: TestClient, created_patient: dict) -> None:
         assert client.delete(f"/Patient/{created_patient['id']}").status_code == 204
