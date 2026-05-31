@@ -8,6 +8,7 @@ from sqlalchemy import BigInteger, Boolean, DateTime, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.enums import UserRole
 
 
 class User(Base):
@@ -18,7 +19,7 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(256), nullable=False)
     email: Mapped[str | None] = mapped_column(String(256), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    role: Mapped[str] = mapped_column(String(32), default="clinician", nullable=False)
+    role: Mapped[str] = mapped_column(String(32), default=UserRole.VIEWER, nullable=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     token_version: Mapped[int] = mapped_column(BigInteger, default=1, nullable=False)
     fhir_resource_id: Mapped[str | None] = mapped_column(String(64), nullable=True)

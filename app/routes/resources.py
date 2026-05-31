@@ -38,7 +38,7 @@ import jsonpatch
 from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import JSONResponse, Response
 
-from app.auth.dependencies import require_auth
+from app.auth.dependencies import require_permission
 from app.hooks import hooks
 from app.store import VersionConflictError, store
 from app.utils.errors import FHIRHTTPError
@@ -79,7 +79,7 @@ def _parse_if_none_exist(header: str) -> dict[str, list[str]]:
         )
     return params
 
-router = APIRouter(tags=["resources"], dependencies=[Depends(require_auth)])
+router = APIRouter(tags=["resources"], dependencies=[Depends(require_permission)])
 
 
 
