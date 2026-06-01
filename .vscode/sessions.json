@@ -20,7 +20,9 @@
                 {
                     "name": "postman:test",
                     "shellPath": "C:\\Program Files\\Git\\bin\\bash.exe",
+                    "joinOperator": "&&",
                     "commands": [
+                        "source .venv/bin/activate",
                         "newman run fhir_api.postman_collection.json --env-var \"baseUrl=http://localhost:8000\""
                     ]
                 }
@@ -31,6 +33,7 @@
                     "autoExecuteCommands": true,
                     "joinOperator": "&&",
                     "commands": [
+                        "source .venv/bin/activate",
                         "docker-compose down",
                         "docker-compose up --build -d",
                         "uv sync --extra dev",
