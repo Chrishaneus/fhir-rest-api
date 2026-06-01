@@ -9,8 +9,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import app.config as config
 from app.auth.tokens import verify_token
 from app.db.auth_models import User
-from app.enums import UserRole
 from app.db.base import SessionLocal
+from app.enums import UserRole
 from app.utils.audit import set_actor
 from app.utils.errors import FHIRHTTPError
 

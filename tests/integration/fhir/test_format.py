@@ -9,6 +9,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
+from tests.integration.conftest import VERIFY_CERTIFICATES
 from tests.integration.fhir.conftest import FHIR_JSON
 
 pytestmark = pytest.mark.integration
@@ -65,6 +66,7 @@ class TestFormatParam:
             base_url=str(client.base_url),
             headers={"Accept": FHIR_JSON},
             timeout=10.0,
+            verify=VERIFY_CERTIFICATES,
         ) as bare:
             r = bare.get("/Patient?_format=xml")
         assert r.status_code == 406

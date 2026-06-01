@@ -23,3 +23,7 @@ htmlcov/
 
 # Ignore testing files
 sample_requests.sh
+
+# TLS certificates (never commit private keys)
+nginx/certs/*.crt
+nginx/certs/*.key

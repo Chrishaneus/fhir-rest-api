@@ -34,7 +34,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import CORS_ORIGINS
 from app.db.base import init_db
-from app.middleware import format_negotiation, log_requests
+from app.middleware import enforce_https, format_negotiation, log_requests
 from app.routes import auth_router, resources_router, system_router
 from app.utils.errors import register_exception_handlers
 from app.utils.logging import configure_logging
@@ -63,6 +63,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(BaseHTTPMiddleware, dispatch=enforce_https)
 app.add_middleware(BaseHTTPMiddleware, dispatch=format_negotiation)
 app.add_middleware(BaseHTTPMiddleware, dispatch=log_requests)
 

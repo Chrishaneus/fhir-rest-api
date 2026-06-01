@@ -74,3 +74,11 @@ JWT_EXPIRY_MINUTES: int = int(os.getenv("JWT_EXPIRY_MINUTES", "60"))
 # ---------------------------------------------------------------------------
 
 REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+# ---------------------------------------------------------------------------
+# TLS
+# ---------------------------------------------------------------------------
+
+# When True, requests where X-Forwarded-Proto is "http" are rejected with 403.
+# Enable in production where NGINX terminates TLS and sets the header.
+REQUIRE_HTTPS: bool = os.getenv("REQUIRE_HTTPS", "false").lower() == "true"

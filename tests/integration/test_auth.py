@@ -16,6 +16,8 @@ from datetime import UTC, datetime
 import httpx
 import pytest
 
+from tests.integration.conftest import VERIFY_CERTIFICATES
+
 pytestmark = pytest.mark.integration
 
 FHIR_JSON = "application/fhir+json"
@@ -66,8 +68,9 @@ def auth_client(client: httpx.Client, auth_token: str):
             "Accept": FHIR_JSON,
             "Authorization": f"Bearer {auth_token}",
         },
-    ) as c:
-        yield c
+        verify=VERIFY_CERTIFICATES,
+    ) as http_client:
+        yield http_client
 
 
 @pytest.fixture(scope="session")
@@ -77,8 +80,9 @@ def unauth_client(client: httpx.Client):
         base_url=str(client.base_url),
         timeout=10.0,
         headers={"Accept": FHIR_JSON},
-    ) as c:
-        yield c
+        verify=VERIFY_CERTIFICATES,
+    ) as http_client:
+        yield http_client
 
 
 # ---------------------------------------------------------------------------
