@@ -569,7 +569,7 @@ class FHIRStore:
                 all_types = [row for (row,) in session.execute(statement).all()]
                 linked = []
                 for linked_type in all_types:
-                    if linked_type == resource_type:
+                    if linked_type == resource_type or linked_type == "AuditEvent":
                         continue
                     linked.extend(self._python_search(session, linked_type, params))
         return anchor, linked
@@ -586,7 +586,10 @@ class FHIRStore:
         """
         latest = (
             select(ResourceVersionRecord)
-            .where(ResourceVersionRecord.resource_type != anchor_type)
+            .where(
+                ResourceVersionRecord.resource_type != anchor_type,
+                ResourceVersionRecord.resource_type != "AuditEvent",
+            )
             .order_by(
                 ResourceVersionRecord.resource_type,
                 ResourceVersionRecord.resource_id,

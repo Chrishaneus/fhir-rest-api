@@ -4,7 +4,7 @@
     "active": "default",
     "activateOnStartup": true,
     "keepExistingTerminals": false,
-    "noClear": true,
+    "noClear": false,
     "sessions": {
         "default": [
             {
@@ -18,20 +18,25 @@
             },
             [
                 {
-                    "name": "docker:dev",
-                    "autoExecuteCommands": true,
+                    "name": "postman:test",
+                    "shellPath": "C:\\Program Files\\Git\\bin\\bash.exe",
                     "commands": [
-                        "docker-compose -f docker-compose.yml down",
-                        "docker-compose -f docker-compose.yml up --build -d"
+                        "newman run fhir_api.postman_collection.json --env-var \"baseUrl=http://localhost:8000\""
                     ]
                 }
             ],
             [
                 {
-                    "name": "postman:test",
-                    "shellPath": "C:\\Program Files\\Git\\bin\\bash.exe",
+                    "name": "docker:dev",
+                    "autoExecuteCommands": true,
+                    "joinOperator": "&&",
                     "commands": [
-                        "newman run fhir_api.postman_collection.json --env-var \"baseUrl=http://localhost:8000\""
+                        "docker-compose down",
+                        "docker-compose up --build -d",
+                        "uv sync --extra dev",
+                        "uv run mypy .",
+                        "uv run ruff check --fix",
+                        "uv run pytest"
                     ]
                 }
             ]

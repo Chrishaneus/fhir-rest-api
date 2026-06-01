@@ -1,0 +1,7 @@
+{
+    "python.terminal.useEnvFile": false,
+    "python.terminal.activateEnvironment": true,
+    "python-envs.pythonProjects": [
+
+    ]
+}

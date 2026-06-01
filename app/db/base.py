@@ -39,7 +39,7 @@ def init_db() -> None:
     head`). This function no longer calls create_all; it exists only to
     trigger the model imports so the metadata is ready before any query runs.
     """
-    from app.db import audit_models, auth_models, models, projection_models  # noqa: F401
+    from app.db import auth_models, models, projection_models  # noqa: F401
 
 
 def reset_db() -> None:
@@ -49,7 +49,6 @@ def reset_db() -> None:
     schema. Deletes in reverse FK order so constraints are never violated.
     """
     from app.db import (  # noqa: F401 - register tables
-        audit_models,
         auth_models,
         models,
         projection_models,

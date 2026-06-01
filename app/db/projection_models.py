@@ -776,3 +776,29 @@ class CommunicationRequestProjectionSchema(BaseProjection):
         Index("ix_communicationrequest_projection_authored_on", "authored_on"),
         Index("ix_communicationrequest_projection_last_updated", "last_updated"),
     )
+
+
+# --- AuditEvent --------------------------------------------------------------
+
+
+class AuditEventProjectionSchema(BaseProjection):
+    """Search projection for FHIR AuditEvent.
+
+    Covers the four most common audit queries: by date range, by action
+    code (C/R/U/D/E), by agent username, and by the affected resource.
+    """
+
+    __tablename__ = "auditevent_projection"
+
+    recorded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    action: Mapped[str | None] = mapped_column(String(1))
+    agent_username: Mapped[str | None] = mapped_column(String(128))
+    entity_reference: Mapped[str | None] = mapped_column(String(256))
+
+    __table_args__ = (
+        Index("ix_auditevent_projection_recorded_at", "recorded_at"),
+        Index("ix_auditevent_projection_action", "action"),
+        Index("ix_auditevent_projection_agent", "agent_username"),
+        Index("ix_auditevent_projection_entity", "entity_reference"),
+        Index("ix_auditevent_projection_last_updated", "last_updated"),
+    )

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "11111111-2222-3333-4444-555555555555",
     "name": "FHIR REST API",
-    "description": "End-to-end tests for the Python FastAPI FHIR R5 REST server.\n\nRun the full collection in order \u00e2\u20ac\u201d Auth registers a unique user and saves a Bearer token, which all subsequent requests inherit. The Patient folder creates a resource whose ID is stored in `patientId`. The Sort folder seeds additional patients to verify `_sort` ordering. The Include / RevInclude folder seeds a fresh patient and observation to test `_include` / `_revinclude`, saving their IDs to `includePatientId` and `includeObsId`. The Reference Validation folder verifies that dangling local references are rejected with 422. The _format Negotiation folder tests `?_format` parameter support (JSON accepted, XML \u00e2\u2020\u2019 406). The Conditional Create folder tests the `If-None-Exist` header (0 matches \u00e2\u2020\u2019 201, 1 match \u00e2\u2020\u2019 200, 2+ \u00e2\u2020\u2019 412). The $everything folder tests `GET /<resource>/{id}/$everything`. The Transaction / Batch Bundle folder tests `POST /` bundle processing. The _summary / _elements folder tests response shaping via `?_summary` and `?_elements`. The _lastUpdated folder tests date-prefix search via `?_lastUpdated`. The $validate folder tests `POST /{type}/$validate` without persisting.\n\n**Base URL:** `http://localhost:8000`  \n**Auth:** JWT Bearer (token saved automatically after Login)",
+    "description": "End-to-end tests for the Python FastAPI FHIR R5 REST server.\n\nRun the full collection in order \u00e2\u20ac\u201d Auth registers a unique user and saves a Bearer token, which all subsequent requests inherit. The Patient folder creates a resource whose ID is stored in `patientId`. The Sort folder seeds additional patients to verify `_sort` ordering. The Include / RevInclude folder seeds a fresh patient and observation to test `_include` / `_revinclude`, saving their IDs to `includePatientId` and `includeObsId`. The Reference Validation folder verifies that dangling local references are rejected with 422. The _format Negotiation folder tests `?_format` parameter support (JSON accepted, XML \u00e2\u2020\u2019 406). The Conditional Create folder tests the `If-None-Exist` header (0 matches \u00e2\u2020\u2019 201, 1 match \u00e2\u2020\u2019 200, 2+ \u00e2\u2020\u2019 412). The $everything folder tests `GET /<resource>/{id}/$everything`. The Transaction / Batch Bundle folder tests `POST /` bundle processing. The _summary / _elements folder tests response shaping via `?_summary` and `?_elements`. The _lastUpdated folder tests date-prefix search via `?_lastUpdated`. The $validate folder tests `POST /{type}/$validate` without persisting.\n\n**Base URL:** `https://localhost:443`\n**Auth:** JWT Bearer (token saved automatically after Login)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "55269035"
   },
@@ -5243,7 +5243,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:8000"
+      "value": "https://localhost:443"
     },
     {
       "key": "username",

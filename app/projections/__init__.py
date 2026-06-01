@@ -25,6 +25,7 @@ from __future__ import annotations
 from app.projections import (  # noqa: F401  (import-for-side-effects)
     allergyintolerance,
     appointment,
+    auditevent,
     careplan,
     claim,
     communication,
