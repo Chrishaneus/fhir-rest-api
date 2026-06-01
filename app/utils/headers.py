@@ -13,13 +13,21 @@ from app.utils.outcomes import fhir_json_response, operation_outcome
 from app.utils.time import http_date, weak_etag
 
 
+def _effective_base_url(request: Request) -> str:
+    headers = request.headers
+    proto = headers.get("x-forwarded-proto") or str(request.base_url).split("://")[0]
+    host = headers.get("x-forwarded-host") or headers.get("host") or request.base_url.netloc
+    prefix = headers.get("x-forwarded-prefix", "").rstrip("/")
+    return f"{proto}://{host}{prefix}"
+
+
 def response_headers(
     request: Request,
     resource_type: str,
     resource_id: str,
     version,
 ) -> dict[str, str]:
-    base = str(request.base_url).rstrip("/")
+    base = _effective_base_url(request)
     location = f"{base}/{resource_type}/{resource_id}/_history/{version.version_id}"
     return {
         "ETag": weak_etag(version.version_id),
