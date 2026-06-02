@@ -49,27 +49,32 @@ def bundle_response(
         entry_resource_id = version.resource_id or (resource.get("id") if resource else None)
         entry: dict[str, Any] = {
             "fullUrl": f"{base}/{entry_resource_type}/{entry_resource_id}" if entry_resource_id else base,
-            "response": {
-                "status": "204 No Content" if version.deleted else "200 OK",
-                "etag": weak_etag(version.version_id),
-                "lastModified": fhir_instant(version.last_updated),
-            },
         }
         if resource:
             entry["resource"] = resource
         if is_searchset:
+            # bdl-3a: entry.request and entry.response must be absent for searchset
             entry["search"] = {"mode": "match"}
         if is_history:
+            # history creates are version 1; updates are version > 1
             if version.deleted:
                 request_method = "DELETE"
                 request_url = f"{entry_resource_type}/{entry_resource_id}" if entry_resource_id else entry_resource_type
+                response_status = "204 No Content"
             elif version.version_id == "1":
                 request_method = "POST"
                 request_url = entry_resource_type
+                response_status = "201 Created"
             else:
                 request_method = "PUT"
                 request_url = f"{entry_resource_type}/{entry_resource_id}" if entry_resource_id else entry_resource_type
+                response_status = "200 OK"
             entry["request"] = {"method": request_method, "url": request_url}
+            entry["response"] = {
+                "status": response_status,
+                "etag": weak_etag(version.version_id),
+                "lastModified": fhir_instant(version.last_updated),
+            }
         bundle_entries.append(entry)
 
     if included:
@@ -79,15 +84,11 @@ def bundle_response(
                 continue
             included_resource_type = resource["resourceType"]
             included_resource_id = resource.get("id")
+            # bdl-3a: no entry.response on searchset include entries
             bundle_entries.append({
                 "fullUrl": f"{base}/{included_resource_type}/{included_resource_id}" if included_resource_id else base,
                 "search": {"mode": "include"},
                 "resource": resource,
-                "response": {
-                    "status": "200 OK",
-                    "etag": weak_etag(version.version_id),
-                    "lastModified": fhir_instant(version.last_updated),
-                },
             })
 
     current_url = str(request.url)

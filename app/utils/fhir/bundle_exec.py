@@ -25,7 +25,7 @@ from app.store import (
 from app.utils.errors import FHIRHTTPError
 from app.utils.fhir.validation import assert_resource_type, validate_request_body
 from app.utils.outcomes import operation_outcome
-from app.utils.time import fhir_instant, weak_etag
+from app.utils.time import fhir_instant, now_utc, weak_etag
 
 _SUPPORTED_METHODS = frozenset({"GET", "POST", "PUT", "DELETE"})
 
@@ -112,7 +112,12 @@ def _process_transaction(
     response_entries = [
         _build_success_entry(parsed_entry, result, base) for parsed_entry, result in zip(parsed, results, strict=True)
     ]
-    return {"resourceType": "Bundle", "type": "transaction-response", "entry": response_entries}
+    return {
+        "resourceType": "Bundle",
+        "type": "transaction-response",
+        "timestamp": fhir_instant(now_utc()),
+        "entry": response_entries,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +142,12 @@ def _process_batch(
             response_entries.append(_build_error_entry(412, str(exc), "conflict"))
         except Exception as exc:
             response_entries.append(_build_error_entry(500, str(exc), "exception"))
-    return {"resourceType": "Bundle", "type": "batch-response", "entry": response_entries}
+    return {
+        "resourceType": "Bundle",
+        "type": "batch-response",
+        "timestamp": fhir_instant(now_utc()),
+        "entry": response_entries,
+    }
 
 
 def _execute_batch_entry(parsed_entry: _ParsedEntry, store: FHIRStore) -> TransactionResult:
