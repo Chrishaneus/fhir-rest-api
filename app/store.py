@@ -132,6 +132,8 @@ class ResourceVersion:
     resource: dict[str, Any] | None
     last_updated: datetime
     deleted: bool = False
+    resource_type: str = ""
+    resource_id: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -148,6 +150,8 @@ def _resource_version_to_json(resource_version: ResourceVersion) -> str:
         "resource": resource_version.resource,
         "last_updated": resource_version.last_updated.isoformat(),
         "deleted": resource_version.deleted,
+        "resource_type": resource_version.resource_type,
+        "resource_id": resource_version.resource_id,
     })
 
 
@@ -158,6 +162,8 @@ def _json_to_resource_version(raw: str) -> ResourceVersion:
         resource=d["resource"],
         last_updated=datetime.fromisoformat(d["last_updated"]),
         deleted=d["deleted"],
+        resource_type=d.get("resource_type", ""),
+        resource_id=d.get("resource_id", ""),
     )
 
 
@@ -244,7 +250,7 @@ class FHIRStore:
                 session, resource_type, resource_id, "1", last_updated, prepared
             )
             session.commit()
-            return ResourceVersion("1", prepared, last_updated, False)
+            return ResourceVersion("1", prepared, last_updated, False, resource_type, resource_id)
 
     @cache.write_through(
         key_function=lambda _, resource_type, resource_id: _CACHE_KEY_LATEST.format(resource_type, resource_id),
@@ -302,7 +308,7 @@ class FHIRStore:
                 prepared,
             )
             session.commit()
-            return ResourceVersion(next_version_id, prepared, last_updated, False), created
+            return ResourceVersion(next_version_id, prepared, last_updated, False, resource_type, resource_id), created
 
     @cache.write_through(
         key_function=lambda _, resource_type, resource_id: _CACHE_KEY_LATEST.format(resource_type, resource_id),
@@ -340,7 +346,7 @@ class FHIRStore:
             )
             self._delete_projection(session, resource_type, resource_id)
             session.commit()
-            return ResourceVersion(next_version_id, None, last_updated, True)
+            return ResourceVersion(next_version_id, None, last_updated, True, resource_type, resource_id)
 
     def delete_many(
         self,
@@ -372,7 +378,7 @@ class FHIRStore:
                     )
                 )
                 self._delete_projection(session, resource_type, resource_id)
-                results.append((resource_id, ResourceVersion(next_version_id, None, last_updated, True)))
+                results.append((resource_id, ResourceVersion(next_version_id, None, last_updated, True, resource_type, resource_id)))
             session.commit()
         for resource_id, tombstone in results:
             cache.cache_set(
@@ -907,6 +913,8 @@ class FHIRStore:
             resource=copy.deepcopy(record.content) if record.content is not None else None,
             last_updated=last_updated,
             deleted=record.deleted,
+            resource_type=record.resource_type,
+            resource_id=record.resource_id,
         )
 
     def _upsert_projection(
@@ -1010,7 +1018,7 @@ class FHIRStore:
             content=prepared,
         ))
         self._upsert_projection(session, resource_type, resource_id, "1", last_updated, prepared)
-        return ResourceVersion("1", prepared, last_updated, False)
+        return ResourceVersion("1", prepared, last_updated, False, resource_type, resource_id)
 
     def _update_in_session(
         self,
@@ -1040,7 +1048,7 @@ class FHIRStore:
             content=prepared,
         ))
         self._upsert_projection(session, resource_type, resource_id, next_version_id, last_updated, prepared)
-        return ResourceVersion(next_version_id, prepared, last_updated, False), created
+        return ResourceVersion(next_version_id, prepared, last_updated, False, resource_type, resource_id), created
 
     def _delete_in_session(
         self, session: Session, resource_type: str, resource_id: str
@@ -1059,7 +1067,7 @@ class FHIRStore:
             content=None,
         ))
         self._delete_projection(session, resource_type, resource_id)
-        return ResourceVersion(next_version_id, None, last_updated, True)
+        return ResourceVersion(next_version_id, None, last_updated, True, resource_type, resource_id)
 
     def _prepare(
         self,

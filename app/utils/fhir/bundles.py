@@ -41,13 +41,14 @@ def bundle_response(
 ) -> dict[str, Any]:
     base = str(request.base_url).rstrip("/")
     is_searchset = bundle_type == "searchset"
+    is_history = bundle_type == "history"
     bundle_entries: list[dict[str, Any]] = []
     for version in entries:
         resource = version.resource
-        resource_type = resource["resourceType"] if resource else "Resource"
-        resource_id = resource["id"] if resource else None
+        entry_resource_type = version.resource_type or (resource["resourceType"] if resource else "Resource")
+        entry_resource_id = version.resource_id or (resource.get("id") if resource else None)
         entry: dict[str, Any] = {
-            "fullUrl": f"{base}/{resource_type}/{resource_id}" if resource_id else base,
+            "fullUrl": f"{base}/{entry_resource_type}/{entry_resource_id}" if entry_resource_id else base,
             "response": {
                 "status": "204 No Content" if version.deleted else "200 OK",
                 "etag": weak_etag(version.version_id),
@@ -58,6 +59,17 @@ def bundle_response(
             entry["resource"] = resource
         if is_searchset:
             entry["search"] = {"mode": "match"}
+        if is_history:
+            if version.deleted:
+                request_method = "DELETE"
+                request_url = f"{entry_resource_type}/{entry_resource_id}" if entry_resource_id else entry_resource_type
+            elif version.version_id == "1":
+                request_method = "POST"
+                request_url = entry_resource_type
+            else:
+                request_method = "PUT"
+                request_url = f"{entry_resource_type}/{entry_resource_id}" if entry_resource_id else entry_resource_type
+            entry["request"] = {"method": request_method, "url": request_url}
         bundle_entries.append(entry)
 
     if included:
@@ -65,10 +77,10 @@ def bundle_response(
             resource = version.resource
             if not resource:
                 continue
-            inc_type = resource["resourceType"]
-            inc_id = resource.get("id")
+            included_resource_type = resource["resourceType"]
+            included_resource_id = resource.get("id")
             bundle_entries.append({
-                "fullUrl": f"{base}/{inc_type}/{inc_id}" if inc_id else base,
+                "fullUrl": f"{base}/{included_resource_type}/{included_resource_id}" if included_resource_id else base,
                 "search": {"mode": "include"},
                 "resource": resource,
                 "response": {
