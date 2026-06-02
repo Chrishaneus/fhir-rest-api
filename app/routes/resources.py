@@ -55,8 +55,10 @@ from app.utils.fhir.search import (
     extract_total_mode,
     find_unknown_params,
     form_and_query_params,
+    parse_pagination_params,
     query_params,
 )
+from app.utils.fhir.security_labels import filter_for_user, user_can_see_resource
 from app.utils.fhir.validation import (
     assert_resource_id,
     assert_resource_type,
@@ -88,9 +90,16 @@ router = APIRouter(tags=["resources"], dependencies=[Depends(require_permission)
 async def type_history(resource_type: str, request: Request) -> JSONResponse:
     assert_resource_type(resource_type)
     params = query_params(request)
-    entries = store.history(resource_type=resource_type, since=extract_since_param(params), at=extract_at_param(params))
-    page, offset, page_size = apply_pagination(entries, params)
-    bundle = bundle_response(request, "history", page, total=len(entries), offset=offset, page_size=page_size)
+    offset, page_size = parse_pagination_params(params)
+    page, total = store.history(
+        resource_type=resource_type,
+        since=extract_since_param(params),
+        at=extract_at_param(params),
+        offset=offset,
+        page_size=page_size,
+    )
+    page = filter_for_user(request.state.current_user, page)
+    bundle = bundle_response(request, "history", page, total=total, offset=offset, page_size=page_size)
     return fhir_json_response(shape_bundle(bundle, params))
 
 
@@ -104,8 +113,10 @@ async def post_type_search(resource_type: str, request: Request) -> JSONResponse
         if unknown:
             raise FHIRHTTPError(400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported")
     matches = store.search(resource_type, params)
+    matches = filter_for_user(request.state.current_user, matches)
     page, offset, page_size = apply_pagination(matches, params)
     included = resolve_includes(store, resource_type, page, params)
+    included = filter_for_user(request.state.current_user, included)
     total = None if extract_total_mode(params) == "none" else len(matches)
     bundle = bundle_response(
         request, "searchset", page,
@@ -125,8 +136,10 @@ async def get_type_search(resource_type: str, request: Request) -> JSONResponse:
         if unknown:
             raise FHIRHTTPError(400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported")
     matches = store.search(resource_type, params)
+    matches = filter_for_user(request.state.current_user, matches)
     page, offset, page_size = apply_pagination(matches, params)
     included = resolve_includes(store, resource_type, page, params)
+    included = filter_for_user(request.state.current_user, included)
     total = None if extract_total_mode(params) == "none" else len(matches)
     bundle = bundle_response(
         request, "searchset", page,
@@ -148,7 +161,9 @@ async def create_resource(
     if_none_exist = request.headers.get("if-none-exist")
     if if_none_exist is not None:
         search_params = _parse_if_none_exist(if_none_exist)
-        matches = store.search(resource_type, search_params)
+        matches = filter_for_user(
+            request.state.current_user, store.search(resource_type, search_params)
+        )
         if len(matches) > 1:
             raise FHIRHTTPError(
                 412,
@@ -167,6 +182,9 @@ async def create_resource(
             )
 
     resource = validate_request_body(resource_type, payload)
+
+    if not user_can_see_resource(request.state.current_user, resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
 
     hook = hooks.get(resource_type)
     resource = hook.before_create(resource)
@@ -236,6 +254,13 @@ async def conditional_update_resource(
     current = store.latest(resource_type, resource_id)
     hook = hooks.get(resource_type)
     old_resource = current.resource if current and not current.deleted else None
+
+    user = request.state.current_user
+    if old_resource is not None and not user_can_see_resource(user, old_resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
+    if not user_can_see_resource(user, resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
+
     resource = hook.before_update(old_resource, resource)
 
     try:
@@ -281,6 +306,8 @@ async def read_version(
     if version.deleted:
         raise FHIRHTTPError(410, "Resource version represents a deleted resource", "deleted")
     assert version.resource is not None
+    if not user_can_see_resource(request.state.current_user, version.resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
     params = query_params(request)
     return fhir_json_response(shape_resource(version.resource, params), headers=read_headers(version))
 
@@ -295,11 +322,23 @@ async def instance_history(
     params = query_params(request)
     since = extract_since_param(params)
     at = extract_at_param(params)
-    if store.latest(resource_type, resource_id) is None:
+    latest = store.latest(resource_type, resource_id)
+    if latest is None:
         raise FHIRHTTPError(404, "Resource was not found", "not-found")
-    entries = store.history(resource_type=resource_type, resource_id=resource_id, since=since, at=at)
-    page, offset, page_size = apply_pagination(entries, params)
-    bundle = bundle_response(request, "history", page, total=len(entries), offset=offset, page_size=page_size)
+    user = request.state.current_user
+    if not latest.deleted and latest.resource is not None and not user_can_see_resource(user, latest.resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
+    offset, page_size = parse_pagination_params(params)
+    page, total = store.history(
+        resource_type=resource_type,
+        resource_id=resource_id,
+        since=since,
+        at=at,
+        offset=offset,
+        page_size=page_size,
+    )
+    page = filter_for_user(user, page)
+    bundle = bundle_response(request, "history", page, total=total, offset=offset, page_size=page_size)
     return fhir_json_response(shape_bundle(bundle, params))
 
 
@@ -312,6 +351,11 @@ async def resource_everything(resource_type: str, resource_id: str, request: Req
         raise FHIRHTTPError(404, f"{resource_type}/{resource_id} was not found", "not-found")
     if anchor.deleted:
         raise FHIRHTTPError(410, f"{resource_type}/{resource_id} has been deleted", "deleted")
+    assert anchor.resource is not None
+    user = request.state.current_user
+    if not user_can_see_resource(user, anchor.resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
+    linked = filter_for_user(user, linked)
 
     params = query_params(request)
     all_versions = [anchor] + linked
@@ -378,8 +422,10 @@ async def compartment_search(
         if unknown:
             raise FHIRHTTPError(400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported")
     matches = store.search(resource_type, merged_params)
+    matches = filter_for_user(request.state.current_user, matches)
     page, offset, page_size = apply_pagination(matches, merged_params)
     included = resolve_includes(store, resource_type, page, merged_params)
+    included = filter_for_user(request.state.current_user, included)
     total = None if extract_total_mode(params) == "none" else len(matches)
     bundle = bundle_response(
         request, "searchset", page,
@@ -399,10 +445,12 @@ async def read_resource(resource_type: str, resource_id: str, request: Request) 
         raise FHIRHTTPError(404, "Resource was not found", "not-found")
     if version.deleted:
         raise FHIRHTTPError(410, "Resource has been deleted", "deleted")
+    assert version.resource is not None
+    if not user_can_see_resource(request.state.current_user, version.resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
     conditional = check_conditional_read(request, version)
     if conditional is not None:
         return conditional
-    assert version.resource is not None
     params = query_params(request)
     return fhir_json_response(shape_resource(version.resource, params), headers=read_headers(version))
 
@@ -425,6 +473,13 @@ async def update_resource(
 
     hook = hooks.get(resource_type)
     old_resource = current.resource if current and not current.deleted else None
+
+    user = request.state.current_user
+    if old_resource is not None and not user_can_see_resource(user, old_resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
+    if not user_can_see_resource(user, resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
+
     resource = hook.before_update(old_resource, resource)
 
     try:
@@ -477,6 +532,8 @@ async def patch_resource(
     if current is None or current.deleted:
         raise FHIRHTTPError(404, "Resource was not found", "not-found")
     assert current.resource is not None
+    if not user_can_see_resource(request.state.current_user, current.resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
 
     try:
         patched = jsonpatch.apply_patch(current.resource, operations)
@@ -484,6 +541,8 @@ async def patch_resource(
         raise FHIRHTTPError(400, f"JSON Patch error: {exc}", "invalid") from exc
 
     resource = validate_request_body(resource_type, patched, require_id=resource_id)
+    if not user_can_see_resource(request.state.current_user, resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
 
     hook = hooks.get(resource_type)
     resource = hook.before_update(current.resource, resource)
@@ -573,6 +632,8 @@ async def delete_resource(
     if current is None or current.deleted:
         raise FHIRHTTPError(404, "Resource was not found", "not-found")
     assert current.resource is not None
+    if not user_can_see_resource(request.state.current_user, current.resource):
+        raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
 
     hook = hooks.get(resource_type)
     hook.before_delete(current.resource)

@@ -141,12 +141,13 @@ def extract_total_mode(params: dict[str, list[str]]) -> str:
     return mode
 
 
-def apply_pagination(
-    items: list, params: dict[str, list[str]]
-) -> tuple[list, int, int | None]:
-    """Return (page, offset, page_size).
+def parse_pagination_params(
+    params: dict[str, list[str]],
+) -> tuple[int, int | None]:
+    """Return (offset, page_size) parsed from _offset / _count params.
 
-    page_size is None when _count is not supplied (return everything from offset).
+    Raises FHIRHTTPError(400) on non-integer values.
+    page_size is None when _count is absent (caller should return everything from offset).
     """
     offset_values = params.get("_offset")
     offset = 0
@@ -164,6 +165,19 @@ def apply_pagination(
         except ValueError:
             raise FHIRHTTPError(400, "_count must be an integer", "invalid") from None
 
+    return offset, page_size
+
+
+def apply_pagination(
+    items: list, params: dict[str, list[str]]
+) -> tuple[list, int, int | None]:
+    """Return (page, offset, page_size) by slicing *items* in Python.
+
+    Used for search results that are already fully loaded.
+    History routes should call parse_pagination_params + store.history() instead
+    so that the database handles LIMIT/OFFSET directly.
+    """
+    offset, page_size = parse_pagination_params(params)
     if page_size is None:
         return items[offset:], offset, None
     return items[offset : offset + page_size], offset, page_size

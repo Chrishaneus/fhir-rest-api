@@ -23,6 +23,7 @@ if "DATABASE_URL" not in os.environ:
     else:
         os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
+import bcrypt as _bcrypt
 import pytest
 from fastapi.testclient import TestClient
 
@@ -56,6 +57,13 @@ def _clean_database():
     hooks.restore(_BASELINE_HOOKS)
     yield
     hooks.restore(_BASELINE_HOOKS)
+
+
+@pytest.fixture(autouse=True)
+def _fast_bcrypt(monkeypatch) -> None:
+    """Patch bcrypt to use rounds=4 so password hashing is ~256× faster in unit tests."""
+    _orig = _bcrypt.gensalt
+    monkeypatch.setattr(_bcrypt, "gensalt", lambda *a, **kw: _orig(rounds=4))
 
 
 @pytest.fixture(scope="session")

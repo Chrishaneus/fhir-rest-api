@@ -814,25 +814,49 @@ class FHIRStore:
         *,
         since: datetime | None = None,
         at: datetime | None = None,
-        limit: int | None = None,
-    ) -> list[ResourceVersion]:
+        offset: int = 0,
+        page_size: int | None = None,
+    ) -> tuple[list[ResourceVersion], int]:
+        """Return (page, total).
+
+        Two queries run inside one session:
+        - COUNT(*) with the WHERE filters — no data transfer, fast even on large tables.
+        - SELECT with LIMIT/OFFSET applied in SQL, not Python.
+
+        total is the row count before any Python-level filtering (e.g. security
+        labels).  Callers should apply filter_for_user to the returned page only.
+        """
         with self._session_factory() as session:
-            statement = select(ResourceVersionRecord).order_by(
-                desc(ResourceVersionRecord.last_updated),
-                desc(ResourceVersionRecord.id),
-            )
+            filters: list[ColumnElement[bool]] = []
             if resource_type is not None:
-                statement = statement.where(ResourceVersionRecord.resource_type == resource_type)
+                filters.append(ResourceVersionRecord.resource_type == resource_type)
             if resource_id is not None:
-                statement = statement.where(ResourceVersionRecord.resource_id == resource_id)
+                filters.append(ResourceVersionRecord.resource_id == resource_id)
             if since is not None:
-                statement = statement.where(ResourceVersionRecord.last_updated > since)
+                filters.append(ResourceVersionRecord.last_updated > since)
             if at is not None:
-                statement = statement.where(ResourceVersionRecord.last_updated <= at)
-            if limit is not None:
-                statement = statement.limit(limit)
-            records = session.execute(statement).scalars().all()
-            return [v for v in (self._to_version(record) for record in records) if v]
+                filters.append(ResourceVersionRecord.last_updated <= at)
+
+            count_stmt = select(func.count()).select_from(ResourceVersionRecord)
+            if filters:
+                count_stmt = count_stmt.where(*filters)
+            total: int = session.execute(count_stmt).scalar_one()
+
+            page_stmt = (
+                select(ResourceVersionRecord)
+                .order_by(
+                    desc(ResourceVersionRecord.last_updated),
+                    desc(ResourceVersionRecord.id),
+                )
+                .offset(offset)
+            )
+            if filters:
+                page_stmt = page_stmt.where(*filters)
+            if page_size is not None:
+                page_stmt = page_stmt.limit(page_size)
+
+            records = session.execute(page_stmt).scalars().all()
+            return [v for v in (self._to_version(r) for r in records) if v], total
 
     def resource_types_in_use(self) -> set[str]:
         with self._session_factory() as session:
