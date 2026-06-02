@@ -517,7 +517,7 @@ async def patch_resource(
         raise FHIRHTTPError(
             415,
             "Content-Type must be application/json-patch+json for PATCH",
-            "invalid",
+            "not-supported",
         )
 
     try:
@@ -629,8 +629,12 @@ async def delete_resource(
     assert_resource_id(resource_id)
 
     current = store.latest(resource_type, resource_id)
-    if current is None or current.deleted:
+    # Never-existed resource: 404 (resource was never created).
+    if current is None:
         raise FHIRHTTPError(404, "Resource was not found", "not-found")
+    # Already-deleted resource: 204 per FHIR spec (DELETE is idempotent).
+    if current.deleted:
+        return Response(status_code=204)
     assert current.resource is not None
     if not user_can_see_resource(request.state.current_user, current.resource):
         raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
@@ -643,7 +647,7 @@ async def delete_resource(
     except VersionConflictError as exc:
         raise FHIRHTTPError(412, str(exc), "conflict") from exc
     if deleted is None:
-        raise FHIRHTTPError(404, "Resource was not found", "not-found")
+        return Response(status_code=204)
 
     hook.after_delete(current.resource)
 

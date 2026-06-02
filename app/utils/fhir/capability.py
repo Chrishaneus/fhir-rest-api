@@ -74,6 +74,24 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
                         "conditionalUpdate": True,
                         "conditionalDelete": "multiple",
                         "referencePolicy": ["local"],
+                        "searchParam": [
+                            {
+                                "name": "_id",
+                                "type": "token",
+                                "definition": "http://hl7.org/fhir/SearchParameter/Resource-id",
+                            },
+                            {
+                                "name": "_lastUpdated",
+                                "type": "date",
+                                "definition": "http://hl7.org/fhir/SearchParameter/Resource-lastUpdated",
+                            },
+                            {
+                                "name": "_security",
+                                "type": "token",
+                                "definition": "http://hl7.org/fhir/SearchParameter/Resource-security",
+                                "documentation": "Filters by meta.security confidentiality code (HL7 v3 Confidentiality system).",
+                            },
+                        ],
                         "operation": [
                             {
                                 "name": "$validate",

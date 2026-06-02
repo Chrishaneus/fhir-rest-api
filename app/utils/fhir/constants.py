@@ -58,6 +58,10 @@ IGNORED_SEARCH_PARAMS = {
     "_sort",
     "_include",
     "_revinclude",
+    # Iterate variants are separate query-string keys parsed by parse_include_specs;
+    # they must be here so strict-mode handling does not flag them as unknown.
+    "_include:iterate",
+    "_revinclude:iterate",
     "_contained",
     "_containedType",
     "_offset",
