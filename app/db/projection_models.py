@@ -56,9 +56,7 @@ class BaseProjection(Base):
 
     resource_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     version_id: Mapped[str] = mapped_column(String(64), nullable=False)
-    last_updated: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 # --- Patient ---------------------------------------------------------------

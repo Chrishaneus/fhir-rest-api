@@ -45,10 +45,14 @@ def bundle_response(
     bundle_entries: list[dict[str, Any]] = []
     for version in entries:
         resource = version.resource
-        entry_resource_type = version.resource_type or (resource["resourceType"] if resource else "Resource")
+        entry_resource_type = version.resource_type or (
+            resource["resourceType"] if resource else "Resource"
+        )
         entry_resource_id = version.resource_id or (resource.get("id") if resource else None)
         entry: dict[str, Any] = {
-            "fullUrl": f"{base}/{entry_resource_type}/{entry_resource_id}" if entry_resource_id else base,
+            "fullUrl": f"{base}/{entry_resource_type}/{entry_resource_id}"
+            if entry_resource_id
+            else base,
         }
         if resource:
             entry["resource"] = resource
@@ -59,7 +63,11 @@ def bundle_response(
             # history creates are version 1; updates are version > 1
             if version.deleted:
                 request_method = "DELETE"
-                request_url = f"{entry_resource_type}/{entry_resource_id}" if entry_resource_id else entry_resource_type
+                request_url = (
+                    f"{entry_resource_type}/{entry_resource_id}"
+                    if entry_resource_id
+                    else entry_resource_type
+                )
                 response_status = "204 No Content"
             elif version.version_id == "1":
                 request_method = "POST"
@@ -67,7 +75,11 @@ def bundle_response(
                 response_status = "201 Created"
             else:
                 request_method = "PUT"
-                request_url = f"{entry_resource_type}/{entry_resource_id}" if entry_resource_id else entry_resource_type
+                request_url = (
+                    f"{entry_resource_type}/{entry_resource_id}"
+                    if entry_resource_id
+                    else entry_resource_type
+                )
                 response_status = "200 OK"
             entry["request"] = {"method": request_method, "url": request_url}
             entry["response"] = {
@@ -85,11 +97,15 @@ def bundle_response(
             included_resource_type = resource["resourceType"]
             included_resource_id = resource.get("id")
             # bdl-3a: no entry.response on searchset include entries
-            bundle_entries.append({
-                "fullUrl": f"{base}/{included_resource_type}/{included_resource_id}" if included_resource_id else base,
-                "search": {"mode": "include"},
-                "resource": resource,
-            })
+            bundle_entries.append(
+                {
+                    "fullUrl": f"{base}/{included_resource_type}/{included_resource_id}"
+                    if included_resource_id
+                    else base,
+                    "search": {"mode": "include"},
+                    "resource": resource,
+                }
+            )
 
     current_url = str(request.url)
     links: list[dict[str, str]] = [{"relation": "self", "url": current_url}]

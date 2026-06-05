@@ -39,6 +39,7 @@ def deceased_patient(client: TestClient) -> dict:
 # before_create
 # ---------------------------------------------------------------------------
 
+
 class TestBeforeCreate:
     def test_stamps_created_at_extension(self, base_patient: dict) -> None:
         ext_urls = {e["url"] for e in base_patient.get("extension", [])}
@@ -52,6 +53,7 @@ class TestBeforeCreate:
 # ---------------------------------------------------------------------------
 # before_update — birthDate immutability
 # ---------------------------------------------------------------------------
+
 
 class TestBeforeUpdateBirthDate:
     def test_change_rejected(self, client: TestClient, patient_with_birthdate: dict) -> None:
@@ -82,6 +84,7 @@ class TestBeforeUpdateBirthDate:
 # before_update — created-at extension preservation
 # ---------------------------------------------------------------------------
 
+
 class TestBeforeUpdateExtensionPreservation:
     def test_re_attaches_extension_when_client_omits_it(
         self, client: TestClient, base_patient: dict
@@ -110,10 +113,9 @@ class TestBeforeUpdateExtensionPreservation:
 # before_delete — deceased protection
 # ---------------------------------------------------------------------------
 
+
 class TestBeforeDelete:
-    def test_blocked_for_deceased_boolean(
-        self, client: TestClient, deceased_patient: dict
-    ) -> None:
+    def test_blocked_for_deceased_boolean(self, client: TestClient, deceased_patient: dict) -> None:
         resp = client.delete(f"/Patient/{deceased_patient['id']}")
         assert resp.status_code == 409
         assert "Deceased" in resp.json()["issue"][0]["diagnostics"]

@@ -137,9 +137,7 @@ def _apply_revincludes(
             continue
         rtype = version.resource.get("resourceType", "")
         if rtype:
-            refs_by_type.setdefault(rtype, []).append(
-                f"{rtype}/{version.resource['id']}"
-            )
+            refs_by_type.setdefault(rtype, []).append(f"{rtype}/{version.resource['id']}")
 
     for source_type, param_name, target_type in specs:
         for ref_type, match_refs in refs_by_type.items():
@@ -180,10 +178,12 @@ def resolve_includes(
 
     for version in page:
         if version.resource:
-            seen.add((
-                version.resource.get("resourceType", ""),
-                version.resource.get("id", ""),
-            ))
+            seen.add(
+                (
+                    version.resource.get("resourceType", ""),
+                    version.resource.get("id", ""),
+                )
+            )
 
     base_includes = [(s, p, t) for s, p, t, it in include_specs if not it]
     iter_includes = [(s, p, t) for s, p, t, it in include_specs if it]
@@ -191,9 +191,8 @@ def resolve_includes(
     iter_revincludes = [(s, p, t) for s, p, t, it in revinclude_specs if it]
 
     # One-shot pass on the original page
-    one_shot = (
-        _apply_includes(store, base_includes, page, seen)
-        + _apply_revincludes(store, base_revincludes, page, seen)
+    one_shot = _apply_includes(store, base_includes, page, seen) + _apply_revincludes(
+        store, base_revincludes, page, seen
     )
     included.extend(one_shot)
 
@@ -202,9 +201,8 @@ def resolve_includes(
     if iter_includes or iter_revincludes:
         frontier: list[ResourceVersion] = list(page) + one_shot
         while True:
-            new_batch = (
-                _apply_includes(store, iter_includes, frontier, seen)
-                + _apply_revincludes(store, iter_revincludes, frontier, seen)
+            new_batch = _apply_includes(store, iter_includes, frontier, seen) + _apply_revincludes(
+                store, iter_revincludes, frontier, seen
             )
             if not new_batch:
                 break

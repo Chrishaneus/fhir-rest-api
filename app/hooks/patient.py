@@ -15,7 +15,6 @@ _CREATED_AT_URL = "https://example.org/fhir/StructureDefinition/created-at"
 
 
 class PatientHooks(ResourceHooks):
-
     def before_create(self, resource: dict[str, Any]) -> dict[str, Any]:
         # Stamp the server-side creation time as an extension so consumers
         # can distinguish "when was this first entered" from lastUpdated.
@@ -43,7 +42,11 @@ class PatientHooks(ResourceHooks):
         # Re-attach the created-at extension if the client's PUT body omitted it.
         if old:
             original = next(
-                (extension for extension in old.get("extension", []) if extension.get("url") == _CREATED_AT_URL),
+                (
+                    extension
+                    for extension in old.get("extension", [])
+                    if extension.get("url") == _CREATED_AT_URL
+                ),
                 None,
             )
             if original:

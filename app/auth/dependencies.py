@@ -18,9 +18,9 @@ _bearer = HTTPBearer(auto_error=False)
 
 # Methods each role is permitted to use on FHIR resource routes.
 _ROLE_ALLOWED_METHODS: dict[UserRole, frozenset[str]] = {
-    UserRole.VIEWER:    frozenset({"GET", "HEAD", "OPTIONS"}),
+    UserRole.VIEWER: frozenset({"GET", "HEAD", "OPTIONS"}),
     UserRole.CLINICIAN: frozenset({"GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH"}),
-    UserRole.ADMIN:     frozenset({"GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"}),
+    UserRole.ADMIN: frozenset({"GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"}),
 }
 
 

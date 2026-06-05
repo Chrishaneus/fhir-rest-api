@@ -82,9 +82,9 @@ def check_conditional_read(request: Request, version) -> Response | None:
                 since = since.replace(tzinfo=UTC)
         except (TypeError, ValueError):
             return None
-        if version.last_updated.replace(microsecond=0) <= since.astimezone(UTC).replace(microsecond=0):
+        if version.last_updated.replace(microsecond=0) <= since.astimezone(UTC).replace(
+            microsecond=0
+        ):
             return Response(status_code=304, headers=read_headers(version))
 
     return None
-
-

@@ -31,9 +31,9 @@ _CLEARANCE_ORDER: list[str] = ["U", "L", "M", "N", "R", "V"]
 _CLEARANCE_RANK: dict[str, int] = {code: rank for rank, code in enumerate(_CLEARANCE_ORDER)}
 
 _ROLE_CEILING: dict[UserRole, str] = {
-    UserRole.VIEWER:    "N",
+    UserRole.VIEWER: "N",
     UserRole.CLINICIAN: "R",
-    UserRole.ADMIN:     "V",
+    UserRole.ADMIN: "V",
 }
 
 
@@ -72,9 +72,7 @@ def user_can_see_resource(user: User | None, resource: dict[str, Any]) -> bool:
     return max(_CLEARANCE_RANK.get(code, 0) for code in codes) <= ceiling_rank
 
 
-def filter_for_user(
-    user: User | None, versions: list[ResourceVersion]
-) -> list[ResourceVersion]:
+def filter_for_user(user: User | None, versions: list[ResourceVersion]) -> list[ResourceVersion]:
     """Return only the versions the user has clearance to read.
 
     Tombstone versions (resource=None, deleted=True) are always passed through
@@ -82,7 +80,4 @@ def filter_for_user(
     """
     if user is None:
         return versions
-    return [
-        v for v in versions
-        if v.resource is None or user_can_see_resource(user, v.resource)
-    ]
+    return [v for v in versions if v.resource is None or user_can_see_resource(user, v.resource)]

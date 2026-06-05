@@ -36,18 +36,24 @@ def _acquire_token(base_url: str) -> str:
         return explicit
 
     with httpx.Client(base_url=base_url, timeout=10.0, verify=VERIFY_CERTIFICATES) as http_client:
-        reg = http_client.post("/auth/register", json={
-            "username": _TEST_USERNAME,
-            "password": _TEST_PASSWORD,
-            "role": "admin",
-        })
+        reg = http_client.post(
+            "/auth/register",
+            json={
+                "username": _TEST_USERNAME,
+                "password": _TEST_PASSWORD,
+                "role": "admin",
+            },
+        )
         if reg.status_code not in (201, 409):
             return ""
 
-        login = http_client.post("/auth/login", json={
-            "username": _TEST_USERNAME,
-            "password": _TEST_PASSWORD,
-        })
+        login = http_client.post(
+            "/auth/login",
+            json={
+                "username": _TEST_USERNAME,
+                "password": _TEST_PASSWORD,
+            },
+        )
         if login.status_code != 200:
             return ""
         return login.json().get("access_token", "")
@@ -63,15 +69,15 @@ def client(base_url: str):
     transport = httpx.HTTPTransport(retries=0, verify=VERIFY_CERTIFICATES)
 
     # Probe metadata first (always public) to confirm the server is up.
-    with httpx.Client(base_url=base_url, timeout=10.0, transport=transport, verify=VERIFY_CERTIFICATES) as probe:
+    with httpx.Client(
+        base_url=base_url, timeout=10.0, transport=transport, verify=VERIFY_CERTIFICATES
+    ) as probe:
         try:
             response = probe.get("/metadata")
         except httpx.HTTPError as exc:
             pytest.skip(f"FHIR server at {base_url} not reachable: {exc}")
         if response.status_code != 200:
-            pytest.skip(
-                f"FHIR server at {base_url} returned {response.status_code} on /metadata"
-            )
+            pytest.skip(f"FHIR server at {base_url} returned {response.status_code} on /metadata")
 
     headers: dict[str, str] = {"Accept": "application/fhir+json"}
     token = _acquire_token(base_url)

@@ -40,7 +40,11 @@ def apply_summary(resource: dict[str, Any], value: str) -> dict[str, Any]:
         shaped = {key: field_value for key, field_value in resource.items() if key != "text"}
         return _tag_subsetted(shaped)
     # "true" or "text": keep mandatory fields + text narrative only
-    shaped = {key: field_value for key, field_value in resource.items() if key in _ALWAYS_KEEP or key == "text"}
+    shaped = {
+        key: field_value
+        for key, field_value in resource.items()
+        if key in _ALWAYS_KEEP or key == "text"
+    }
     return _tag_subsetted(shaped)
 
 
@@ -62,7 +66,9 @@ def shape_resource(resource: dict[str, Any], params: dict[str, list[str]]) -> di
     if elements_values:
         elements: list[str] = []
         for raw_element in elements_values:
-            elements.extend(element.strip() for element in raw_element.split(",") if element.strip())
+            elements.extend(
+                element.strip() for element in raw_element.split(",") if element.strip()
+            )
         if elements:
             resource = apply_elements(resource, elements)
 

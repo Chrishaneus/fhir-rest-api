@@ -43,6 +43,7 @@ _BASELINE_HOOKS = hooks.snapshot()
 def _create_schema():
     """Create all tables once for the entire test session (SQLite in-memory)."""
     from app.db.base import Base, engine
+
     init_db()  # registers models into Base.metadata
     Base.metadata.create_all(engine)
 

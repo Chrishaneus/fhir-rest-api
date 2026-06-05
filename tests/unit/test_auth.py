@@ -24,9 +24,7 @@ class TestAuth:
         assert "access_token" in body
         assert body["token_type"] == "bearer"
 
-    def test_login_without_jwt_secret_returns_503(
-        self, client: TestClient, monkeypatch
-    ) -> None:
+    def test_login_without_jwt_secret_returns_503(self, client: TestClient, monkeypatch) -> None:
         monkeypatch.setattr("app.config.JWT_SECRET", None)
         client.post("/auth/register", json={"username": "e", "password": "pass"})
         r = client.post("/auth/login", json={"username": "e", "password": "pass"})
@@ -97,9 +95,7 @@ class TestAuth:
 
 
 class TestJWTMiddleware:
-    def test_no_secret_configured_allows_all(
-        self, client: TestClient, monkeypatch
-    ) -> None:
+    def test_no_secret_configured_allows_all(self, client: TestClient, monkeypatch) -> None:
         monkeypatch.setattr("app.config.JWT_SECRET", None)
         r = client.get("/Patient")
         assert r.status_code == 200
@@ -124,7 +120,9 @@ class TestJWTMiddleware:
     ) -> None:
         monkeypatch.setattr("app.config.JWT_SECRET", jwt_secret)
         client.post("/auth/register", json={"username": "jwt-user", "password": "pass"})
-        token = client.post("/auth/login", json={"username": "jwt-user", "password": "pass"}).json()["access_token"]
+        token = client.post(
+            "/auth/login", json={"username": "jwt-user", "password": "pass"}
+        ).json()["access_token"]
         r = client.get("/Patient", headers={"Authorization": f"Bearer {token}"})
         assert r.status_code == 200
 

@@ -34,9 +34,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-os.environ.setdefault(
-    "DATABASE_URL", "postgresql+psycopg://fhir:fhir@localhost:55432/fhir"
-)
+os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://fhir:fhir@localhost:55432/fhir")
 
 from sqlalchemy import delete, select  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
@@ -84,9 +82,7 @@ def _latest_versions_query(resource_type: str):
         .group_by(ResourceVersionRecord.resource_id)
         .subquery()
     )
-    return select(ResourceVersionRecord).join(
-        subq, ResourceVersionRecord.id == subq.c.max_id
-    )
+    return select(ResourceVersionRecord).join(subq, ResourceVersionRecord.id == subq.c.max_id)
 
 
 def _rebuild_one(session: Session, projection: Projection) -> tuple[int, int]:
@@ -179,8 +175,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m scripts.rebuild_projections",
         description=(
-            "Repopulate every projection table from the current state of "
-            "resource_versions."
+            "Repopulate every projection table from the current state of resource_versions."
         ),
     )
     parser.add_argument(

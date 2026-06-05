@@ -62,6 +62,7 @@ def _safe_set(key: str, value: str, ttl: int) -> None:
 
 T = TypeVar("T")
 
+
 def cache_set(key: str, value: Any, ttl: int, serialize: Callable[[Any], str]) -> None:
     """Store a value in Redis using the provided serializer."""
     _safe_set(key, serialize(value), ttl)
@@ -125,7 +126,9 @@ def redis_cached(
             if result is not None:
                 _safe_set(key, serialize(result), ttl)
             return result
+
         return wrapper
+
     return decorator
 
 
@@ -181,5 +184,7 @@ def write_through(
                 key = key_function(*call_args)
                 _safe_set(key, serialize(value), ttl)
             return result
+
         return wrapper
+
     return decorator

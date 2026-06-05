@@ -37,7 +37,11 @@ class TestResponseHeaders:
         for r in [
             client.get("/Patient/does-not-exist"),
             client.get("/NotAType/some-id"),
-            client.post("/Patient", json={"resourceType": "Patient", "bad": 1}, headers={"Content-Type": FHIR_JSON}),
+            client.post(
+                "/Patient",
+                json={"resourceType": "Patient", "bad": 1},
+                headers={"Content-Type": FHIR_JSON},
+            ),
         ]:
             assert r.headers["content-type"].startswith(FHIR_JSON)
 

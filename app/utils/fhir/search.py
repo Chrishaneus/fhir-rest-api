@@ -102,7 +102,7 @@ def extract_handling_mode(prefer: str | None) -> str:
     for token in prefer.split(","):
         token = token.strip()
         if token.lower().startswith("handling="):
-            mode = token[len("handling="):].strip().lower()
+            mode = token[len("handling=") :].strip().lower()
             if mode in {"lenient", "strict"}:
                 return mode
     return "lenient"
@@ -117,8 +117,7 @@ def find_unknown_params(params: dict[str, list[str]]) -> list[str]:
     lenient mode but trigger a 400 in strict mode.
     """
     return sorted(
-        key for key in params
-        if key.startswith("_") and key not in _ALL_KNOWN_UNDERSCORE_PARAMS
+        key for key in params if key.startswith("_") and key not in _ALL_KNOWN_UNDERSCORE_PARAMS
     )
 
 
@@ -168,9 +167,7 @@ def parse_pagination_params(
     return offset, page_size
 
 
-def apply_pagination(
-    items: list, params: dict[str, list[str]]
-) -> tuple[list, int, int | None]:
+def apply_pagination(items: list, params: dict[str, list[str]]) -> tuple[list, int, int | None]:
     """Return (page, offset, page_size) by slicing *items* in Python.
 
     Used for search results that are already fully loaded.

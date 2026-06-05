@@ -41,7 +41,11 @@ def _patient(code: str | None = None) -> dict:
 
 def _make_tokens(client: TestClient, jwt_secret: str, monkeypatch) -> dict[str, str]:
     monkeypatch.setattr("app.config.JWT_SECRET", jwt_secret)
-    for username, role in [("sl-admin", "admin"), ("sl-clinician", "clinician"), ("sl-viewer", "viewer")]:
+    for username, role in [
+        ("sl-admin", "admin"),
+        ("sl-clinician", "clinician"),
+        ("sl-viewer", "viewer"),
+    ]:
         client.post("/auth/register", json={"username": username, "password": "pass", "role": role})
     tokens = {}
     for username in ("sl-admin", "sl-clinician", "sl-viewer"):
@@ -161,7 +165,9 @@ class TestSecurityLabelRead:
         assert r.status_code == 201
         resource_id = r.json()["id"]
 
-        r = client.get(f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"})
+        r = client.get(
+            f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"}
+        )
         assert r.status_code == 403
         assert r.json()["resourceType"] == "OperationOutcome"
 
@@ -171,7 +177,9 @@ class TestSecurityLabelRead:
         assert r.status_code == 201
         resource_id = r.json()["id"]
 
-        r = client.get(f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"})
+        r = client.get(
+            f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"}
+        )
         assert r.status_code == 403
 
     def test_viewer_can_read_normal(self, client, jwt_secret, monkeypatch):
@@ -180,7 +188,9 @@ class TestSecurityLabelRead:
         assert r.status_code == 201
         resource_id = r.json()["id"]
 
-        r = client.get(f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"})
+        r = client.get(
+            f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"}
+        )
         assert r.status_code == 200
 
     def test_viewer_can_read_unlabeled(self, client, jwt_secret, monkeypatch):
@@ -189,7 +199,9 @@ class TestSecurityLabelRead:
         assert r.status_code == 201
         resource_id = r.json()["id"]
 
-        r = client.get(f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"})
+        r = client.get(
+            f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"}
+        )
         assert r.status_code == 200
 
     def test_clinician_can_read_restricted(self, client, jwt_secret, monkeypatch):
@@ -198,7 +210,9 @@ class TestSecurityLabelRead:
         assert r.status_code == 201
         resource_id = r.json()["id"]
 
-        r = client.get(f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-clinician']}"})
+        r = client.get(
+            f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-clinician']}"}
+        )
         assert r.status_code == 200
 
     def test_clinician_cannot_read_very_restricted(self, client, jwt_secret, monkeypatch):
@@ -207,7 +221,9 @@ class TestSecurityLabelRead:
         assert r.status_code == 201
         resource_id = r.json()["id"]
 
-        r = client.get(f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-clinician']}"})
+        r = client.get(
+            f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-clinician']}"}
+        )
         assert r.status_code == 403
 
     def test_admin_can_read_very_restricted(self, client, jwt_secret, monkeypatch):
@@ -216,7 +232,9 @@ class TestSecurityLabelRead:
         assert r.status_code == 201
         resource_id = r.json()["id"]
 
-        r = client.get(f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-admin']}"})
+        r = client.get(
+            f"/Patient/{resource_id}", headers={"Authorization": f"Bearer {tokens['sl-admin']}"}
+        )
         assert r.status_code == 200
 
 
@@ -259,7 +277,10 @@ class TestSecurityLabelSearch:
 
         r = client.post(
             "/Patient/_search",
-            headers={"Authorization": f"Bearer {tokens['sl-clinician']}", "Content-Type": "application/x-www-form-urlencoded"},
+            headers={
+                "Authorization": f"Bearer {tokens['sl-clinician']}",
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
         )
         assert r.status_code == 200
         ids = {e["resource"]["id"] for e in r.json().get("entry", [])}
@@ -270,7 +291,9 @@ class TestSecurityLabelSearch:
         client.post("/Patient", headers=_auth(tokens["sl-admin"]), json=_patient("V"))
         client.post("/Patient", headers=_auth(tokens["sl-admin"]), json=_patient("N"))
 
-        r = client.get("/Patient?_total=accurate", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"})
+        r = client.get(
+            "/Patient?_total=accurate", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"}
+        )
         assert r.status_code == 200
         # Total must reflect post-filter count (viewer sees only N)
         assert r.json()["total"] == 1
@@ -287,7 +310,9 @@ class TestSecurityLabelWrite:
         r = client.post("/Patient", headers=_auth(tokens["sl-clinician"]), json=_patient("R"))
         assert r.status_code == 201
 
-    def test_clinician_cannot_update_very_restricted_resource(self, client, jwt_secret, monkeypatch):
+    def test_clinician_cannot_update_very_restricted_resource(
+        self, client, jwt_secret, monkeypatch
+    ):
         tokens = _make_tokens(client, jwt_secret, monkeypatch)
         r = client.post("/Patient", headers=_auth(tokens["sl-admin"]), json=_patient("V"))
         assert r.status_code == 201
@@ -317,7 +342,9 @@ class TestSecurityLabelWrite:
         )
         assert r.status_code == 403
 
-    def test_clinician_cannot_upgrade_label_to_very_restricted(self, client, jwt_secret, monkeypatch):
+    def test_clinician_cannot_upgrade_label_to_very_restricted(
+        self, client, jwt_secret, monkeypatch
+    ):
         tokens = _make_tokens(client, jwt_secret, monkeypatch)
         r = client.post("/Patient", headers=_auth(tokens["sl-clinician"]), json=_patient("R"))
         assert r.status_code == 201
@@ -333,7 +360,9 @@ class TestSecurityLabelWrite:
 
 
 class TestSecurityLabelHistory:
-    def test_viewer_cannot_access_instance_history_of_restricted(self, client, jwt_secret, monkeypatch):
+    def test_viewer_cannot_access_instance_history_of_restricted(
+        self, client, jwt_secret, monkeypatch
+    ):
         tokens = _make_tokens(client, jwt_secret, monkeypatch)
         r = client.post("/Patient", headers=_auth(tokens["sl-admin"]), json=_patient("R"))
         assert r.status_code == 201
@@ -354,7 +383,9 @@ class TestSecurityLabelHistory:
         r = client.post("/Patient", headers=_auth(tokens["sl-admin"]), json=_patient("N"))
         assert r.status_code == 201
 
-        r = client.get("/Patient/_history", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"})
+        r = client.get(
+            "/Patient/_history", headers={"Authorization": f"Bearer {tokens['sl-viewer']}"}
+        )
         assert r.status_code == 200
         ids = [
             e.get("resource", {}).get("id")
@@ -365,7 +396,9 @@ class TestSecurityLabelHistory:
 
 
 class TestSecurityLabelEverything:
-    def test_viewer_cannot_access_everything_on_restricted_anchor(self, client, jwt_secret, monkeypatch):
+    def test_viewer_cannot_access_everything_on_restricted_anchor(
+        self, client, jwt_secret, monkeypatch
+    ):
         tokens = _make_tokens(client, jwt_secret, monkeypatch)
         r = client.post("/Patient", headers=_auth(tokens["sl-admin"]), json=_patient("R"))
         assert r.status_code == 201
@@ -406,7 +439,9 @@ class TestSecurityLabelEverything:
 
 
 class TestSecurityLabelCompartmentSearch:
-    def test_viewer_compartment_search_filters_restricted_resources(self, client, jwt_secret, monkeypatch):
+    def test_viewer_compartment_search_filters_restricted_resources(
+        self, client, jwt_secret, monkeypatch
+    ):
         tokens = _make_tokens(client, jwt_secret, monkeypatch)
         r = client.post("/Patient", headers=_auth(tokens["sl-admin"]), json=_patient("N"))
         assert r.status_code == 201
@@ -446,7 +481,9 @@ class TestSecurityLabelCompartmentSearch:
 
 
 class TestSecurityLabelConditionalUpdate:
-    def test_clinician_cannot_conditional_update_restricted_resource(self, client, jwt_secret, monkeypatch):
+    def test_clinician_cannot_conditional_update_restricted_resource(
+        self, client, jwt_secret, monkeypatch
+    ):
         tokens = _make_tokens(client, jwt_secret, monkeypatch)
         r = client.post("/Patient", headers=_auth(tokens["sl-admin"]), json=_patient("V"))
         assert r.status_code == 201
@@ -459,7 +496,9 @@ class TestSecurityLabelConditionalUpdate:
         )
         assert r.status_code == 403
 
-    def test_clinician_can_conditional_update_accessible_resource(self, client, jwt_secret, monkeypatch):
+    def test_clinician_can_conditional_update_accessible_resource(
+        self, client, jwt_secret, monkeypatch
+    ):
         tokens = _make_tokens(client, jwt_secret, monkeypatch)
         r = client.post("/Patient", headers=_auth(tokens["sl-clinician"]), json=_patient("R"))
         assert r.status_code == 201

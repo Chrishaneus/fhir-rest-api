@@ -45,7 +45,7 @@ SUPPORTED_INTERACTIONS = (
 # trigger a 400 when `Prefer: handling=strict` is requested.
 KNOWN_SEARCH_CONTROL_PARAMS: frozenset[str] = frozenset(
     {
-        "_id",    # logical id filter
+        "_id",  # logical id filter
         "_type",  # system-search resource-type filter
     }
 )

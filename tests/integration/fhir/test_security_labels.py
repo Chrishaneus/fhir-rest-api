@@ -39,7 +39,9 @@ def _register_and_login(base_url: str, role: str, verify: bool) -> str:
     username = f"sl-{role}-{uuid.uuid4().hex[:8]}"
     password = uuid.uuid4().hex
     with httpx.Client(base_url=base_url, timeout=10.0, verify=verify) as http:
-        reg = http.post("/auth/register", json={"username": username, "password": password, "role": role})
+        reg = http.post(
+            "/auth/register", json={"username": username, "password": password, "role": role}
+        )
         if reg.status_code not in (201, 409):
             pytest.skip(f"Could not register {role} user: {reg.status_code}")
         login = http.post("/auth/login", json={"username": username, "password": password})
@@ -97,7 +99,9 @@ def clinician_client(base_url, client):
 
 
 class TestReadAccess:
-    def test_viewer_cannot_read_very_restricted(self, client: httpx.Client, viewer_client: httpx.Client):
+    def test_viewer_cannot_read_very_restricted(
+        self, client: httpx.Client, viewer_client: httpx.Client
+    ):
         r = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient("V"))
         assert r.status_code == 201
         resource_id = r.json()["id"]
@@ -121,7 +125,9 @@ class TestReadAccess:
         r = viewer_client.get(f"/Patient/{resource_id}")
         assert r.status_code == 200
 
-    def test_clinician_can_read_restricted(self, client: httpx.Client, clinician_client: httpx.Client):
+    def test_clinician_can_read_restricted(
+        self, client: httpx.Client, clinician_client: httpx.Client
+    ):
         r = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient("R"))
         assert r.status_code == 201
         resource_id = r.json()["id"]
@@ -129,7 +135,9 @@ class TestReadAccess:
         r = clinician_client.get(f"/Patient/{resource_id}")
         assert r.status_code == 200
 
-    def test_clinician_cannot_read_very_restricted(self, client: httpx.Client, clinician_client: httpx.Client):
+    def test_clinician_cannot_read_very_restricted(
+        self, client: httpx.Client, clinician_client: httpx.Client
+    ):
         r = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient("V"))
         assert r.status_code == 201
         resource_id = r.json()["id"]

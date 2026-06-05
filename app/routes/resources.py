@@ -81,8 +81,8 @@ def _parse_if_none_exist(header: str) -> dict[str, list[str]]:
         )
     return params
 
-router = APIRouter(tags=["resources"], dependencies=[Depends(require_permission)])
 
+router = APIRouter(tags=["resources"], dependencies=[Depends(require_permission)])
 
 
 @router.get("/{resource_type}/_history")
@@ -99,7 +99,9 @@ async def type_history(resource_type: str, request: Request) -> JSONResponse:
         page_size=page_size,
     )
     page = filter_for_user(request.state.current_user, page)
-    bundle = bundle_response(request, "history", page, total=total, offset=offset, page_size=page_size)
+    bundle = bundle_response(
+        request, "history", page, total=total, offset=offset, page_size=page_size
+    )
     return fhir_json_response(shape_bundle(bundle, params))
 
 
@@ -111,7 +113,9 @@ async def post_type_search(resource_type: str, request: Request) -> JSONResponse
     if extract_handling_mode(request.headers.get("prefer")) == "strict":
         unknown = find_unknown_params(params)
         if unknown:
-            raise FHIRHTTPError(400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported")
+            raise FHIRHTTPError(
+                400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported"
+            )
     matches = store.search(resource_type, params)
     matches = filter_for_user(request.state.current_user, matches)
     page, offset, page_size = apply_pagination(matches, params)
@@ -119,8 +123,12 @@ async def post_type_search(resource_type: str, request: Request) -> JSONResponse
     included = filter_for_user(request.state.current_user, included)
     total = None if extract_total_mode(params) == "none" else len(matches)
     bundle = bundle_response(
-        request, "searchset", page,
-        total=total, offset=offset, page_size=page_size,
+        request,
+        "searchset",
+        page,
+        total=total,
+        offset=offset,
+        page_size=page_size,
         included=included,
     )
     return fhir_json_response(shape_bundle(bundle, params))
@@ -134,7 +142,9 @@ async def get_type_search(resource_type: str, request: Request) -> JSONResponse:
     if extract_handling_mode(request.headers.get("prefer")) == "strict":
         unknown = find_unknown_params(params)
         if unknown:
-            raise FHIRHTTPError(400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported")
+            raise FHIRHTTPError(
+                400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported"
+            )
     matches = store.search(resource_type, params)
     matches = filter_for_user(request.state.current_user, matches)
     page, offset, page_size = apply_pagination(matches, params)
@@ -142,8 +152,12 @@ async def get_type_search(resource_type: str, request: Request) -> JSONResponse:
     included = filter_for_user(request.state.current_user, included)
     total = None if extract_total_mode(params) == "none" else len(matches)
     bundle = bundle_response(
-        request, "searchset", page,
-        total=total, offset=offset, page_size=page_size,
+        request,
+        "searchset",
+        page,
+        total=total,
+        offset=offset,
+        page_size=page_size,
         included=included,
     )
     return fhir_json_response(shape_bundle(bundle, params))
@@ -309,14 +323,14 @@ async def read_version(
     if not user_can_see_resource(request.state.current_user, version.resource):
         raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
     params = query_params(request)
-    return fhir_json_response(shape_resource(version.resource, params), headers=read_headers(version))
+    return fhir_json_response(
+        shape_resource(version.resource, params), headers=read_headers(version)
+    )
 
 
 @router.get("/{resource_type}/{resource_id}/_history")
 @router.get("/{resource_type}/{resource_id}/_history/")
-async def instance_history(
-    resource_type: str, resource_id: str, request: Request
-) -> JSONResponse:
+async def instance_history(resource_type: str, resource_id: str, request: Request) -> JSONResponse:
     assert_resource_type(resource_type)
     assert_resource_id(resource_id)
     params = query_params(request)
@@ -326,7 +340,11 @@ async def instance_history(
     if latest is None:
         raise FHIRHTTPError(404, "Resource was not found", "not-found")
     user = request.state.current_user
-    if not latest.deleted and latest.resource is not None and not user_can_see_resource(user, latest.resource):
+    if (
+        not latest.deleted
+        and latest.resource is not None
+        and not user_can_see_resource(user, latest.resource)
+    ):
         raise FHIRHTTPError(403, "Access to this resource is not permitted", "forbidden")
     offset, page_size = parse_pagination_params(params)
     page, total = store.history(
@@ -338,12 +356,16 @@ async def instance_history(
         page_size=page_size,
     )
     page = filter_for_user(user, page)
-    bundle = bundle_response(request, "history", page, total=total, offset=offset, page_size=page_size)
+    bundle = bundle_response(
+        request, "history", page, total=total, offset=offset, page_size=page_size
+    )
     return fhir_json_response(shape_bundle(bundle, params))
 
 
 @router.get("/{resource_type}/{resource_id}/$everything")
-async def resource_everything(resource_type: str, resource_id: str, request: Request) -> JSONResponse:
+async def resource_everything(
+    resource_type: str, resource_id: str, request: Request
+) -> JSONResponse:
     assert_resource_type(resource_type)
     assert_resource_id(resource_id)
     anchor, linked = store.resource_everything(resource_type, resource_id)
@@ -366,7 +388,9 @@ async def resource_everything(resource_type: str, resource_id: str, request: Req
     page_linked = [v for v in page if v is not anchor]
 
     bundle = bundle_response(
-        request, "searchset", page_anchor,
+        request,
+        "searchset",
+        page_anchor,
         total=len(all_versions),
         offset=offset,
         page_size=page_size,
@@ -420,7 +444,9 @@ async def compartment_search(
     if extract_handling_mode(request.headers.get("prefer")) == "strict":
         unknown = find_unknown_params(params)
         if unknown:
-            raise FHIRHTTPError(400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported")
+            raise FHIRHTTPError(
+                400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported"
+            )
     matches = store.search(resource_type, merged_params)
     matches = filter_for_user(request.state.current_user, matches)
     page, offset, page_size = apply_pagination(matches, merged_params)
@@ -428,8 +454,12 @@ async def compartment_search(
     included = filter_for_user(request.state.current_user, included)
     total = None if extract_total_mode(params) == "none" else len(matches)
     bundle = bundle_response(
-        request, "searchset", page,
-        total=total, offset=offset, page_size=page_size,
+        request,
+        "searchset",
+        page,
+        total=total,
+        offset=offset,
+        page_size=page_size,
         included=included,
     )
     return fhir_json_response(shape_bundle(bundle, params))
@@ -452,7 +482,9 @@ async def read_resource(resource_type: str, resource_id: str, request: Request) 
     if conditional is not None:
         return conditional
     params = query_params(request)
-    return fhir_json_response(shape_resource(version.resource, params), headers=read_headers(version))
+    return fhir_json_response(
+        shape_resource(version.resource, params), headers=read_headers(version)
+    )
 
 
 @router.put("/{resource_type}/{resource_id}")
@@ -465,9 +497,7 @@ async def update_resource(
 ) -> Response:
     assert_resource_type(resource_type)
     assert_resource_id(resource_id)
-    resource: dict[str, Any] = validate_request_body(
-        resource_type, payload, require_id=resource_id
-    )
+    resource: dict[str, Any] = validate_request_body(resource_type, payload, require_id=resource_id)
 
     current = store.latest(resource_type, resource_id)
 
@@ -484,7 +514,9 @@ async def update_resource(
 
     try:
         version, created = store.update(
-            resource_type, resource_id, resource,
+            resource_type,
+            resource_id,
+            resource,
             if_match=request.headers.get("if-match"),
         )
     except VersionConflictError as exc:
@@ -549,7 +581,9 @@ async def patch_resource(
 
     try:
         version, _ = store.update(
-            resource_type, resource_id, resource,
+            resource_type,
+            resource_id,
+            resource,
             if_match=request.headers.get("if-match"),
         )
     except VersionConflictError as exc:

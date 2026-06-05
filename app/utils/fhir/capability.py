@@ -66,7 +66,9 @@ def capability_statement(request: Request, resource_types: list[str]) -> dict[st
                 "resource": [
                     {
                         "type": resource_type,
-                        "interaction": [{"code": interaction} for interaction in SUPPORTED_INTERACTIONS],
+                        "interaction": [
+                            {"code": interaction} for interaction in SUPPORTED_INTERACTIONS
+                        ],
                         "versioning": "versioned-update",
                         "readHistory": True,
                         "updateCreate": True,

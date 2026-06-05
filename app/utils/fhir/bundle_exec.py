@@ -103,14 +103,17 @@ def _process_transaction(
         parsed.append(_parse_entry(entry, base, entry_index))
 
     # Phase 2: build store operations and execute atomically
-    operations: list[TransactionOperation] = [_to_transaction_operation(parsed_entry) for parsed_entry in parsed]
+    operations: list[TransactionOperation] = [
+        _to_transaction_operation(parsed_entry) for parsed_entry in parsed
+    ]
     try:
         results = store.execute_transaction(operations)
     except VersionConflictError as exc:
         raise FHIRHTTPError(412, str(exc), "conflict") from exc
 
     response_entries = [
-        _build_success_entry(parsed_entry, result, base) for parsed_entry, result in zip(parsed, results, strict=True)
+        _build_success_entry(parsed_entry, result, base)
+        for parsed_entry, result in zip(parsed, results, strict=True)
     ]
     return {
         "resourceType": "Bundle",
@@ -157,21 +160,38 @@ def _execute_batch_entry(parsed_entry: _ParsedEntry, store: FHIRStore) -> Transa
         return TransactionResult(version=version, created=True)
     if parsed_entry.method == "PUT":
         assert parsed_entry.resource_id is not None
-        version, created = store.update(parsed_entry.resource_type, parsed_entry.resource_id, parsed_entry.resource or {}, if_match=parsed_entry.if_match)
+        version, created = store.update(
+            parsed_entry.resource_type,
+            parsed_entry.resource_id,
+            parsed_entry.resource or {},
+            if_match=parsed_entry.if_match,
+        )
         return TransactionResult(version=version, created=created)
     if parsed_entry.method == "DELETE":
         assert parsed_entry.resource_id is not None
         version = store.delete(parsed_entry.resource_type, parsed_entry.resource_id)
         if version is None:
-            raise FHIRHTTPError(404, f"{parsed_entry.resource_type}/{parsed_entry.resource_id} was not found", "not-found")
+            raise FHIRHTTPError(
+                404,
+                f"{parsed_entry.resource_type}/{parsed_entry.resource_id} was not found",
+                "not-found",
+            )
         return TransactionResult(version=version)
     # GET
     assert parsed_entry.resource_id is not None
     version = store.latest(parsed_entry.resource_type, parsed_entry.resource_id)
     if version is None:
-        raise FHIRHTTPError(404, f"{parsed_entry.resource_type}/{parsed_entry.resource_id} was not found", "not-found")
+        raise FHIRHTTPError(
+            404,
+            f"{parsed_entry.resource_type}/{parsed_entry.resource_id} was not found",
+            "not-found",
+        )
     if version.deleted:
-        raise FHIRHTTPError(410, f"{parsed_entry.resource_type}/{parsed_entry.resource_id} has been deleted", "deleted")
+        raise FHIRHTTPError(
+            410,
+            f"{parsed_entry.resource_type}/{parsed_entry.resource_id} has been deleted",
+            "deleted",
+        )
     return TransactionResult(version=version)
 
 
@@ -216,14 +236,20 @@ def _parse_entry(entry: dict[str, Any], base: str, index: int) -> _ParsedEntry:
 
     elif method == "PUT":
         if resource_id is None:
-            raise FHIRHTTPError(400, f"Entry {index}: PUT requires a resource id in the URL", "required")
+            raise FHIRHTTPError(
+                400, f"Entry {index}: PUT requires a resource id in the URL", "required"
+            )
         if not isinstance(raw_resource, dict):
             raise FHIRHTTPError(400, f"Entry {index}: PUT requires a resource body", "required")
-        validated_resource = validate_request_body(resource_type, raw_resource, require_id=resource_id)
+        validated_resource = validate_request_body(
+            resource_type, raw_resource, require_id=resource_id
+        )
 
     elif method in ("DELETE", "GET"):
         if resource_id is None:
-            raise FHIRHTTPError(400, f"Entry {index}: {method} requires a resource id in the URL", "required")
+            raise FHIRHTTPError(
+                400, f"Entry {index}: {method} requires a resource id in the URL", "required"
+            )
 
     return _ParsedEntry(
         index=index,
@@ -241,12 +267,14 @@ def _parse_url(url: str, base: str, index: int) -> tuple[str, str | None]:
     # Strip server base prefix
     for prefix in (base + "/", base):
         if url.startswith(prefix):
-            url = url[len(prefix):]
+            url = url[len(prefix) :]
             break
     url = url.lstrip("/").split("?")[0]  # ignore query string (conditional ops not supported)
     parts = [part for part in url.split("/") if part]
     if not parts:
-        raise FHIRHTTPError(400, f"Entry {index}: could not parse resource type from URL '{url}'", "invalid")
+        raise FHIRHTTPError(
+            400, f"Entry {index}: could not parse resource type from URL '{url}'", "invalid"
+        )
     return parts[0], parts[1] if len(parts) > 1 else None
 
 
@@ -257,16 +285,27 @@ def _parse_url(url: str, base: str, index: int) -> tuple[str, str | None]:
 
 def _to_transaction_operation(parsed_entry: _ParsedEntry) -> TransactionOperation:
     if parsed_entry.method == "POST":
-        return TransactionCreate(resource_type=parsed_entry.resource_type, resource=parsed_entry.resource or {})
+        return TransactionCreate(
+            resource_type=parsed_entry.resource_type, resource=parsed_entry.resource or {}
+        )
     if parsed_entry.method == "PUT":
         assert parsed_entry.resource_id is not None
-        return TransactionUpdate(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id, resource=parsed_entry.resource or {}, if_match=parsed_entry.if_match)
+        return TransactionUpdate(
+            resource_type=parsed_entry.resource_type,
+            resource_id=parsed_entry.resource_id,
+            resource=parsed_entry.resource or {},
+            if_match=parsed_entry.if_match,
+        )
     if parsed_entry.method == "DELETE":
         assert parsed_entry.resource_id is not None
-        return TransactionDelete(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id)
+        return TransactionDelete(
+            resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id
+        )
     # GET
     assert parsed_entry.resource_id is not None
-    return TransactionRead(resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id)
+    return TransactionRead(
+        resource_type=parsed_entry.resource_type, resource_id=parsed_entry.resource_id
+    )
 
 
 # ---------------------------------------------------------------------------

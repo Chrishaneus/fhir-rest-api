@@ -17,18 +17,18 @@ depends_on: str | Sequence[str] | None = None
 
 # (table, old_column, new_column)
 _RENAMES: list[tuple[str, str, str]] = [
-    ("encounter_projection",          "subject_ref",   "subject_reference"),
-    ("observation_projection",        "subject_ref",   "subject_reference"),
-    ("observation_projection",        "encounter_ref", "encounter_reference"),
-    ("condition_projection",          "subject_ref",   "subject_reference"),
-    ("condition_projection",          "encounter_ref", "encounter_reference"),
-    ("allergyintolerance_projection", "patient_ref",   "patient_reference"),
-    ("medicationrequest_projection",  "subject_ref",   "subject_reference"),
-    ("medicationrequest_projection",  "requester_ref", "requester_reference"),
-    ("diagnosticreport_projection",   "subject_ref",   "subject_reference"),
-    ("diagnosticreport_projection",   "encounter_ref", "encounter_reference"),
-    ("procedure_projection",          "subject_ref",   "subject_reference"),
-    ("procedure_projection",          "encounter_ref", "encounter_reference"),
+    ("encounter_projection", "subject_ref", "subject_reference"),
+    ("observation_projection", "subject_ref", "subject_reference"),
+    ("observation_projection", "encounter_ref", "encounter_reference"),
+    ("condition_projection", "subject_ref", "subject_reference"),
+    ("condition_projection", "encounter_ref", "encounter_reference"),
+    ("allergyintolerance_projection", "patient_ref", "patient_reference"),
+    ("medicationrequest_projection", "subject_ref", "subject_reference"),
+    ("medicationrequest_projection", "requester_ref", "requester_reference"),
+    ("diagnosticreport_projection", "subject_ref", "subject_reference"),
+    ("diagnosticreport_projection", "encounter_ref", "encounter_reference"),
+    ("procedure_projection", "subject_ref", "subject_reference"),
+    ("procedure_projection", "encounter_ref", "encounter_reference"),
 ]
 
 

@@ -61,7 +61,9 @@ async def system_history(request: Request) -> JSONResponse:
         page_size=page_size,
     )
     page = filter_for_user(request.state.current_user, page)
-    bundle = bundle_response(request, "history", page, total=total, offset=offset, page_size=page_size)
+    bundle = bundle_response(
+        request, "history", page, total=total, offset=offset, page_size=page_size
+    )
     return fhir_json_response(shape_bundle(bundle, params))
 
 
@@ -88,9 +90,13 @@ async def root_or_system_search(request: Request) -> JSONResponse:
     if extract_handling_mode(request.headers.get("prefer")) == "strict":
         unknown = find_unknown_params(params)
         if unknown:
-            raise FHIRHTTPError(400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported")
+            raise FHIRHTTPError(
+                400, f"Unknown search parameters: {', '.join(unknown)}", "not-supported"
+            )
     matches = store.system_search(params)
     page, offset, page_size = apply_pagination(matches, params)
     total = None if extract_total_mode(params) == "none" else len(matches)
-    bundle = bundle_response(request, "searchset", page, total=total, offset=offset, page_size=page_size)
+    bundle = bundle_response(
+        request, "searchset", page, total=total, offset=offset, page_size=page_size
+    )
     return fhir_json_response(shape_bundle(bundle, params))

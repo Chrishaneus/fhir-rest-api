@@ -29,7 +29,10 @@ def _post_entry(resource: dict) -> dict:
 
 def _put_entry(resource: dict, resource_id: str) -> dict:
     rt = resource["resourceType"]
-    return {"request": {"method": "PUT", "url": f"{rt}/{resource_id}"}, "resource": {**resource, "id": resource_id}}
+    return {
+        "request": {"method": "PUT", "url": f"{rt}/{resource_id}"},
+        "resource": {**resource, "id": resource_id},
+    }
 
 
 def _delete_entry(resource_type: str, resource_id: str) -> dict:
@@ -70,7 +73,10 @@ class TestSearchBundle:
             client.post(
                 "/Patient",
                 headers={"Content-Type": FHIR_JSON},
-                json={"resourceType": "Patient", "name": [{"family": f"Page-{uuid.uuid4().hex[:8]}"}]},
+                json={
+                    "resourceType": "Patient",
+                    "name": [{"family": f"Page-{uuid.uuid4().hex[:8]}"}],
+                },
             )
         r = client.get("/Patient?_count=1")
         bundle = r.json()
@@ -124,7 +130,9 @@ class TestTransactionBundle:
         assert resp["etag"].startswith('W/"')
 
     def test_update_existing_resource(self, client: httpx.Client) -> None:
-        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()["id"]
+        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()[
+            "id"
+        ]
         new_family = _uid("TxUpdated")
         r = _post(client, _transaction([_put_entry(_patient(new_family), pid)]))
         assert r.status_code == 200
@@ -138,13 +146,17 @@ class TestTransactionBundle:
         assert client.get(f"/Patient/{new_id}").status_code == 200
 
     def test_delete_resource(self, client: httpx.Client) -> None:
-        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()["id"]
+        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()[
+            "id"
+        ]
         r = _post(client, _transaction([_delete_entry("Patient", pid)]))
         assert r.json()["entry"][0]["response"]["status"] == "204 No Content"
         assert client.get(f"/Patient/{pid}").status_code == 410
 
     def test_get_resource(self, client: httpx.Client) -> None:
-        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()["id"]
+        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()[
+            "id"
+        ]
         r = _post(client, _transaction([_get_entry("Patient", pid)]))
         entry = r.json()["entry"][0]
         assert entry["response"]["status"] == "200 OK"
@@ -152,7 +164,9 @@ class TestTransactionBundle:
 
     def test_multiple_operations_all_committed(self, client: httpx.Client) -> None:
         family_a, family_b = _uid("TxA"), _uid("TxB")
-        r = _post(client, _transaction([_post_entry(_patient(family_a)), _post_entry(_patient(family_b))]))
+        r = _post(
+            client, _transaction([_post_entry(_patient(family_a)), _post_entry(_patient(family_b))])
+        )
         assert r.status_code == 200
         ids = [e["resource"]["id"] for e in r.json()["entry"]]
         assert ids[0] != ids[1]
@@ -167,7 +181,9 @@ class TestTransactionBundle:
         assert r.status_code == 422
         assert client.get(f"/Patient?name={family}").json()["total"] == 0
 
-    def test_execution_time_failure_rolls_back_preceding_db_write(self, client: httpx.Client) -> None:
+    def test_execution_time_failure_rolls_back_preceding_db_write(
+        self, client: httpx.Client
+    ) -> None:
         # Fails at DB execution time (VersionConflictError on entry 2) — verifies that
         # entry 1's write, which reached the DB session, is actually rolled back.
         existing_pid = client.post(
@@ -177,7 +193,11 @@ class TestTransactionBundle:
         entries = [
             _post_entry(_patient(family)),  # entry 1: valid, would succeed alone
             {  # entry 2: fails at execution time — wrong If-Match
-                "request": {"method": "PUT", "url": f"Patient/{existing_pid}", "ifMatch": 'W/"999"'},
+                "request": {
+                    "method": "PUT",
+                    "url": f"Patient/{existing_pid}",
+                    "ifMatch": 'W/"999"',
+                },
                 "resource": {**_patient(), "id": existing_pid},
             },
         ]
@@ -187,7 +207,9 @@ class TestTransactionBundle:
         assert client.get(f"/Patient?name={family}").json()["total"] == 0
 
     def test_version_conflict_returns_412(self, client: httpx.Client) -> None:
-        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()["id"]
+        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()[
+            "id"
+        ]
         entry = {
             "request": {"method": "PUT", "url": f"Patient/{pid}", "ifMatch": 'W/"999"'},
             "resource": {**_patient(_uid("Conflict")), "id": pid},
@@ -218,12 +240,19 @@ class TestBatchBundle:
         assert client.get(f"/Patient/{created_id}").status_code == 200
 
     def test_mixed_success_and_error_entries(self, client: httpx.Client) -> None:
-        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()["id"]
-        r = _post(client, _batch([
-            _post_entry(_patient()),
-            _get_entry("Patient", "no-such-id-xyz"),
-            _get_entry("Patient", pid),
-        ]))
+        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()[
+            "id"
+        ]
+        r = _post(
+            client,
+            _batch(
+                [
+                    _post_entry(_patient()),
+                    _get_entry("Patient", "no-such-id-xyz"),
+                    _get_entry("Patient", pid),
+                ]
+            ),
+        )
         assert r.status_code == 200
         entries = r.json()["entry"]
         assert entries[0]["response"]["status"] == "201 Created"
@@ -239,17 +268,26 @@ class TestBatchBundle:
         r = _post(client, _batch([_get_entry("Patient", "no-such-id")]))
         assert r.status_code == 200
 
-    def test_successful_creates_persisted_despite_other_failures(self, client: httpx.Client) -> None:
+    def test_successful_creates_persisted_despite_other_failures(
+        self, client: httpx.Client
+    ) -> None:
         family = _uid("BatchPersist")
-        r = _post(client, _batch([
-            _post_entry(_patient(family)),
-            _get_entry("Patient", "no-such-id"),
-        ]))
+        r = _post(
+            client,
+            _batch(
+                [
+                    _post_entry(_patient(family)),
+                    _get_entry("Patient", "no-such-id"),
+                ]
+            ),
+        )
         created_id = r.json()["entry"][0]["resource"]["id"]
         assert client.get(f"/Patient/{created_id}").status_code == 200
 
     def test_delete_via_batch(self, client: httpx.Client) -> None:
-        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()["id"]
+        pid = client.post("/Patient", headers={"Content-Type": FHIR_JSON}, json=_patient()).json()[
+            "id"
+        ]
         r = _post(client, _batch([_delete_entry("Patient", pid)]))
         assert r.json()["entry"][0]["response"]["status"] == "204 No Content"
         assert client.get(f"/Patient/{pid}").status_code == 410

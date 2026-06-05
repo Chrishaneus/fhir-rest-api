@@ -159,9 +159,7 @@ class TestLogin:
         assert "access_token" in body
         assert body["token_type"] == "bearer"
 
-    def test_wrong_password_returns_401(
-        self, client: httpx.Client, auth_token: str
-    ) -> None:
+    def test_wrong_password_returns_401(self, client: httpx.Client, auth_token: str) -> None:
         # Use a dedicated user so failures don't accumulate against the session user.
         username = _unique("wrongpw")
         client.post("/auth/register", json={"username": username, "password": "correct"})
@@ -169,9 +167,7 @@ class TestLogin:
         assert r.status_code == 401
         assert r.json()["resourceType"] == "OperationOutcome"
 
-    def test_unknown_user_returns_401(
-        self, client: httpx.Client, auth_token: str
-    ) -> None:
+    def test_unknown_user_returns_401(self, client: httpx.Client, auth_token: str) -> None:
         r = client.post(
             "/auth/login",
             json={"username": _unique("ghost"), "password": "pass"},
@@ -217,12 +213,8 @@ class TestProtectedRoutes:
         assert r.status_code == 401
         assert r.json()["resourceType"] == "OperationOutcome"
 
-    def test_invalid_token_returns_401(
-        self, unauth_client: httpx.Client, auth_token: str
-    ) -> None:
-        r = unauth_client.get(
-            "/Patient", headers={"Authorization": "Bearer this.is.invalid"}
-        )
+    def test_invalid_token_returns_401(self, unauth_client: httpx.Client, auth_token: str) -> None:
+        r = unauth_client.get("/Patient", headers={"Authorization": "Bearer this.is.invalid"})
         assert r.status_code == 401
 
     def test_health_accessible_without_token(self, unauth_client: httpx.Client) -> None:
@@ -249,9 +241,7 @@ class TestLockout:
         assert r.status_code == 423
         assert r.json()["resourceType"] == "OperationOutcome"
 
-    def test_lockout_response_includes_expiry(
-        self, client: httpx.Client, auth_token: str
-    ) -> None:
+    def test_lockout_response_includes_expiry(self, client: httpx.Client, auth_token: str) -> None:
         username = _unique("lockexp")
         client.post("/auth/register", json={"username": username, "password": "correct"})
         for _ in range(5):

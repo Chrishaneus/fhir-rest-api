@@ -89,9 +89,9 @@ class ReferenceValidatingHooks(ResourceHooks):
 # ---------------------------------------------------------------------------
 
 hooks.register("AllergyIntolerance", ReferenceValidatingHooks("patient"))
-hooks.register("Condition",          ReferenceValidatingHooks("subject", "encounter"))
-hooks.register("DiagnosticReport",   ReferenceValidatingHooks("subject", "encounter"))
-hooks.register("Encounter",          ReferenceValidatingHooks("subject"))
-hooks.register("MedicationRequest",  ReferenceValidatingHooks("subject", "requester"))
-hooks.register("Observation",        ReferenceValidatingHooks("subject", "encounter"))
-hooks.register("Procedure",          ReferenceValidatingHooks("subject", "encounter"))
+hooks.register("Condition", ReferenceValidatingHooks("subject", "encounter"))
+hooks.register("DiagnosticReport", ReferenceValidatingHooks("subject", "encounter"))
+hooks.register("Encounter", ReferenceValidatingHooks("subject"))
+hooks.register("MedicationRequest", ReferenceValidatingHooks("subject", "requester"))
+hooks.register("Observation", ReferenceValidatingHooks("subject", "encounter"))
+hooks.register("Procedure", ReferenceValidatingHooks("subject", "encounter"))

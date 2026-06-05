@@ -33,35 +33,37 @@ def _build_audit_event(
     action: str,
 ) -> dict:
     actor = _current_actor.get()
-    audit_event = AuditEvent.model_validate({
-        "resourceType": "AuditEvent",
-        "category": [
-            {"coding": [{"system": _AUDIT_TYPE_SYSTEM, "code": "rest", "display": "RESTful Operation"}]}
-        ],
-        "code": {
-            "coding": [{"system": _INTERACTION_SYSTEM, "code": action}]
-        },
-        "action": _ACTION_CODE.get(action, "E"),
-        "severity": "notice",
-        "recorded": now_utc().isoformat(),
-        "outcome": {
-            "code": {"system": _OUTCOME_SYSTEM, "code": "0", "display": "Success"}
-        },
-        "agent": [
-            {
-                "who": {"identifier": {"value": actor or "anonymous"}},
-                "requestor": True,
-            }
-        ],
-        "source": {
-            "observer": {"identifier": {"value": "fhir-rest-layer"}}
-        },
-        "entity": [
-            {
-                "what": {"reference": f"{resource_type}/{resource_id}/_history/{version_id}"}
-            }
-        ],
-    })
+    audit_event = AuditEvent.model_validate(
+        {
+            "resourceType": "AuditEvent",
+            "category": [
+                {
+                    "coding": [
+                        {
+                            "system": _AUDIT_TYPE_SYSTEM,
+                            "code": "rest",
+                            "display": "RESTful Operation",
+                        }
+                    ]
+                }
+            ],
+            "code": {"coding": [{"system": _INTERACTION_SYSTEM, "code": action}]},
+            "action": _ACTION_CODE.get(action, "E"),
+            "severity": "notice",
+            "recorded": now_utc().isoformat(),
+            "outcome": {"code": {"system": _OUTCOME_SYSTEM, "code": "0", "display": "Success"}},
+            "agent": [
+                {
+                    "who": {"identifier": {"value": actor or "anonymous"}},
+                    "requestor": True,
+                }
+            ],
+            "source": {"observer": {"identifier": {"value": "fhir-rest-layer"}}},
+            "entity": [
+                {"what": {"reference": f"{resource_type}/{resource_id}/_history/{version_id}"}}
+            ],
+        }
+    )
     return audit_event.model_dump(exclude_none=True, mode="json")
 
 

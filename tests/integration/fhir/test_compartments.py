@@ -44,7 +44,12 @@ def _condition(subject_id: str) -> dict:
         "resourceType": "Condition",
         "subject": {"reference": f"Patient/{subject_id}"},
         "clinicalStatus": {
-            "coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-clinical", "code": "active"}]
+            "coding": [
+                {
+                    "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                    "code": "active",
+                }
+            ]
         },
         "code": {"coding": [{"system": "http://snomed.info/sct", "code": "73211009"}]},
     }
@@ -56,7 +61,12 @@ def _allergy(patient_id: str) -> dict:
         "patient": {"reference": f"Patient/{patient_id}"},
         "code": {"coding": [{"system": "http://snomed.info/sct", "code": "227493005"}]},
         "clinicalStatus": {
-            "coding": [{"system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical", "code": "active"}]
+            "coding": [
+                {
+                    "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+                    "code": "active",
+                }
+            ]
         },
     }
 
@@ -65,7 +75,13 @@ def _encounter(subject_id: str) -> dict:
     return {
         "resourceType": "Encounter",
         "status": "finished",
-        "class": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "AMB"}]}],
+        "class": [
+            {
+                "coding": [
+                    {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "AMB"}
+                ]
+            }
+        ],
         "subject": {"reference": f"Patient/{subject_id}"},
     }
 

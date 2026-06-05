@@ -51,11 +51,17 @@ class TestInstanceHistoryPagination:
     def test_offset_skips_earlier_entries(self, client: httpx.Client) -> None:
         body = _make_versions(client, 4)
         pid = body["id"]
-        all_versions = [e["resource"]["meta"]["versionId"] for e in client.get(f"/Patient/{pid}/_history").json()["entry"] if e.get("resource")]
+        all_versions = [
+            e["resource"]["meta"]["versionId"]
+            for e in client.get(f"/Patient/{pid}/_history").json()["entry"]
+            if e.get("resource")
+        ]
         page = client.get(f"/Patient/{pid}/_history?_count=2&_offset=2").json()
         assert page["total"] == 4
         assert len(page["entry"]) == 2
-        page_versions = [e["resource"]["meta"]["versionId"] for e in page["entry"] if e.get("resource")]
+        page_versions = [
+            e["resource"]["meta"]["versionId"] for e in page["entry"] if e.get("resource")
+        ]
         assert page_versions == all_versions[2:4]
 
     def test_total_unchanged_regardless_of_count(self, client: httpx.Client) -> None:

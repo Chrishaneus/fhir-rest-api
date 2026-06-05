@@ -108,7 +108,9 @@ class TestHistory:
         assert r.json()["type"] == "history"
         assert r.json()["total"] >= 2
 
-    def test_vread_returns_original_version(self, client: httpx.Client, updated_patient: dict) -> None:
+    def test_vread_returns_original_version(
+        self, client: httpx.Client, updated_patient: dict
+    ) -> None:
         r = client.get(f"/Patient/{updated_patient['id']}/_history/1")
         assert r.status_code == 200
         assert r.json()["meta"]["versionId"] == "1"

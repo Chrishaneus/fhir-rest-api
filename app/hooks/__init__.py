@@ -181,6 +181,7 @@ class AuditHook(ResourceHooks):
 
     def after_create(self, resource: dict[str, Any]) -> None:
         from app.utils.audit import write_audit_entry
+
         write_audit_entry(
             resource["resourceType"],
             resource["id"],
@@ -190,6 +191,7 @@ class AuditHook(ResourceHooks):
 
     def after_update(self, _old: dict[str, Any] | None, new: dict[str, Any]) -> None:
         from app.utils.audit import write_audit_entry
+
         write_audit_entry(
             new["resourceType"],
             new["id"],
@@ -199,6 +201,7 @@ class AuditHook(ResourceHooks):
 
     def after_delete(self, resource: dict[str, Any]) -> None:
         from app.utils.audit import write_audit_entry
+
         write_audit_entry(
             resource["resourceType"],
             resource["id"],

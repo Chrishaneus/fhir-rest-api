@@ -109,7 +109,9 @@ class TestUpdate:
         assert response.status_code == 412
         assert response.json()["resourceType"] == "OperationOutcome"
 
-    def test_valid_update_increments_version(self, client: TestClient, created_patient: dict) -> None:
+    def test_valid_update_increments_version(
+        self, client: TestClient, created_patient: dict
+    ) -> None:
         response = client.put(
             f"/Patient/{created_patient['id']}",
             headers={"If-Match": 'W/"1"'},
@@ -128,7 +130,10 @@ class TestConditionalUpdate:
 
     def test_no_match_creates_resource(self, client: TestClient) -> None:
         family = f"ConditionalNew-{uuid.uuid4().hex[:6]}"
-        response = client.put(f"/Patient?family={family}", json={"resourceType": "Patient", "name": [{"family": family}]})
+        response = client.put(
+            f"/Patient?family={family}",
+            json={"resourceType": "Patient", "name": [{"family": family}]},
+        )
         assert response.status_code == 201
         assert response.json()["name"][0]["family"] == family
 
@@ -149,7 +154,9 @@ class TestConditionalUpdate:
         assert response.status_code == 412
         assert response.json()["resourceType"] == "OperationOutcome"
 
-    def test_conflicting_body_id_returns_400(self, client: TestClient, created_patient: dict) -> None:
+    def test_conflicting_body_id_returns_400(
+        self, client: TestClient, created_patient: dict
+    ) -> None:
         family = created_patient["name"][0]["family"]
         response = client.put(
             f"/Patient?family={family}",
@@ -196,7 +203,9 @@ class TestDelete:
         assert response.status_code == 412
         assert response.json()["resourceType"] == "OperationOutcome"
 
-    def test_matching_etag_deletes_resource(self, client: TestClient, created_patient: dict) -> None:
+    def test_matching_etag_deletes_resource(
+        self, client: TestClient, created_patient: dict
+    ) -> None:
         response = client.delete(
             f"/Patient/{created_patient['id']}",
             headers={"If-Match": 'W/"1"'},
@@ -211,12 +220,16 @@ class TestDelete:
 
 
 class TestHistory:
-    def test_vread_returns_specific_version(self, client: TestClient, updated_patient: dict) -> None:
+    def test_vread_returns_specific_version(
+        self, client: TestClient, updated_patient: dict
+    ) -> None:
         response = client.get(f"/Patient/{updated_patient['id']}/_history/1")
         assert response.status_code == 200
         assert response.json()["meta"]["versionId"] == "1"
 
-    def test_type_history_has_expected_count(self, client: TestClient, updated_patient: dict) -> None:
+    def test_type_history_has_expected_count(
+        self, client: TestClient, updated_patient: dict
+    ) -> None:
         response = client.get(f"/Patient/{updated_patient['id']}/_history")
         assert response.status_code == 200
         assert response.json()["type"] == "history"
@@ -267,8 +280,16 @@ class TestHistory:
         paged_history_response = client.get(f"/Patient/{patient_id}/_history?_count=2&_offset=2")
         assert paged_history_response.json()["total"] == 4
         assert len(paged_history_response.json()["entry"]) == 2
-        all_version_ids = [entry["resource"]["meta"]["versionId"] for entry in all_history_response.json()["entry"] if entry.get("resource")]
-        paged_version_ids = [entry["resource"]["meta"]["versionId"] for entry in paged_history_response.json()["entry"] if entry.get("resource")]
+        all_version_ids = [
+            entry["resource"]["meta"]["versionId"]
+            for entry in all_history_response.json()["entry"]
+            if entry.get("resource")
+        ]
+        paged_version_ids = [
+            entry["resource"]["meta"]["versionId"]
+            for entry in paged_history_response.json()["entry"]
+            if entry.get("resource")
+        ]
         assert paged_version_ids == all_version_ids[2:4]
 
     def test_since_filters_instance_history(self, client: TestClient) -> None:
@@ -439,7 +460,9 @@ class TestSearch:
 
     def test_total_none_on_post_search(self, client: TestClient) -> None:
         client.post("/Patient", json=patient("TotalNonePost"))
-        response = client.post("/Patient/_search", data={"family": "TotalNonePost", "_total": "none"})
+        response = client.post(
+            "/Patient/_search", data={"family": "TotalNonePost", "_total": "none"}
+        )
         assert response.status_code == 200
         assert "total" not in response.json()
 
@@ -447,11 +470,15 @@ class TestSearch:
         active = client.post("/Patient", json=patient("Active", active=True)).json()
         inactive = client.post("/Patient", json=patient("Inactive", active=False)).json()
 
-        ids_active = {entry["resource"]["id"] for entry in client.get("/Patient?active=true").json()["entry"]}
+        ids_active = {
+            entry["resource"]["id"] for entry in client.get("/Patient?active=true").json()["entry"]
+        }
         assert active["id"] in ids_active
         assert inactive["id"] not in ids_active
 
-        ids_inactive = {entry["resource"]["id"] for entry in client.get("/Patient?active=false").json()["entry"]}
+        ids_inactive = {
+            entry["resource"]["id"] for entry in client.get("/Patient?active=false").json()["entry"]
+        }
         assert inactive["id"] in ids_inactive
         assert active["id"] not in ids_inactive
 
@@ -483,23 +510,31 @@ class TestPagination:
 
 class TestPreferHeader:
     def test_return_minimal_gives_empty_body(self, client: TestClient) -> None:
-        response = client.post("/Patient", json=patient("Minimal"), headers={"Prefer": "return=minimal"})
+        response = client.post(
+            "/Patient", json=patient("Minimal"), headers={"Prefer": "return=minimal"}
+        )
         assert response.status_code == 201
         assert response.content == b""
 
     def test_return_operation_outcome(self, client: TestClient) -> None:
-        response = client.post("/Patient", json=patient("OOPrefer"), headers={"Prefer": "return=OperationOutcome"})
+        response = client.post(
+            "/Patient", json=patient("OOPrefer"), headers={"Prefer": "return=OperationOutcome"}
+        )
         assert response.status_code == 201
         assert response.json()["resourceType"] == "OperationOutcome"
 
 
 class TestConditionalRead:
     def test_current_etag_returns_304(self, client: TestClient, created_patient: dict) -> None:
-        response = client.get(f"/Patient/{created_patient['id']}", headers={"If-None-Match": 'W/"1"'})
+        response = client.get(
+            f"/Patient/{created_patient['id']}", headers={"If-None-Match": 'W/"1"'}
+        )
         assert response.status_code == 304
 
     def test_stale_etag_returns_200(self, client: TestClient, created_patient: dict) -> None:
-        response = client.get(f"/Patient/{created_patient['id']}", headers={"If-None-Match": 'W/"999"'})
+        response = client.get(
+            f"/Patient/{created_patient['id']}", headers={"If-None-Match": 'W/"999"'}
+        )
         assert response.status_code == 200
 
 
@@ -513,8 +548,12 @@ class TestRequestId:
         response = client.get("/metadata", headers={"X-Request-ID": "my-correlation-id"})
         assert response.headers["x-request-id"] == "my-correlation-id"
 
-    def test_request_id_consistent_across_resource_endpoints(self, client: TestClient, created_patient: dict) -> None:
-        response = client.get(f"/Patient/{created_patient['id']}", headers={"X-Request-ID": "trace-abc"})
+    def test_request_id_consistent_across_resource_endpoints(
+        self, client: TestClient, created_patient: dict
+    ) -> None:
+        response = client.get(
+            f"/Patient/{created_patient['id']}", headers={"X-Request-ID": "trace-abc"}
+        )
         assert response.headers["x-request-id"] == "trace-abc"
 
 
@@ -545,7 +584,9 @@ class TestSort:
     def test_no_outcome_warning_entry(self, client: TestClient) -> None:
         response = client.get("/Patient?_sort=family")
         outcome_entries = [
-            entry for entry in response.json()["entry"] if entry.get("search", {}).get("mode") == "outcome"
+            entry
+            for entry in response.json()["entry"]
+            if entry.get("search", {}).get("mode") == "outcome"
         ]
         assert len(outcome_entries) == 0
 
@@ -569,7 +610,9 @@ class TestPatch:
         )
 
     def test_patch_adds_field(self, client: TestClient, created_patient: dict) -> None:
-        response = self._patch(client, created_patient["id"], [{"op": "add", "path": "/active", "value": True}])
+        response = self._patch(
+            client, created_patient["id"], [{"op": "add", "path": "/active", "value": True}]
+        )
         assert response.status_code == 200
         assert response.json()["active"] is True
 
@@ -580,12 +623,16 @@ class TestPatch:
         assert response.json()["name"][0]["family"] == "Patched"
 
     def test_patch_increments_version(self, client: TestClient, created_patient: dict) -> None:
-        response = self._patch(client, created_patient["id"], [{"op": "add", "path": "/active", "value": False}])
+        response = self._patch(
+            client, created_patient["id"], [{"op": "add", "path": "/active", "value": False}]
+        )
         assert response.status_code == 200
         assert response.headers["etag"] == 'W/"2"'
         assert response.json()["meta"]["versionId"] == "2"
 
-    def test_patch_wrong_content_type_returns_415(self, client: TestClient, created_patient: dict) -> None:
+    def test_patch_wrong_content_type_returns_415(
+        self, client: TestClient, created_patient: dict
+    ) -> None:
         response = client.patch(
             f"/Patient/{created_patient['id']}",
             json=[{"op": "add", "path": "/active", "value": True}],
@@ -594,12 +641,18 @@ class TestPatch:
         assert response.json()["resourceType"] == "OperationOutcome"
 
     def test_patch_nonexistent_returns_404(self, client: TestClient) -> None:
-        response = self._patch(client, "doesnotexist", [{"op": "add", "path": "/active", "value": True}])
+        response = self._patch(
+            client, "doesnotexist", [{"op": "add", "path": "/active", "value": True}]
+        )
         assert response.status_code == 404
         assert response.json()["resourceType"] == "OperationOutcome"
 
-    def test_patch_invalid_operation_returns_400(self, client: TestClient, created_patient: dict) -> None:
-        response = self._patch(client, created_patient["id"], [{"op": "badop", "path": "/active", "value": True}])
+    def test_patch_invalid_operation_returns_400(
+        self, client: TestClient, created_patient: dict
+    ) -> None:
+        response = self._patch(
+            client, created_patient["id"], [{"op": "badop", "path": "/active", "value": True}]
+        )
         assert response.status_code == 400
         assert response.json()["resourceType"] == "OperationOutcome"
 
@@ -620,12 +673,15 @@ class TestIncludes:
     @pytest.fixture
     def patient_with_observation(self, client: TestClient) -> tuple[dict, dict]:
         patient_resource = client.post("/Patient", json=patient("IncludeTest")).json()
-        observation = client.post("/Observation", json={
-            "resourceType": "Observation",
-            "status": "final",
-            "code": {"text": "HR"},
-            "subject": {"reference": f"Patient/{patient_resource['id']}"},
-        }).json()
+        observation = client.post(
+            "/Observation",
+            json={
+                "resourceType": "Observation",
+                "status": "final",
+                "code": {"text": "HR"},
+                "subject": {"reference": f"Patient/{patient_resource['id']}"},
+            },
+        ).json()
         return patient_resource, observation
 
     def test_include_observation_subject_fetches_patient(
@@ -636,8 +692,12 @@ class TestIncludes:
         assert response.status_code == 200
         body = response.json()
         entries = body["entry"]
-        match_entries = [entry for entry in entries if entry.get("search", {}).get("mode") == "match"]
-        include_entries = [entry for entry in entries if entry.get("search", {}).get("mode") == "include"]
+        match_entries = [
+            entry for entry in entries if entry.get("search", {}).get("mode") == "match"
+        ]
+        include_entries = [
+            entry for entry in entries if entry.get("search", {}).get("mode") == "include"
+        ]
         assert len(match_entries) == 1
         assert match_entries[0]["resource"]["resourceType"] == "Observation"
         assert len(include_entries) == 1
@@ -648,10 +708,13 @@ class TestIncludes:
         self, client: TestClient, patient_with_observation: tuple
     ) -> None:
         patient_resource, observation = patient_with_observation
-        response = client.get(f"/Observation?_id={observation['id']}&_include=Observation:subject:Patient")
+        response = client.get(
+            f"/Observation?_id={observation['id']}&_include=Observation:subject:Patient"
+        )
         assert response.status_code == 200
         include_entries = [
-            entry for entry in response.json()["entry"]
+            entry
+            for entry in response.json()["entry"]
             if entry.get("search", {}).get("mode") == "include"
         ]
         assert len(include_entries) == 1
@@ -661,10 +724,13 @@ class TestIncludes:
         self, client: TestClient, patient_with_observation: tuple
     ) -> None:
         _, observation = patient_with_observation
-        response = client.get(f"/Observation?_id={observation['id']}&_include=Observation:subject:Encounter")
+        response = client.get(
+            f"/Observation?_id={observation['id']}&_include=Observation:subject:Encounter"
+        )
         assert response.status_code == 200
         include_entries = [
-            entry for entry in response.json()["entry"]
+            entry
+            for entry in response.json()["entry"]
             if entry.get("search", {}).get("mode") == "include"
         ]
         assert len(include_entries) == 0
@@ -673,12 +739,18 @@ class TestIncludes:
         self, client: TestClient, patient_with_observation: tuple
     ) -> None:
         patient_resource, observation = patient_with_observation
-        response = client.get(f"/Patient?_id={patient_resource['id']}&_revinclude=Observation:subject")
+        response = client.get(
+            f"/Patient?_id={patient_resource['id']}&_revinclude=Observation:subject"
+        )
         assert response.status_code == 200
         body = response.json()
         entries = body["entry"]
-        match_entries = [entry for entry in entries if entry.get("search", {}).get("mode") == "match"]
-        include_entries = [entry for entry in entries if entry.get("search", {}).get("mode") == "include"]
+        match_entries = [
+            entry for entry in entries if entry.get("search", {}).get("mode") == "match"
+        ]
+        include_entries = [
+            entry for entry in entries if entry.get("search", {}).get("mode") == "include"
+        ]
         assert len(match_entries) == 1
         assert match_entries[0]["resource"]["resourceType"] == "Patient"
         assert len(include_entries) == 1

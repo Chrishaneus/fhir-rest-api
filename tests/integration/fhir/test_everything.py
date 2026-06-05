@@ -69,7 +69,9 @@ class TestPatientEverything:
         pid = _post(client, _patient("IncludeMode"))["id"]
         _post(client, _observation(pid))
         bundle = client.get(f"/Patient/{pid}/$everything").json()
-        obs_entry = next(e for e in bundle["entry"] if e["resource"]["resourceType"] == "Observation")
+        obs_entry = next(
+            e for e in bundle["entry"] if e["resource"]["resourceType"] == "Observation"
+        )
         assert obs_entry["search"]["mode"] == "include"
 
     def test_only_this_patients_resources_returned(self, client: httpx.Client) -> None:

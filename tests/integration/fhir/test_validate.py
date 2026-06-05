@@ -29,11 +29,15 @@ def _valid_observation() -> dict:
 
 class TestValidateSuccess:
     def test_valid_patient_returns_200(self, client: httpx.Client) -> None:
-        r = client.post("/Patient/$validate", headers={"Content-Type": FHIR_JSON}, json=_valid_patient())
+        r = client.post(
+            "/Patient/$validate", headers={"Content-Type": FHIR_JSON}, json=_valid_patient()
+        )
         assert r.status_code == 200
 
     def test_response_is_informational_operation_outcome(self, client: httpx.Client) -> None:
-        r = client.post("/Patient/$validate", headers={"Content-Type": FHIR_JSON}, json=_valid_patient())
+        r = client.post(
+            "/Patient/$validate", headers={"Content-Type": FHIR_JSON}, json=_valid_patient()
+        )
         body = r.json()
         assert body["resourceType"] == "OperationOutcome"
         issue = body["issue"][0]
@@ -41,18 +45,24 @@ class TestValidateSuccess:
         assert issue["code"] == "informational"
 
     def test_valid_observation_returns_200(self, client: httpx.Client) -> None:
-        r = client.post("/Observation/$validate", headers={"Content-Type": FHIR_JSON}, json=_valid_observation())
+        r = client.post(
+            "/Observation/$validate", headers={"Content-Type": FHIR_JSON}, json=_valid_observation()
+        )
         assert r.status_code == 200
 
     def test_does_not_persist_resource(self, client: httpx.Client) -> None:
         family = f"ValidateOnly-{uuid.uuid4().hex[:8]}"
-        r = client.post("/Patient/$validate", headers={"Content-Type": FHIR_JSON}, json=_valid_patient(family))
+        r = client.post(
+            "/Patient/$validate", headers={"Content-Type": FHIR_JSON}, json=_valid_patient(family)
+        )
         assert r.status_code == 200
         search = client.get(f"/Patient?family={family}")
         assert search.json()["total"] == 0
 
     def test_response_content_type_is_fhir_json(self, client: httpx.Client) -> None:
-        r = client.post("/Patient/$validate", headers={"Content-Type": FHIR_JSON}, json=_valid_patient())
+        r = client.post(
+            "/Patient/$validate", headers={"Content-Type": FHIR_JSON}, json=_valid_patient()
+        )
         assert r.headers["content-type"].startswith(FHIR_JSON)
 
 
@@ -86,7 +96,9 @@ class TestValidateErrors:
 
 
 class TestValidateCapability:
-    def test_capability_statement_advertises_validate_for_all_types(self, client: httpx.Client) -> None:
+    def test_capability_statement_advertises_validate_for_all_types(
+        self, client: httpx.Client
+    ) -> None:
         meta = client.get("/metadata").json()
         for resource in meta["rest"][0]["resource"]:
             ops = [op["name"] for op in resource.get("operation", [])]

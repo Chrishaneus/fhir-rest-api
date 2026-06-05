@@ -43,9 +43,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 # `app.db.base` reads DATABASE_URL at import time, so default to the
 # docker-compose Postgres on the host's 55432 port (host 5432 is often
 # claimed by a native Postgres install on Windows).
-os.environ.setdefault(
-    "DATABASE_URL", "postgresql+psycopg://fhir:fhir@localhost:55432/fhir"
-)
+os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://fhir:fhir@localhost:55432/fhir")
 
 from sqlalchemy import text  # noqa: E402
 
@@ -81,10 +79,7 @@ def _row_count() -> int:
 
 def _clear_db() -> None:
     """Truncate resource_versions plus every projection table."""
-    projection_tables = [
-        p.table.__tablename__
-        for p in projection_registry.all()
-    ]
+    projection_tables = [p.table.__tablename__ for p in projection_registry.all()]
     with engine.begin() as conn:
         # TRUNCATE on Postgres is essentially free; on SQLite fall back to
         # DELETE FROM which is also fine for unit tests.
@@ -179,9 +174,7 @@ def run(
         inserted = rows_after - rows_before
         skipped = total - inserted
         skip_note = (
-            f"; {skipped} skipped as duplicates (ON CONFLICT DO NOTHING)."
-            if skipped > 0
-            else "."
+            f"; {skipped} skipped as duplicates (ON CONFLICT DO NOTHING)." if skipped > 0 else "."
         )
         print(
             f"\nGenerated {total} resources in {elapsed:.1f}s ({rate:.0f}/s); "
@@ -203,10 +196,7 @@ def main(argv: list[str] | None = None) -> int:
         "--scale",
         type=float,
         default=1.0,
-        help=(
-            "Multiplier applied to PLAN counts (default: %(default)s, "
-            "approx 70k rows total)."
-        ),
+        help=("Multiplier applied to PLAN counts (default: %(default)s, approx 70k rows total)."),
     )
     parser.add_argument(
         "--seed",

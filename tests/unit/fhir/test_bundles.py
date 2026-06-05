@@ -35,7 +35,10 @@ def _post_entry(resource: dict, full_url: str | None = None) -> dict:
 
 def _put_entry(resource: dict, resource_id: str) -> dict:
     rt = resource["resourceType"]
-    return {"request": {"method": "PUT", "url": f"{rt}/{resource_id}"}, "resource": {**resource, "id": resource_id}}
+    return {
+        "request": {"method": "PUT", "url": f"{rt}/{resource_id}"},
+        "resource": {**resource, "id": resource_id},
+    }
 
 
 def _delete_entry(resource_type: str, resource_id: str) -> dict:
@@ -158,7 +161,10 @@ class TestTransactionSuccess:
 class TestTransactionAtomicity:
     def test_failure_rolls_back_preceding_creates(self, client: TestClient) -> None:
         # Second entry references a non-existent resource type → 404 before execution
-        bad_entry = {"request": {"method": "POST", "url": "NotARealType"}, "resource": {"resourceType": "NotARealType"}}
+        bad_entry = {
+            "request": {"method": "POST", "url": "NotARealType"},
+            "resource": {"resourceType": "NotARealType"},
+        }
         bundle = _transaction([_post_entry(patient("RollbackMe")), bad_entry])
         r = client.post("/", json=bundle)
         assert r.status_code == 404  # whole transaction fails
@@ -180,7 +186,11 @@ class TestTransactionAtomicity:
         entries = [
             _post_entry(patient("RollbackAtExec")),  # entry 1: valid, touches DB
             {  # entry 2: fails at execution time
-                "request": {"method": "PUT", "url": f"Patient/{existing_pid}", "ifMatch": 'W/"999"'},
+                "request": {
+                    "method": "PUT",
+                    "url": f"Patient/{existing_pid}",
+                    "ifMatch": 'W/"999"',
+                },
                 "resource": {**patient(), "id": existing_pid},
             },
         ]
@@ -191,7 +201,10 @@ class TestTransactionAtomicity:
 
     def test_version_conflict_returns_412(self, client: TestClient) -> None:
         pid = client.post("/Patient", json=patient()).json()["id"]
-        entry = {"request": {"method": "PUT", "url": f"Patient/{pid}", "ifMatch": 'W/"999"'}, "resource": {**patient(), "id": pid}}
+        entry = {
+            "request": {"method": "PUT", "url": f"Patient/{pid}", "ifMatch": 'W/"999"'},
+            "resource": {**patient(), "id": pid},
+        }
         r = client.post("/", json=_transaction([entry]))
         assert r.status_code == 412
 
@@ -212,11 +225,13 @@ class TestBatchSuccess:
 
     def test_all_entries_processed_independently(self, client: TestClient) -> None:
         pid = client.post("/Patient", json=patient()).json()["id"]
-        bundle = _batch([
-            _post_entry(patient("BatchA")),
-            {"request": {"method": "GET", "url": "Patient/does-not-exist-xyz"}},
-            _get_entry("Patient", pid),
-        ])
+        bundle = _batch(
+            [
+                _post_entry(patient("BatchA")),
+                {"request": {"method": "GET", "url": "Patient/does-not-exist-xyz"}},
+                _get_entry("Patient", pid),
+            ]
+        )
         r = client.post("/", json=bundle)
         entries = r.json()["entry"]
         assert len(entries) == 3
@@ -234,11 +249,15 @@ class TestBatchSuccess:
         bundle = _batch([{"request": {"method": "GET", "url": "Patient/nope"}}])
         assert client.post("/", json=bundle).status_code == 200
 
-    def test_successful_creates_are_persisted_despite_other_errors(self, client: TestClient) -> None:
-        bundle = _batch([
-            _post_entry(patient("BatchPersist")),
-            {"request": {"method": "GET", "url": "Patient/no-such-id"}},
-        ])
+    def test_successful_creates_are_persisted_despite_other_errors(
+        self, client: TestClient
+    ) -> None:
+        bundle = _batch(
+            [
+                _post_entry(patient("BatchPersist")),
+                {"request": {"method": "GET", "url": "Patient/no-such-id"}},
+            ]
+        )
         r = client.post("/", json=bundle)
         created_id = r.json()["entry"][0]["resource"]["id"]
         assert client.get(f"/Patient/{created_id}").status_code == 200

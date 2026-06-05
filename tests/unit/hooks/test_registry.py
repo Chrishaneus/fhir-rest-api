@@ -67,9 +67,13 @@ class TestHookRegistry:
         assert client.delete(f"/Patient/{resource_id}").status_code == 204
 
         assert [call[0] for call in recorder.calls] == [
-            "before_create", "after_create",
-            "before_update_old", "before_update_new", "after_update",
-            "before_delete", "after_delete",
+            "before_create",
+            "after_create",
+            "before_update_old",
+            "before_update_new",
+            "after_update",
+            "before_delete",
+            "after_delete",
         ]
 
     def test_before_hook_can_reject_with_operation_outcome(self, client: TestClient) -> None:

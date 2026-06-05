@@ -294,9 +294,7 @@ _MEDICATION_CODES: tuple[tuple[str, str], ...] = (
 # so the caller can pass them straight to FHIRStore.bulk_create.
 
 
-def _emit(
-    ctx: BulkContext, resource: Any, resource_type: str
-) -> tuple[str, str, dict[str, Any]]:
+def _emit(ctx: BulkContext, resource: Any, resource_type: str) -> tuple[str, str, dict[str, Any]]:
     rid = resource.id
     ctx.ledger(resource_type, rid)
     return (resource_type, rid, resource.model_dump(exclude_none=True, mode="json"))
@@ -446,9 +444,7 @@ def gen_related_persons(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             id=rid,
             active=True,
             patient=ctx.require_ref("Patient"),
-            relationship=[
-                _cc("http://terminology.hl7.org/CodeSystem/v3-RoleCode", code, display)
-            ],
+            relationship=[_cc("http://terminology.hl7.org/CodeSystem/v3-RoleCode", code, display)],
             name=[HumanName(family=ctx.faker.last_name(), given=[ctx.faker.first_name()])],
             telecom=[ContactPoint(system="phone", value=ctx.faker.phone_number())],
         )
@@ -585,9 +581,7 @@ def gen_allergies(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
                 "confirmed",
                 "Confirmed",
             ),
-            type=_cc(
-                "http://hl7.org/fhir/allergy-intolerance-type", "allergy", "Allergy"
-            ),
+            type=_cc("http://hl7.org/fhir/allergy-intolerance-type", "allergy", "Allergy"),
             criticality=ctx.rng.choice(["low", "high", "unable-to-assess"]),
             code=_cc("http://snomed.info/sct", snomed, display),
             patient=ctx.require_ref("Patient"),
@@ -607,9 +601,7 @@ def gen_family_histories(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             patient=ctx.require_ref("Patient"),
             date=ctx.faker.date_time_this_decade().replace(tzinfo=UTC),
             name=f"Patient's {display}",
-            relationship=_cc(
-                "http://terminology.hl7.org/CodeSystem/v3-RoleCode", code, display
-            ),
+            relationship=_cc("http://terminology.hl7.org/CodeSystem/v3-RoleCode", code, display),
         )
         yield _emit(ctx, fmh, "FamilyMemberHistory")
 
@@ -727,7 +719,11 @@ def gen_diagnostic_reports(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             issued=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
             specimen=[specimen] if specimen else None,
             conclusion=ctx.rng.choice(
-                ["Within normal limits.", "Mild abnormality, follow-up suggested.", "Critical value flagged."]
+                [
+                    "Within normal limits.",
+                    "Mild abnormality, follow-up suggested.",
+                    "Critical value flagged.",
+                ]
             ),
         )
         yield _emit(ctx, dr, "DiagnosticReport")
@@ -787,7 +783,11 @@ def _medication_ref(ctx: BulkContext) -> CodeableReference:
     ref = ctx.random_ref("Medication")
     rxnorm, display = ctx.rng.choice(_MEDICATION_CODES)
     concept = _cc("http://www.nlm.nih.gov/research/umls/rxnorm", rxnorm, display)
-    return CodeableReference(concept=concept, reference=ref) if ref else CodeableReference(concept=concept)
+    return (
+        CodeableReference(concept=concept, reference=ref)
+        if ref
+        else CodeableReference(concept=concept)
+    )
 
 
 def gen_medication_requests(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
@@ -951,9 +951,7 @@ def gen_nutrition_orders(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             subject=ctx.require_ref("Patient"),
             encounter=ctx.random_ref("Encounter"),
             dateTime=ctx.faker.date_time_this_year().replace(tzinfo=UTC),
-            oralDiet=NutritionOrderOralDiet(
-                type=[_cc("http://snomed.info/sct", snomed, display)]
-            ),
+            oralDiet=NutritionOrderOralDiet(type=[_cc("http://snomed.info/sct", snomed, display)]),
         )
         yield _emit(ctx, no, "NutritionOrder")
 
@@ -1066,9 +1064,7 @@ def gen_claims(ctx: BulkContext) -> Iterator[tuple[str, str, dict]]:
             item=[
                 ClaimItem(
                     sequence=1,
-                    productOrService=_cc(
-                        "http://www.ama-assn.org/go/cpt", "99213", "Office visit"
-                    ),
+                    productOrService=_cc("http://www.ama-assn.org/go/cpt", "99213", "Office visit"),
                     servicedDate=ctx.faker.date_this_year(),
                     unitPrice=Money(value=Decimal(str(amount)), currency="USD"),
                     net=Money(value=Decimal(str(amount)), currency="USD"),

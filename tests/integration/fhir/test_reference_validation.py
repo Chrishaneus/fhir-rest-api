@@ -40,7 +40,16 @@ def encounter(client: httpx.Client, patient: dict) -> dict:
         json={
             "resourceType": "Encounter",
             "status": "finished",
-            "class": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "AMB"}]}],
+            "class": [
+                {
+                    "coding": [
+                        {
+                            "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+                            "code": "AMB",
+                        }
+                    ]
+                }
+            ],
             "subject": {"reference": f"Patient/{patient['id']}"},
         },
     )
@@ -64,9 +73,7 @@ class TestObservationReferenceValidation:
         body = assert_operation_outcome(r)
         assert "does-not-exist-xyz" in body["issue"][0]["diagnostics"]
 
-    def test_dangling_encounter_returns_422(
-        self, client: httpx.Client, patient: dict
-    ) -> None:
+    def test_dangling_encounter_returns_422(self, client: httpx.Client, patient: dict) -> None:
         r = client.post(
             "/Observation",
             headers={"Content-Type": FHIR_JSON},
@@ -191,7 +198,12 @@ class TestConditionReferenceValidation:
                 "subject": {"reference": f"Patient/{patient['id']}"},
                 "code": {"text": "Fever"},
                 "clinicalStatus": {
-                    "coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-clinical", "code": "active"}]
+                    "coding": [
+                        {
+                            "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                            "code": "active",
+                        }
+                    ]
                 },
             },
         )

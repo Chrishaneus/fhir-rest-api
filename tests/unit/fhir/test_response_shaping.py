@@ -38,8 +38,7 @@ _SUBSETTED_CODE = "SUBSETTED"
 
 def _has_subsetted(resource: dict) -> bool:
     return any(
-        t.get("code") == _SUBSETTED_CODE
-        for t in (resource.get("meta") or {}).get("tag", [])
+        t.get("code") == _SUBSETTED_CODE for t in (resource.get("meta") or {}).get("tag", [])
     )
 
 
@@ -116,7 +115,12 @@ class TestApplySummaryEdgeCases:
         assert "text" not in apply_summary(_FULL, "DATA")
 
     def test_whitespace_trimmed(self) -> None:
-        assert set(apply_summary(_FULL, "  true  ").keys()) <= {"id", "meta", "resourceType", "text"}
+        assert set(apply_summary(_FULL, "  true  ").keys()) <= {
+            "id",
+            "meta",
+            "resourceType",
+            "text",
+        }
 
     def test_no_meta_in_source(self) -> None:
         resource = {"resourceType": "Patient", "id": "x", "name": [{"family": "A"}]}
@@ -247,7 +251,12 @@ class TestIsCountOnly:
 
 def _make_bundle(resources: list[dict]) -> dict:
     entries = [{"fullUrl": f"/{r['resourceType']}/{r['id']}", "resource": r} for r in resources]
-    return {"resourceType": "Bundle", "type": "searchset", "total": len(resources), "entry": entries}
+    return {
+        "resourceType": "Bundle",
+        "type": "searchset",
+        "total": len(resources),
+        "entry": entries,
+    }
 
 
 class TestShapeBundle:

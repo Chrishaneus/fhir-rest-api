@@ -48,12 +48,8 @@ class EncounterProjection(Projection):
             "subject_reference": reference_of(resource.get("subject")),
             "status": resource.get("status"),
             "class_code": class_code,
-            "period_start": period_start(
-                resource.get("actualPeriod") or resource.get("period")
-            ),
-            "period_end": period_end(
-                resource.get("actualPeriod") or resource.get("period")
-            ),
+            "period_start": period_start(resource.get("actualPeriod") or resource.get("period")),
+            "period_end": period_end(resource.get("actualPeriod") or resource.get("period")),
         }
 
 

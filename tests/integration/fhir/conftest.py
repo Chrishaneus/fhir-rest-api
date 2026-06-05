@@ -22,7 +22,10 @@ def created_patient(client: httpx.Client) -> dict:
     r = client.post(
         "/Patient",
         headers={"Content-Type": FHIR_JSON},
-        json={"resourceType": "Patient", "name": [{"family": f"Compliance-{uuid.uuid4().hex[:8]}"}]},
+        json={
+            "resourceType": "Patient",
+            "name": [{"family": f"Compliance-{uuid.uuid4().hex[:8]}"}],
+        },
     )
     assert r.status_code == 201
     return r.json()

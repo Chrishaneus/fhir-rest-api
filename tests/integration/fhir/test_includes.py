@@ -47,9 +47,7 @@ class TestInclude:
     def test_include_fetches_referenced_patient(
         self, client: httpx.Client, patient: dict, observation: dict
     ) -> None:
-        r = client.get(
-            f"/Observation?_id={observation['id']}&_include=Observation:subject"
-        )
+        r = client.get(f"/Observation?_id={observation['id']}&_include=Observation:subject")
         assert r.status_code == 200
         body = r.json()
         assert body["type"] == "searchset"
@@ -68,13 +66,10 @@ class TestInclude:
     def test_include_with_target_type_filter(
         self, client: httpx.Client, patient: dict, observation: dict
     ) -> None:
-        r = client.get(
-            f"/Observation?_id={observation['id']}&_include=Observation:subject:Patient"
-        )
+        r = client.get(f"/Observation?_id={observation['id']}&_include=Observation:subject:Patient")
         assert r.status_code == 200
         include_entries = [
-            e for e in r.json()["entry"]
-            if e.get("search", {}).get("mode") == "include"
+            e for e in r.json()["entry"] if e.get("search", {}).get("mode") == "include"
         ]
         assert len(include_entries) == 1
         assert include_entries[0]["resource"]["id"] == patient["id"]
@@ -87,8 +82,7 @@ class TestInclude:
         )
         assert r.status_code == 200
         include_entries = [
-            e for e in r.json()["entry"]
-            if e.get("search", {}).get("mode") == "include"
+            e for e in r.json()["entry"] if e.get("search", {}).get("mode") == "include"
         ]
         assert len(include_entries) == 0
 
@@ -109,12 +103,9 @@ class TestInclude:
             )
             assert r.status_code == 201
 
-        r = client.get(
-            f"/Patient?_id={patient['id']}&_revinclude=Observation:subject"
-        )
+        r = client.get(f"/Patient?_id={patient['id']}&_revinclude=Observation:subject")
         include_entries = [
-            e for e in r.json()["entry"]
-            if e.get("search", {}).get("mode") == "include"
+            e for e in r.json()["entry"] if e.get("search", {}).get("mode") == "include"
         ]
         # Each included Patient should appear only once
         included_patient_ids = [
@@ -131,9 +122,7 @@ class TestRevInclude:
     def test_revinclude_appends_referencing_observations(
         self, client: httpx.Client, patient: dict, observation: dict
     ) -> None:
-        r = client.get(
-            f"/Patient?_id={patient['id']}&_revinclude=Observation:subject"
-        )
+        r = client.get(f"/Patient?_id={patient['id']}&_revinclude=Observation:subject")
         assert r.status_code == 200
         body = r.json()
         assert body["type"] == "searchset"
@@ -150,13 +139,10 @@ class TestRevInclude:
     def test_revinclude_with_source_type_filter(
         self, client: httpx.Client, patient: dict, observation: dict
     ) -> None:
-        r = client.get(
-            f"/Patient?_id={patient['id']}&_revinclude=Observation:subject:Patient"
-        )
+        r = client.get(f"/Patient?_id={patient['id']}&_revinclude=Observation:subject:Patient")
         assert r.status_code == 200
         include_entries = [
-            e for e in r.json()["entry"]
-            if e.get("search", {}).get("mode") == "include"
+            e for e in r.json()["entry"] if e.get("search", {}).get("mode") == "include"
         ]
         obs_ids = [e["resource"]["id"] for e in include_entries]
         assert observation["id"] in obs_ids
@@ -165,21 +151,16 @@ class TestRevInclude:
         self, client: httpx.Client, patient: dict
     ) -> None:
         # Patient exists but no Observations reference it
-        r = client.get(
-            f"/Patient?_id={patient['id']}&_revinclude=Observation:subject"
-        )
+        r = client.get(f"/Patient?_id={patient['id']}&_revinclude=Observation:subject")
         assert r.status_code == 200
         include_entries = [
-            e for e in r.json()["entry"]
-            if e.get("search", {}).get("mode") == "include"
+            e for e in r.json()["entry"] if e.get("search", {}).get("mode") == "include"
         ]
         assert len(include_entries) == 0
 
 
 class TestIncludeIterate:
-    def test_include_iterate_follows_two_level_chain(
-        self, client: httpx.Client
-    ) -> None:
+    def test_include_iterate_follows_two_level_chain(self, client: httpx.Client) -> None:
         """_include:iterate fetches Observation → Patient → Organization."""
         org = client.post(
             "/Organization",
@@ -230,22 +211,15 @@ class TestIncludeIterate:
         self, client: httpx.Client, patient: dict, observation: dict
     ) -> None:
         """_include:iterate with a one-level chain returns exactly one included resource."""
-        r = client.get(
-            f"/Observation?_id={observation['id']}&_include:iterate=Observation:subject"
-        )
+        r = client.get(f"/Observation?_id={observation['id']}&_include:iterate=Observation:subject")
         assert r.status_code == 200
-        included = [
-            e for e in r.json()["entry"]
-            if e.get("search", {}).get("mode") == "include"
-        ]
+        included = [e for e in r.json()["entry"] if e.get("search", {}).get("mode") == "include"]
         assert len(included) == 1
         assert included[0]["resource"]["id"] == patient["id"]
 
 
 class TestRevIncludeIterate:
-    def test_revinclude_iterate_follows_two_level_chain(
-        self, client: httpx.Client
-    ) -> None:
+    def test_revinclude_iterate_follows_two_level_chain(self, client: httpx.Client) -> None:
         """_revinclude:iterate fetches Patient ← Encounter ← DiagnosticReport."""
         pat = client.post(
             "/Patient",
@@ -296,14 +270,9 @@ class TestRevIncludeIterate:
         self, client: httpx.Client, patient: dict, observation: dict
     ) -> None:
         """_revinclude:iterate with a one-level chain returns exactly the direct referrers."""
-        r = client.get(
-            f"/Patient?_id={patient['id']}&_revinclude:iterate=Observation:subject"
-        )
+        r = client.get(f"/Patient?_id={patient['id']}&_revinclude:iterate=Observation:subject")
         assert r.status_code == 200
-        included = [
-            e for e in r.json()["entry"]
-            if e.get("search", {}).get("mode") == "include"
-        ]
+        included = [e for e in r.json()["entry"] if e.get("search", {}).get("mode") == "include"]
         obs_ids = {e["resource"]["id"] for e in included}
         assert observation["id"] in obs_ids
 
@@ -324,7 +293,6 @@ class TestSearchMode:
         r = client.get(f"/Patient?_id={patient['id']}")
         assert r.status_code == 200
         include_entries = [
-            e for e in r.json()["entry"]
-            if e.get("search", {}).get("mode") == "include"
+            e for e in r.json()["entry"] if e.get("search", {}).get("mode") == "include"
         ]
         assert len(include_entries) == 0

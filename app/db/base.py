@@ -57,5 +57,3 @@ def reset_db() -> None:
     with engine.begin() as conn:
         for table in reversed(Base.metadata.sorted_tables):
             conn.execute(table.delete())
-
-

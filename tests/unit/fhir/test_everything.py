@@ -24,7 +24,12 @@ def _condition(patient_id: str) -> dict:
         "subject": {"reference": f"Patient/{patient_id}"},
         "code": {"coding": [{"system": "http://snomed.info/sct", "code": "73211009"}]},
         "clinicalStatus": {
-            "coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-clinical", "code": "active"}]
+            "coding": [
+                {
+                    "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+                    "code": "active",
+                }
+            ]
         },
     }
 
@@ -215,8 +220,11 @@ class TestEverythingCapability:
 
     def test_operation_definition_url_correct(self, client: TestClient) -> None:
         meta = client.get("/metadata").json()
-        patient_resource = next(
-            r for r in meta["rest"][0]["resource"] if r["type"] == "Patient"
+        patient_resource = next(r for r in meta["rest"][0]["resource"] if r["type"] == "Patient")
+        everything_op = next(
+            op for op in patient_resource["operation"] if op["name"] == "$everything"
         )
-        everything_op = next(op for op in patient_resource["operation"] if op["name"] == "$everything")
-        assert everything_op["definition"] == "http://hl7.org/fhir/OperationDefinition/Resource-everything"
+        assert (
+            everything_op["definition"]
+            == "http://hl7.org/fhir/OperationDefinition/Resource-everything"
+        )

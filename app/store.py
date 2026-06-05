@@ -80,9 +80,7 @@ def _apply_python_sort(
     return result
 
 
-def _last_updated_sql_clause(
-    column: Any, value: str
-) -> ColumnElement[bool] | None:
+def _last_updated_sql_clause(column: Any, value: str) -> ColumnElement[bool] | None:
     """Return a SQLAlchemy filter clause for a single `_lastUpdated` value.
 
     Returns `None` if the value cannot be parsed so callers can skip silently.
@@ -115,8 +113,12 @@ def _apply_last_updated_filter(
     if not filter_values:
         return versions
     return [
-        version for version in versions
-        if all(matches_last_updated(version.last_updated, last_updated_value) for last_updated_value in filter_values)
+        version
+        for version in versions
+        if all(
+            matches_last_updated(version.last_updated, last_updated_value)
+            for last_updated_value in filter_values
+        )
     ]
 
 
@@ -145,14 +147,16 @@ _CACHE_KEY_VERSION = "fhir:v:{}:{}:{}"
 
 
 def _resource_version_to_json(resource_version: ResourceVersion) -> str:
-    return json.dumps({
-        "version_id": resource_version.version_id,
-        "resource": resource_version.resource,
-        "last_updated": resource_version.last_updated.isoformat(),
-        "deleted": resource_version.deleted,
-        "resource_type": resource_version.resource_type,
-        "resource_id": resource_version.resource_id,
-    })
+    return json.dumps(
+        {
+            "version_id": resource_version.version_id,
+            "resource": resource_version.resource,
+            "last_updated": resource_version.last_updated.isoformat(),
+            "deleted": resource_version.deleted,
+            "resource_type": resource_version.resource_type,
+            "resource_id": resource_version.resource_id,
+        }
+    )
 
 
 def _json_to_resource_version(raw: str) -> ResourceVersion:
@@ -214,7 +218,7 @@ class FHIRStore:
     deletion tombstones marked by `deleted=True` and `content=None`.
     """
 
-    TTL_LATEST: int = 300    # 5 min — invalidated on every write; safety-net TTL
+    TTL_LATEST: int = 300  # 5 min — invalidated on every write; safety-net TTL
     TTL_VERSION: int = 3600  # 1 hour — historical versions are immutable
 
     def __init__(self, session_factory: sessionmaker[Session] | None = None) -> None:
@@ -223,12 +227,16 @@ class FHIRStore:
         self._is_postgres = engine.dialect.name == "postgresql"
 
     @cache.write_through(
-        key_function=lambda resource_version, resource_type: _CACHE_KEY_LATEST.format(resource_type, (resource_version.resource or {}).get("id")),
+        key_function=lambda resource_version, resource_type: _CACHE_KEY_LATEST.format(
+            resource_type, (resource_version.resource or {}).get("id")
+        ),
         ttl=TTL_LATEST,
         serialize=_resource_version_to_json,
     )
     @cache.write_through(
-        key_function=lambda resource_version, resource_type: _CACHE_KEY_VERSION.format(resource_type, (resource_version.resource or {}).get("id"), resource_version.version_id),
+        key_function=lambda resource_version, resource_type: _CACHE_KEY_VERSION.format(
+            resource_type, (resource_version.resource or {}).get("id"), resource_version.version_id
+        ),
         ttl=TTL_VERSION,
         serialize=_resource_version_to_json,
     )
@@ -253,13 +261,17 @@ class FHIRStore:
             return ResourceVersion("1", prepared, last_updated, False, resource_type, resource_id)
 
     @cache.write_through(
-        key_function=lambda _, resource_type, resource_id: _CACHE_KEY_LATEST.format(resource_type, resource_id),
+        key_function=lambda _, resource_type, resource_id: _CACHE_KEY_LATEST.format(
+            resource_type, resource_id
+        ),
         ttl=TTL_LATEST,
         serialize=_resource_version_to_json,
         result_function=lambda result: result[0],
     )
     @cache.write_through(
-        key_function=lambda resource_version, resource_type, resource_id: _CACHE_KEY_VERSION.format(resource_type, resource_id, resource_version.version_id),
+        key_function=lambda resource_version, resource_type, resource_id: _CACHE_KEY_VERSION.format(
+            resource_type, resource_id, resource_version.version_id
+        ),
         ttl=TTL_VERSION,
         serialize=_resource_version_to_json,
         result_function=lambda result: result[0],
@@ -308,10 +320,14 @@ class FHIRStore:
                 prepared,
             )
             session.commit()
-            return ResourceVersion(next_version_id, prepared, last_updated, False, resource_type, resource_id), created
+            return ResourceVersion(
+                next_version_id, prepared, last_updated, False, resource_type, resource_id
+            ), created
 
     @cache.write_through(
-        key_function=lambda _, resource_type, resource_id: _CACHE_KEY_LATEST.format(resource_type, resource_id),
+        key_function=lambda _, resource_type, resource_id: _CACHE_KEY_LATEST.format(
+            resource_type, resource_id
+        ),
         ttl=TTL_LATEST,
         serialize=_resource_version_to_json,
     )
@@ -346,7 +362,9 @@ class FHIRStore:
             )
             self._delete_projection(session, resource_type, resource_id)
             session.commit()
-            return ResourceVersion(next_version_id, None, last_updated, True, resource_type, resource_id)
+            return ResourceVersion(
+                next_version_id, None, last_updated, True, resource_type, resource_id
+            )
 
     def delete_many(
         self,
@@ -378,7 +396,14 @@ class FHIRStore:
                     )
                 )
                 self._delete_projection(session, resource_type, resource_id)
-                results.append((resource_id, ResourceVersion(next_version_id, None, last_updated, True, resource_type, resource_id)))
+                results.append(
+                    (
+                        resource_id,
+                        ResourceVersion(
+                            next_version_id, None, last_updated, True, resource_type, resource_id
+                        ),
+                    )
+                )
             session.commit()
         for resource_id, tombstone in results:
             cache.cache_set(
@@ -467,9 +492,7 @@ class FHIRStore:
                 projection_batches.clear()
 
             for resource_type, resource_id, resource in rows:
-                prepared, last_updated = self._prepare(
-                    resource_type, resource_id, "1", resource
-                )
+                prepared, last_updated = self._prepare(resource_type, resource_id, "1", resource)
                 batch.append(
                     {
                         "resource_type": resource_type,
@@ -503,7 +526,9 @@ class FHIRStore:
         return submitted
 
     @cache.redis_cached(
-        key_function=lambda resource_type, resource_id: _CACHE_KEY_LATEST.format(resource_type, resource_id),
+        key_function=lambda resource_type, resource_id: _CACHE_KEY_LATEST.format(
+            resource_type, resource_id
+        ),
         ttl=TTL_LATEST,
         serialize=_resource_version_to_json,
         deserialize=_json_to_resource_version,
@@ -513,7 +538,9 @@ class FHIRStore:
             return self._to_version(self._latest_record(session, resource_type, resource_id))
 
     @cache.redis_cached(
-        key_function=lambda resource_type, resource_id, version_id: _CACHE_KEY_VERSION.format(resource_type, resource_id, version_id),
+        key_function=lambda resource_type, resource_id, version_id: _CACHE_KEY_VERSION.format(
+            resource_type, resource_id, version_id
+        ),
         ttl=TTL_VERSION,
         serialize=_resource_version_to_json,
         deserialize=_json_to_resource_version,
@@ -529,9 +556,7 @@ class FHIRStore:
             )
             return self._to_version(session.execute(statement).scalar_one_or_none())
 
-    def search(
-        self, resource_type: str, params: dict[str, list[str]]
-    ) -> list[ResourceVersion]:
+    def search(self, resource_type: str, params: dict[str, list[str]]) -> list[ResourceVersion]:
         with self._session_factory() as session:
             return self._dispatch_search(session, resource_type, params)
 
@@ -652,12 +677,8 @@ class FHIRStore:
             return self._projection_search(session, projection, params)
 
         if self._is_postgres:
-            return self._sql_search(
-                session, resource_type, params, system_search=system_search
-            )
-        return self._python_search(
-            session, resource_type, params, system_search=system_search
-        )
+            return self._sql_search(session, resource_type, params, system_search=system_search)
+        return self._python_search(session, resource_type, params, system_search=system_search)
 
     def _projection_search(
         self,
@@ -716,7 +737,9 @@ class FHIRStore:
 
         latest = (
             select(ResourceVersionRecord)
-            .where(ResourceVersionRecord.resource_type == resource_type, *inner_last_updated_filters)
+            .where(
+                ResourceVersionRecord.resource_type == resource_type, *inner_last_updated_filters
+            )
             .order_by(
                 ResourceVersionRecord.resource_id,
                 ResourceVersionRecord.last_updated.desc(),
@@ -768,7 +791,9 @@ class FHIRStore:
             .order_by(LatestRV.last_updated.desc(), LatestRV.id.desc())
         )
         records = session.execute(statement).scalars().all()
-        versions = [version for version in (self._to_version(record) for record in records) if version]
+        versions = [
+            version for version in (self._to_version(record) for record in records) if version
+        ]
         return _apply_python_sort(versions, params)
 
     def _python_search(
@@ -954,7 +979,9 @@ class FHIRStore:
     # Transaction / batch support
     # ------------------------------------------------------------------
 
-    def execute_transaction(self, operations: list[TransactionOperation]) -> list[TransactionResult]:
+    def execute_transaction(
+        self, operations: list[TransactionOperation]
+    ) -> list[TransactionResult]:
         """Execute *operations* atomically in a single session.
 
         Commits only if every operation succeeds; any exception causes a
@@ -971,8 +998,12 @@ class FHIRStore:
             if isinstance(operation, TransactionRead) or result.version is None:
                 continue
             resource_id = (
-                (result.version.resource or {}).get("id")      # TransactionCreate: id lives in the result
-                or getattr(operation, "resource_id", None)  # TransactionUpdate/Delete: id is on the operation
+                (result.version.resource or {}).get(
+                    "id"
+                )  # TransactionCreate: id lives in the result
+                or getattr(
+                    operation, "resource_id", None
+                )  # TransactionUpdate/Delete: id is on the operation
             )
             if not resource_id:
                 continue
@@ -984,7 +1015,9 @@ class FHIRStore:
             )
             if not result.version.deleted:
                 cache.cache_set(
-                    key=_CACHE_KEY_VERSION.format(operation.resource_type, resource_id, result.version.version_id),
+                    key=_CACHE_KEY_VERSION.format(
+                        operation.resource_type, resource_id, result.version.version_id
+                    ),
                     value=result.version,
                     ttl=self.TTL_VERSION,
                     serialize=_resource_version_to_json,
@@ -992,31 +1025,54 @@ class FHIRStore:
 
         return results
 
-    def _execute_transaction_op(self, session: Session, operation: TransactionOperation) -> TransactionResult:
+    def _execute_transaction_op(
+        self, session: Session, operation: TransactionOperation
+    ) -> TransactionResult:
         if isinstance(operation, TransactionCreate):
-            return TransactionResult(version=self._create_in_session(session, operation.resource_type, operation.resource), created=True)
+            return TransactionResult(
+                version=self._create_in_session(
+                    session, operation.resource_type, operation.resource
+                ),
+                created=True,
+            )
         if isinstance(operation, TransactionUpdate):
-            version, created = self._update_in_session(session, operation.resource_type, operation.resource_id, operation.resource, if_match=operation.if_match)
+            version, created = self._update_in_session(
+                session,
+                operation.resource_type,
+                operation.resource_id,
+                operation.resource,
+                if_match=operation.if_match,
+            )
             return TransactionResult(version=version, created=created)
         if isinstance(operation, TransactionDelete):
-            return TransactionResult(version=self._delete_in_session(session, operation.resource_type, operation.resource_id))
+            return TransactionResult(
+                version=self._delete_in_session(
+                    session, operation.resource_type, operation.resource_id
+                )
+            )
         # TransactionRead
         session.flush()  # make pending writes visible within this transaction
-        return TransactionResult(version=self._to_version(self._latest_record(session, operation.resource_type, operation.resource_id)))
+        return TransactionResult(
+            version=self._to_version(
+                self._latest_record(session, operation.resource_type, operation.resource_id)
+            )
+        )
 
     def _create_in_session(
         self, session: Session, resource_type: str, resource: dict[str, Any]
     ) -> ResourceVersion:
         resource_id = uuid.uuid4().hex
         prepared, last_updated = self._prepare(resource_type, resource_id, "1", resource)
-        session.add(ResourceVersionRecord(
-            resource_type=resource_type,
-            resource_id=resource_id,
-            version_id="1",
-            last_updated=last_updated,
-            deleted=False,
-            content=prepared,
-        ))
+        session.add(
+            ResourceVersionRecord(
+                resource_type=resource_type,
+                resource_id=resource_id,
+                version_id="1",
+                last_updated=last_updated,
+                deleted=False,
+                content=prepared,
+            )
+        )
         self._upsert_projection(session, resource_type, resource_id, "1", last_updated, prepared)
         return ResourceVersion("1", prepared, last_updated, False, resource_type, resource_id)
 
@@ -1032,23 +1088,33 @@ class FHIRStore:
         latest = self._latest_record(session, resource_type, resource_id)
         if if_match is not None:
             current_etag = (
-                weak_etag(latest.version_id) if (latest is not None and not latest.deleted) else None
+                weak_etag(latest.version_id)
+                if (latest is not None and not latest.deleted)
+                else None
             )
             if current_etag is None or if_match != current_etag:
                 raise VersionConflictError("If-Match did not match the current resource version")
         created = latest is None or latest.deleted
         next_version_id = str(int(latest.version_id) + 1) if latest else "1"
-        prepared, last_updated = self._prepare(resource_type, resource_id, next_version_id, resource)
-        session.add(ResourceVersionRecord(
-            resource_type=resource_type,
-            resource_id=resource_id,
-            version_id=next_version_id,
-            last_updated=last_updated,
-            deleted=False,
-            content=prepared,
-        ))
-        self._upsert_projection(session, resource_type, resource_id, next_version_id, last_updated, prepared)
-        return ResourceVersion(next_version_id, prepared, last_updated, False, resource_type, resource_id), created
+        prepared, last_updated = self._prepare(
+            resource_type, resource_id, next_version_id, resource
+        )
+        session.add(
+            ResourceVersionRecord(
+                resource_type=resource_type,
+                resource_id=resource_id,
+                version_id=next_version_id,
+                last_updated=last_updated,
+                deleted=False,
+                content=prepared,
+            )
+        )
+        self._upsert_projection(
+            session, resource_type, resource_id, next_version_id, last_updated, prepared
+        )
+        return ResourceVersion(
+            next_version_id, prepared, last_updated, False, resource_type, resource_id
+        ), created
 
     def _delete_in_session(
         self, session: Session, resource_type: str, resource_id: str
@@ -1058,16 +1124,20 @@ class FHIRStore:
             return None
         next_version_id = str(int(latest.version_id) + 1)
         last_updated = now_utc()
-        session.add(ResourceVersionRecord(
-            resource_type=resource_type,
-            resource_id=resource_id,
-            version_id=next_version_id,
-            last_updated=last_updated,
-            deleted=True,
-            content=None,
-        ))
+        session.add(
+            ResourceVersionRecord(
+                resource_type=resource_type,
+                resource_id=resource_id,
+                version_id=next_version_id,
+                last_updated=last_updated,
+                deleted=True,
+                content=None,
+            )
+        )
         self._delete_projection(session, resource_type, resource_id)
-        return ResourceVersion(next_version_id, None, last_updated, True, resource_type, resource_id)
+        return ResourceVersion(
+            next_version_id, None, last_updated, True, resource_type, resource_id
+        )
 
     def _prepare(
         self,

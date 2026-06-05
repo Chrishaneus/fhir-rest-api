@@ -407,9 +407,7 @@ class Projection(ABC):
             return projection_table.c.resource_id.in_(values)
 
         if lower == "_lastupdated":
-            return self._range_clause(
-                projection_table.c.last_updated, values, _parse_date
-            )
+            return self._range_clause(projection_table.c.last_updated, values, _parse_date)
 
         if lower in self.TOKEN_PARAMS:
             column = projection_table.c[self.TOKEN_PARAMS[lower]]
@@ -418,7 +416,9 @@ class Projection(ABC):
         if lower in self.STRING_PARAMS:
             column = projection_table.c[self.STRING_PARAMS[lower]]
             # FHIR string semantics: "starts with, case-insensitive".
-            return or_(*[func.lower(column).like(search_value.lower() + "%") for search_value in values])
+            return or_(
+                *[func.lower(column).like(search_value.lower() + "%") for search_value in values]
+            )
 
         if lower in self.REFERENCE_PARAMS:
             column_name, default_type = self.REFERENCE_PARAMS[lower]
@@ -436,7 +436,11 @@ class Projection(ABC):
         if lower in self.BOOL_PARAMS:
             column = projection_table.c[self.BOOL_PARAMS[lower]]
             _BOOL_MAP = {"true": True, "false": False}
-            bool_vals = [_BOOL_MAP[search_value.lower()] for search_value in values if search_value.lower() in _BOOL_MAP]
+            bool_vals = [
+                _BOOL_MAP[search_value.lower()]
+                for search_value in values
+                if search_value.lower() in _BOOL_MAP
+            ]
             if not bool_vals:
                 return column != column
             return column.in_(bool_vals)
@@ -488,9 +492,7 @@ class ProjectionRegistry:
 
     def register(self, projection: Projection) -> None:
         if not projection.resource_type:
-            raise ValueError(
-                f"{type(projection).__name__} has no resource_type set"
-            )
+            raise ValueError(f"{type(projection).__name__} has no resource_type set")
         self._projections[projection.resource_type] = projection
 
     def for_type(self, resource_type: str) -> Projection | None:

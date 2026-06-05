@@ -38,10 +38,7 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
-        parts = [
-            f"{' -> '.join(str(loc) for loc in e['loc'])}: {e['msg']}"
-            for e in exc.errors()
-        ]
+        parts = [f"{' -> '.join(str(loc) for loc in e['loc'])}: {e['msg']}" for e in exc.errors()]
         return fhir_json_response(
             operation_outcome(f"Invalid request: {'; '.join(parts)}", code="invalid"),
             status_code=400,

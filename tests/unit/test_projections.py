@@ -55,7 +55,9 @@ def _patient(family: str, given: str, gender: str, birth: str) -> dict:
 def _get_patient_row(resource_id: str) -> PatientProjectionSchema | None:
     with SessionLocal() as session:
         return session.execute(
-            select(PatientProjectionSchema).where(PatientProjectionSchema.resource_id == resource_id)
+            select(PatientProjectionSchema).where(
+                PatientProjectionSchema.resource_id == resource_id
+            )
         ).scalar_one_or_none()
 
 
@@ -148,8 +150,14 @@ class TestSearch:
         params. The store must fall back to the JSONB / Python path so the filter
         still applies -- silently dropping it would return wrong results.
         """
-        p1 = {**_patient("Reyes", "Sam", "male", "1991-06-10"), "identifier": [{"system": "urn:mrn", "value": "MRN-42"}]}
-        p2 = {**_patient("Reyes", "Sam", "male", "1991-06-10"), "identifier": [{"system": "urn:mrn", "value": "MRN-99"}]}
+        p1 = {
+            **_patient("Reyes", "Sam", "male", "1991-06-10"),
+            "identifier": [{"system": "urn:mrn", "value": "MRN-42"}],
+        }
+        p2 = {
+            **_patient("Reyes", "Sam", "male", "1991-06-10"),
+            "identifier": [{"system": "urn:mrn", "value": "MRN-99"}],
+        }
         store.create("Patient", p1)
         store.create("Patient", p2)
 
@@ -161,8 +169,16 @@ class TestSearch:
 class TestRegistry:
     def test_covers_expectedresource_payloadource_types(self) -> None:
         expected = {
-            "Patient", "Practitioner", "Organization", "Encounter", "Observation",
-            "Condition", "AllergyIntolerance", "MedicationRequest", "DiagnosticReport", "Procedure",
+            "Patient",
+            "Practitioner",
+            "Organization",
+            "Encounter",
+            "Observation",
+            "Condition",
+            "AllergyIntolerance",
+            "MedicationRequest",
+            "DiagnosticReport",
+            "Procedure",
         }
         assert expected.issubset(set(registry.known_types()))
 
@@ -213,14 +229,21 @@ class TestObservationProjectionSchema:
         patient_v = store.create("Patient", _patient("Vega", "Lia", "female", "1980-02-14"))
         pid = resource_payload(patient_v)["id"]
 
-        store.create("Observation", {
-            "resourceType": "Observation",
-            "status": "final",
-            "code": {"coding": [{"system": "http://loinc.org", "code": "8867-4", "display": "Heart rate"}]},
-            "subject": {"reference": f"Patient/{pid}"},
-            "effectiveDateTime": "2025-03-01T10:15:00Z",
-            "valueQuantity": {"value": 72, "unit": "bpm"},
-        })
+        store.create(
+            "Observation",
+            {
+                "resourceType": "Observation",
+                "status": "final",
+                "code": {
+                    "coding": [
+                        {"system": "http://loinc.org", "code": "8867-4", "display": "Heart rate"}
+                    ]
+                },
+                "subject": {"reference": f"Patient/{pid}"},
+                "effectiveDateTime": "2025-03-01T10:15:00Z",
+                "valueQuantity": {"value": 72, "unit": "bpm"},
+            },
+        )
 
         with SessionLocal() as session:
             row = session.execute(select(ObservationProjectionSchema)).scalar_one_or_none()
@@ -244,13 +267,25 @@ class TestEncounterProjectionSchema:
         patient_v = store.create("Patient", _patient("North", "Eli", "male", "1975-08-30"))
         pid = resource_payload(patient_v)["id"]
 
-        store.create("Encounter", {
-            "resourceType": "Encounter",
-            "status": "completed",
-            "class": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode", "code": "AMB"}]}],
-            "subject": {"reference": f"Patient/{pid}"},
-            "actualPeriod": {"start": "2025-03-01T09:00:00Z", "end": "2025-03-01T09:45:00Z"},
-        })
+        store.create(
+            "Encounter",
+            {
+                "resourceType": "Encounter",
+                "status": "completed",
+                "class": [
+                    {
+                        "coding": [
+                            {
+                                "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
+                                "code": "AMB",
+                            }
+                        ]
+                    }
+                ],
+                "subject": {"reference": f"Patient/{pid}"},
+                "actualPeriod": {"start": "2025-03-01T09:00:00Z", "end": "2025-03-01T09:45:00Z"},
+            },
+        )
 
         with SessionLocal() as session:
             row = session.execute(select(EncounterProjectionSchema)).scalar_one_or_none()
@@ -267,13 +302,23 @@ class TestAllergyIntoleranceProjectionSchema:
         patient_v = store.create("Patient", _patient("Quinn", "Sky", "female", "2000-12-01"))
         pid = resource_payload(patient_v)["id"]
 
-        store.create("AllergyIntolerance", {
-            "resourceType": "AllergyIntolerance",
-            "patient": {"reference": f"Patient/{pid}"},
-            "criticality": "high",
-            "clinicalStatus": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical", "code": "active"}]},
-            "code": {"coding": [{"system": "http://snomed.info/sct", "code": "227037002"}]},
-        })
+        store.create(
+            "AllergyIntolerance",
+            {
+                "resourceType": "AllergyIntolerance",
+                "patient": {"reference": f"Patient/{pid}"},
+                "criticality": "high",
+                "clinicalStatus": {
+                    "coding": [
+                        {
+                            "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+                            "code": "active",
+                        }
+                    ]
+                },
+                "code": {"coding": [{"system": "http://snomed.info/sct", "code": "227037002"}]},
+            },
+        )
 
         with SessionLocal() as session:
             row = session.execute(select(AllergyIntoleranceProjectionSchema)).scalar_one_or_none()

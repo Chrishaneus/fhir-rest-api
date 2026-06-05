@@ -25,13 +25,9 @@ class AuditEventProjection(Projection):
 
     def extract(self, resource: dict[str, Any]) -> dict[str, Any]:
         agent = next(iter(resource.get("agent") or []), None)
-        agent_username = (
-            agent.get("who", {}).get("identifier", {}).get("value") if agent else None
-        )
+        agent_username = agent.get("who", {}).get("identifier", {}).get("value") if agent else None
         entity = next(iter(resource.get("entity") or []), None)
-        entity_reference = (
-            entity.get("what", {}).get("reference") if entity else None
-        )
+        entity_reference = entity.get("what", {}).get("reference") if entity else None
         return {
             "recorded_at": self._parse_datetime(resource.get("recorded")),
             "action": resource.get("action"),

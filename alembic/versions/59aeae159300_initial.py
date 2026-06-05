@@ -48,13 +48,19 @@ def upgrade() -> None:
         ),
     )
     op.create_index(
-        op.f("ix_resource_versions_last_updated"), "resource_versions", ["last_updated"], unique=False
+        op.f("ix_resource_versions_last_updated"),
+        "resource_versions",
+        ["last_updated"],
+        unique=False,
     )
     op.create_index(
         op.f("ix_resource_versions_resource_id"), "resource_versions", ["resource_id"], unique=False
     )
     op.create_index(
-        op.f("ix_resource_versions_resource_type"), "resource_versions", ["resource_type"], unique=False
+        op.f("ix_resource_versions_resource_type"),
+        "resource_versions",
+        ["resource_type"],
+        unique=False,
     )
     op.create_index(
         "ix_resource_versions_type_id",
