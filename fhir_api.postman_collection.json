@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "11111111-2222-3333-4444-555555555555",
     "name": "FHIR REST API",
-    "description": "End-to-end tests for the Python FastAPI FHIR R5 REST server.\n\nRun the full collection in order \u00e2\u20ac\u201d Auth registers a unique user and saves a Bearer token, which all subsequent requests inherit. The Patient folder creates a resource whose ID is stored in `patientId`. The Sort folder seeds additional patients to verify `_sort` ordering. The Include / RevInclude folder seeds a fresh patient and observation to test `_include` / `_revinclude`, saving their IDs to `includePatientId` and `includeObsId`. The Reference Validation folder verifies that dangling local references are rejected with 422. The _format Negotiation folder tests `?_format` parameter support (JSON accepted, XML \u00e2\u2020\u2019 406). The Conditional Create folder tests the `If-None-Exist` header (0 matches \u00e2\u2020\u2019 201, 1 match \u00e2\u2020\u2019 200, 2+ \u00e2\u2020\u2019 412). The $everything folder tests `GET /<resource>/{id}/$everything`. The Transaction / Batch Bundle folder tests `POST /` bundle processing. The _summary / _elements folder tests response shaping via `?_summary` and `?_elements`. The _lastUpdated folder tests date-prefix search via `?_lastUpdated`. The $validate folder tests `POST /{type}/$validate` without persisting.\n\n**Base URL:** `https://localhost:443`\n**Auth:** JWT Bearer (token saved automatically after Login)",
+    "description": "End-to-end tests for the Python FastAPI FHIR R5 REST server.\n\nRun the full collection in order â€” Auth registers a unique user and saves a Bearer token, which all subsequent requests inherit. The Patient folder creates a resource whose ID is stored in `patientId`. The Sort folder seeds additional patients to verify `_sort` ordering. The Include / RevInclude folder seeds a fresh patient and observation to test `_include` / `_revinclude`, saving their IDs to `includePatientId` and `includeObsId`. The Reference Validation folder verifies that dangling local references are rejected with 422. The _format Negotiation folder tests `?_format` parameter support (JSON accepted, XML â†’ 406). The Conditional Create folder tests the `If-None-Exist` header (0 matches â†’ 201, 1 match â†’ 200, 2+ â†’ 412). The $everything folder tests `GET /<resource>/{id}/$everything`. The Transaction / Batch Bundle folder tests `POST /` bundle processing. The _summary / _elements folder tests response shaping via `?_summary` and `?_elements`. The _lastUpdated folder tests date-prefix search via `?_lastUpdated`. The $validate folder tests `POST /{type}/$validate` without persisting.\n\n**Base URL:** `https://localhost:443`\n**Auth:** JWT Bearer (token saved automatically after Login)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "55269035"
   },
@@ -163,7 +163,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"Secret!123\",\n  \"email\": \"{{username}}@example.com\",\n  \"role\": \"clinician\"\n}",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"Secret!123\",\n  \"email\": \"{{username}}@example.com\",\n  \"role\": \"admin\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -243,12 +243,195 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "{{baseUrl}}/auth/register (duplicate username → 409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"{{username}}\", \"password\": \"Secret!123\", \"email\": \"dup@example.com\", \"role\": \"clinician\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/auth/login (unknown user → 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"nobody_xyz_unknown_9999\", \"password\": \"Secret!123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/auth/login (5 bad attempts → account locked 423)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "// Fire 4 extra bad-password requests so the 5th (this request) triggers lockout.",
+                  "const loginUrl = pm.collectionVariables.get('baseUrl') + '/auth/login';",
+                  "const body = JSON.stringify({username: pm.collectionVariables.get('username'), password: 'WRONG'});",
+                  "for (let i = 0; i < 4; i++) {",
+                  "    pm.sendRequest({url: loginUrl, method: 'POST', header: {'Content-Type': 'application/json'}, body: {mode: 'raw', raw: body}}, () => {});",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 423 (account locked) or 401', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([423, 401]);",
+                  "});",
+                  "if (pm.response.code === 423) {",
+                  "    pm.test('Returns OperationOutcome', () => {",
+                  "        pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "    });",
+                  "    pm.test('Lockout response includes retry-after context', () => {",
+                  "        const diag = pm.response.json().issue[0].diagnostics || '';",
+                  "        pm.expect(diag.length).to.be.above(0);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"{{username}}\", \"password\": \"WRONG\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
     {
       "name": "Patient",
-      "description": "Full CRUD lifecycle for a Patient resource. Create saves the new resource ID to `patientId`, which Read, Update, Patch, and Delete all reference. Run these in order: Create \u00e2\u2020\u2019 Read \u00e2\u2020\u2019 Search \u00e2\u2020\u2019 PUT \u00e2\u2020\u2019 PATCH \u00e2\u2020\u2019 Delete. The DELETE at the end tombstones the resource so History requests can demonstrate the deleted version.",
+      "description": "Full CRUD lifecycle for a Patient resource. Create saves the new resource ID to `patientId`, which Read, Update, Patch, and Delete all reference. Run these in order: Create â†’ Read â†’ Search â†’ PUT â†’ PATCH â†’ Delete. The DELETE at the end tombstones the resource so History requests can demonstrate the deleted version.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient (Create)",
@@ -685,7 +868,7 @@
     },
     {
       "name": "History",
-      "description": "Version history interactions. Reads instance, type, and system history bundles. Run after the Patient CRUD folder \u2014 the patient will have been created, updated twice (PUT + PATCH), and deleted, so the history bundle should contain at least 3 entries. Version 1 may return 410 Gone after the DELETE. Pagination is supported via ?_count and ?_offset on all history endpoints; total always reflects the full history regardless of the page size.",
+      "description": "Version history interactions. Reads instance, type, and system history bundles. Run after the Patient CRUD folder — the patient will have been created, updated twice (PUT + PATCH), and deleted, so the history bundle should contain at least 3 entries. Version 1 may return 410 Gone after the DELETE. Pagination is supported via ?_count and ?_offset on all history endpoints; total always reflects the full history regardless of the page size.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient/{{patientId}}/_history",
@@ -1055,7 +1238,7 @@
     },
     {
       "name": "Observation",
-      "description": "Search interactions for Observation resources. Demonstrates subject reference filtering, LOINC code filtering, date range filtering with `ge`/`le` prefixes, and pagination via `_count`/`_offset`. These requests return empty bundles if no Observations have been created \u00e2\u20ac\u201d that is still a valid 200 searchset response.",
+      "description": "Search interactions for Observation resources. Demonstrates subject reference filtering, LOINC code filtering, date range filtering with `ge`/`le` prefixes, and pagination via `_count`/`_offset`. These requests return empty bundles if no Observations have been created â€” that is still a valid 200 searchset response.",
       "item": [
         {
           "name": "{{baseUrl}}/Observation?subject=Patient/{{patientId}}",
@@ -1317,7 +1500,7 @@
     },
     {
       "name": "Condition, AllergyIntolerance, MedicationRequest",
-      "description": "Search interactions for common clinical resources linked to the patient. All three filter by subject/patient reference using `patientId`. Empty bundles are expected unless matching resources have been created separately \u00e2\u20ac\u201d the tests only assert on the Bundle structure, not entry count.",
+      "description": "Search interactions for common clinical resources linked to the patient. All three filter by subject/patient reference using `patientId`. Empty bundles are expected unless matching resources have been created separately â€” the tests only assert on the Bundle structure, not entry count.",
       "item": [
         {
           "name": "{{baseUrl}}/Condition?subject=Patient/{{patientId}}&clinical-status=active",
@@ -2181,15 +2364,199 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation?_id={{includeObsId}}&_include=Observation:subject:Organization (wrong target type → no includes)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('No include entries with wrong target type', () => {",
+                  "    const includes = (pm.response.json().entry || []).filter(e => e.search && e.search.mode === 'include');",
+                  "    pm.expect(includes.length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation?_id={{includeObsId}}&_include=Observation:subject:Organization",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ],
+              "query": [
+                {
+                  "key": "_id",
+                  "value": "{{includeObsId}}"
+                },
+                {
+                  "key": "_include",
+                  "value": "Observation:subject:Organization"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seed second Observation referencing same patient (for dedup test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.json().id) { pm.collectionVariables.set('includeObs2Id', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\":\"Observation\",\"status\":\"final\",\"code\":{\"text\":\"BP\"},\"subject\":{\"reference\":\"Patient/{{includePatientId}}\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation?subject=Patient/{{includePatientId}}&_include=Observation:subject (dedup — Patient returned once)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Patient included exactly once (deduplication)', () => {",
+                  "    const includes = (pm.response.json().entry || [])",
+                  "        .filter(e => e.search && e.search.mode === 'include' && e.resource.resourceType === 'Patient');",
+                  "    pm.expect(includes.length).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation?subject=Patient/{{includePatientId}}&_include=Observation:subject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ],
+              "query": [
+                {
+                  "key": "subject",
+                  "value": "Patient/{{includePatientId}}"
+                },
+                {
+                  "key": "_include",
+                  "value": "Observation:subject"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
     {
       "name": "Reference Validation",
-      "description": "Verifies that `before_create` / `before_update` hooks reject dangling references with 422 Unprocessable Content. Tests Observation (subject), Condition (subject), and AllergyIntolerance (patient). The happy-path request reuses `includePatientId` set by the Include folder \u00e2\u20ac\u201d run Include first, or manually set the variable to a live Patient ID.",
+      "description": "Verifies that `before_create` / `before_update` hooks reject dangling references with 422 Unprocessable Content. Tests Observation (subject), Condition (subject), and AllergyIntolerance (patient). The happy-path request reuses `includePatientId` set by the Include folder â€” run Include first, or manually set the variable to a live Patient ID.",
       "item": [
         {
-          "name": "{{baseUrl}}/Observation (dangling subject \u00e2\u2020\u2019 422)",
+          "name": "{{baseUrl}}/Observation (dangling subject â†’ 422)",
           "event": [
             {
               "listen": "test",
@@ -2250,7 +2617,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Observation (valid subject \u00e2\u2020\u2019 201)",
+          "name": "{{baseUrl}}/Observation (valid subject â†’ 201)",
           "event": [
             {
               "listen": "test",
@@ -2307,7 +2674,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Observation (absolute URL subject \u00e2\u20ac\u201d skipped \u00e2\u2020\u2019 201)",
+          "name": "{{baseUrl}}/Observation (absolute URL subject â€” skipped â†’ 201)",
           "event": [
             {
               "listen": "test",
@@ -2364,7 +2731,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Condition (dangling subject \u00e2\u2020\u2019 422)",
+          "name": "{{baseUrl}}/Condition (dangling subject â†’ 422)",
           "event": [
             {
               "listen": "test",
@@ -2421,7 +2788,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/AllergyIntolerance (dangling patient \u00e2\u2020\u2019 422)",
+          "name": "{{baseUrl}}/AllergyIntolerance (dangling patient â†’ 422)",
           "event": [
             {
               "listen": "test",
@@ -2476,15 +2843,190 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation (dangling encounter → 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});",
+                  "pm.test('Diagnostics mention the missing reference', () => {",
+                  "    const diag = pm.response.json().issue[0].diagnostics;",
+                  "    pm.expect(diag).to.include('ghost-encounter-id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Observation\", \"status\": \"final\", \"code\": {\"text\": \"HR\"}, \"subject\": {\"reference\": \"Patient/{{includePatientId}}\"}, \"encounter\": {\"reference\": \"Encounter/ghost-encounter-id\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation (absent subject — not validated → 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201 (absent subject is not validated)', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Observation\", \"status\": \"final\", \"code\": {\"text\": \"HR\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation/{{includeObsId}} (PUT with dangling subject → 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Observation\", \"id\": \"{{includeObsId}}\", \"status\": \"final\", \"code\": {\"text\": \"HR\"}, \"subject\": {\"reference\": \"Patient/ghost-dangling-on-update\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation/{{includeObsId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation",
+                "{{includeObsId}}"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
     {
       "name": "_format Negotiation",
-      "description": "Tests the FHIR R5 ?_format query parameter (\u00c2\u00a73.1.2). JSON variants (application/fhir+json, json, application/json) pass through normally. XML and unknown formats return 406 OperationOutcome with issue code not-supported. Format negotiation runs before authentication \u00e2\u20ac\u201d an unauthenticated request with an unsupported _format returns 406, not 401.",
+      "description": "Tests the FHIR R5 ?_format query parameter (Â§3.1.2). JSON variants (application/fhir+json, json, application/json) pass through normally. XML and unknown formats return 406 OperationOutcome with issue code not-supported. Format negotiation runs before authentication â€” an unauthenticated request with an unsupported _format returns 406, not 401.",
       "item": [
         {
-          "name": "{{baseUrl}}/metadata?_format=application/fhir+json (accepted \u00e2\u2020\u2019 200)",
+          "name": "{{baseUrl}}/metadata?_format=application/fhir+json (accepted â†’ 200)",
           "event": [
             {
               "listen": "test",
@@ -2538,7 +3080,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/metadata?_format=json (shorthand accepted \u00e2\u2020\u2019 200)",
+          "name": "{{baseUrl}}/metadata?_format=json (shorthand accepted â†’ 200)",
           "event": [
             {
               "listen": "test",
@@ -2592,7 +3134,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/metadata?_format=xml (unsupported \u00e2\u2020\u2019 406)",
+          "name": "{{baseUrl}}/metadata?_format=xml (unsupported â†’ 406)",
           "event": [
             {
               "listen": "test",
@@ -2648,7 +3190,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient?_format=xml (no auth, format checked before auth \u00e2\u2020\u2019 406)",
+          "name": "{{baseUrl}}/Patient?_format=xml (no auth, format checked before auth â†’ 406)",
           "event": [
             {
               "listen": "test",
@@ -2705,7 +3247,7 @@
     },
     {
       "name": "Conditional Create",
-      "description": "Tests FHIR R5 conditional create (\u00c2\u00a711.4.1.1) via the If-None-Exist header. Seeds a patient with a unique identifier (stored in `condIdentifier`). A second POST with If-None-Exist matching that identifier returns 200 with the existing resource \u00e2\u20ac\u201d no duplicate is created. Two seeds sharing the same family name followed by a conditional create with that name returns 412 Precondition Failed.",
+      "description": "Tests FHIR R5 conditional create (Â§11.4.1.1) via the If-None-Exist header. Seeds a patient with a unique identifier (stored in `condIdentifier`). A second POST with If-None-Exist matching that identifier returns 200 with the existing resource â€” no duplicate is created. Two seeds sharing the same family name followed by a conditional create with that name returns 412 Precondition Failed.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient (seed with unique identifier)",
@@ -2781,7 +3323,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient (If-None-Exist: 1 match \u00e2\u2020\u2019 200, returns existing)",
+          "name": "{{baseUrl}}/Patient (If-None-Exist: 1 match â†’ 200, returns existing)",
           "event": [
             {
               "listen": "test",
@@ -2966,7 +3508,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient (If-None-Exist: 2+ matches \u00e2\u2020\u2019 412)",
+          "name": "{{baseUrl}}/Patient (If-None-Exist: 2+ matches â†’ 412)",
           "event": [
             {
               "listen": "test",
@@ -3220,7 +3762,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient/no-such-patient-xyz/$everything (\u00e2\u2020\u2019 404)",
+          "name": "{{baseUrl}}/Patient/no-such-patient-xyz/$everything (â†’ 404)",
           "event": [
             {
               "listen": "test",
@@ -3396,15 +3938,197 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Seed then delete patient for $everything 410 test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const id = pm.response.json().id;",
+                  "if (id) {",
+                  "    pm.collectionVariables.set('everythingDeletedId', id);",
+                  "    pm.sendRequest({",
+                  "        url: pm.collectionVariables.get('baseUrl') + '/Patient/' + id,",
+                  "        method: 'DELETE',",
+                  "        header: [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token') }]",
+                  "    }, () => {});",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"EverythingDeleted\"}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{everythingDeletedId}}/$everything (deleted patient → 410)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 410', () => pm.response.to.have.status(410));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{everythingDeletedId}}/$everything",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{everythingDeletedId}}",
+                "$everything"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{everythingPatientId}}/$everything?_count=1 (pagination)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    pm.expect(pm.response.json().type).to.eql('searchset');",
+                  "});",
+                  "pm.test('Entry count respects _count', () => {",
+                  "    pm.expect((pm.response.json().entry || []).length).to.be.at.most(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{everythingPatientId}}/$everything?_count=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{everythingPatientId}}",
+                "$everything"
+              ],
+              "query": [
+                {
+                  "key": "_count",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
     {
       "name": "Transaction / Batch Bundle",
-      "description": "Tests POST / for FHIR R5 transaction and batch bundle processing (\u00c2\u00a710.2). A transaction bundle validates all entries atomically and commits or rolls back together; a batch bundle processes entries independently with per-entry status codes. A non-Bundle body returns 400. The transaction create saves its new Patient ID to `txPatientId`.",
+      "description": "Tests POST / for FHIR R5 transaction and batch bundle processing (Â§10.2). A transaction bundle validates all entries atomically and commits or rolls back together; a batch bundle processes entries independently with per-entry status codes. A non-Bundle body returns 400. The transaction create saves its new Patient ID to `txPatientId`.",
       "item": [
         {
-          "name": "{{baseUrl}}/ (transaction: create Patient \u00e2\u2020\u2019 200 transaction-response)",
+          "name": "{{baseUrl}}/ (transaction: create Patient â†’ 200 transaction-response)",
           "event": [
             {
               "listen": "test",
@@ -3476,7 +4200,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/ (batch: create + GET non-existent \u00e2\u2020\u2019 200 with mixed statuses)",
+          "name": "{{baseUrl}}/ (batch: create + GET non-existent â†’ 200 with mixed statuses)",
           "event": [
             {
               "listen": "test",
@@ -3545,7 +4269,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/ (non-Bundle body \u00e2\u2020\u2019 400)",
+          "name": "{{baseUrl}}/ (non-Bundle body â†’ 400)",
           "event": [
             {
               "listen": "test",
@@ -3600,12 +4324,237 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "{{baseUrl}}/ (transaction: update existing resource — txPatientId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns transaction-response Bundle', () => {",
+                  "    pm.expect(pm.response.json().type).to.eql('transaction-response');",
+                  "});",
+                  "pm.test('Update entry has 200 OK status', () => {",
+                  "    pm.expect(pm.response.json().entry[0].response.status).to.match(/^200/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\":\"Bundle\",\"type\":\"transaction\",\"entry\":[{\"request\":{\"method\":\"PUT\",\"url\":\"Patient/{{txPatientId}}\"},\"resource\":{\"resourceType\":\"Patient\",\"id\":\"{{txPatientId}}\",\"name\":[{\"family\":\"TxUpdated\"}],\"active\":true}}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/ (transaction: delete resource — txPatientId)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Delete entry has 204 No Content status', () => {",
+                  "    pm.expect(pm.response.json().entry[0].response.status).to.match(/^204/);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\":\"Bundle\",\"type\":\"transaction\",\"entry\":[{\"request\":{\"method\":\"DELETE\",\"url\":\"Patient/{{txPatientId}}\"}}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/ (transaction: invalid body entry rolls back all — 400/422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 400 or 422 (transaction rolled back)', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+                  "});",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\":\"Bundle\",\"type\":\"transaction\",\"entry\":[{\"request\":{\"method\":\"POST\",\"url\":\"Patient\"},\"resource\":{\"resourceType\":\"Patient\",\"name\":[{\"family\":\"Good\"}]}},{\"request\":{\"method\":\"POST\",\"url\":\"Patient\"},\"resource\":{\"resourceType\":\"Patient\",\"badField\":true}}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/ (transaction: version conflict If-Match stale ETag → 412)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 412', () => pm.response.to.have.status(412));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\":\"Bundle\",\"type\":\"transaction\",\"entry\":[{\"request\":{\"method\":\"PUT\",\"url\":\"Patient/{{includePatientId}}\",\"ifMatch\":\"W/\\\"9999\\\"\"},\"resource\":{\"resourceType\":\"Patient\",\"id\":\"{{includePatientId}}\",\"name\":[{\"family\":\"ConflictTest\"}]}}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            }
+          },
+          "response": []
         }
       ]
     },
     {
       "name": "_summary / _elements",
-      "description": "Tests FHIR R5 response shaping (\u00c2\u00a73.3.1). Seeds a Patient with narrative text (`shapingPatientId`). _summary=true keeps only id, meta, resourceType, text. _summary=data strips text but retains clinical fields. _summary=count returns total with no entries array. _elements=x,y keeps the named fields plus the mandatory trio (id, meta, resourceType). All shaped responses carry a SUBSETTED meta tag.",
+      "description": "Tests FHIR R5 response shaping (Â§3.3.1). Seeds a Patient with narrative text (`shapingPatientId`). _summary=true keeps only id, meta, resourceType, text. _summary=data strips text but retains clinical fields. _summary=count returns total with no entries array. _elements=x,y keeps the named fields plus the mandatory trio (id, meta, resourceType). All shaped responses carry a SUBSETTED meta tag.",
       "item": [
         {
           "name": "{{baseUrl}}/Patient (seed shaping patient)",
@@ -3933,6 +4882,132 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{shapingPatientId}}?_summary=text (text + mandatory only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Text element present', () => {",
+                  "    pm.expect(pm.response.json()).to.have.property('text');",
+                  "});",
+                  "pm.test('Has SUBSETTED meta tag', () => {",
+                  "    const tags = (pm.response.json().meta || {}).tag || [];",
+                  "    pm.expect(tags.some(t => t.code === 'SUBSETTED')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{shapingPatientId}}?_summary=text",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{shapingPatientId}}"
+              ],
+              "query": [
+                {
+                  "key": "_summary",
+                  "value": "text"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{shapingPatientId}}?_summary=false (full resource, no SUBSETTED)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('name field present', () => { pm.expect(pm.response.json()).to.have.property('name'); });",
+                  "pm.test('No SUBSETTED tag', () => {",
+                  "    const tags = (pm.response.json().meta || {}).tag || [];",
+                  "    pm.expect(tags.some(t => t.code === 'SUBSETTED')).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{shapingPatientId}}?_summary=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{shapingPatientId}}"
+              ],
+              "query": [
+                {
+                  "key": "_summary",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -4069,7 +5144,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient?_lastUpdated=ge2099-01-01 (future date \u00e2\u2020\u2019 empty)",
+          "name": "{{baseUrl}}/Patient?_lastUpdated=ge2099-01-01 (future date â†’ empty)",
           "event": [
             {
               "listen": "test",
@@ -4128,7 +5203,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient?_lastUpdated=lt2000-01-01 (past date \u00e2\u2020\u2019 empty)",
+          "name": "{{baseUrl}}/Patient?_lastUpdated=lt2000-01-01 (past date â†’ empty)",
           "event": [
             {
               "listen": "test",
@@ -4185,15 +5260,207 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_lastUpdated=eq{{lastUpdatedDate}} (eq day matches seeded patient)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Seeded patient found with eq prefix', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get('lastUpdatedPatientId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_id={{lastUpdatedPatientId}}&_lastUpdated=eq{{lastUpdatedDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_id",
+                  "value": "{{lastUpdatedPatientId}}"
+                },
+                {
+                  "key": "_lastUpdated",
+                  "value": "eq{{lastUpdatedDate}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_lastUpdated=ne{{lastUpdatedDate}} (ne excludes resource updated today)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Seeded patient excluded by ne prefix', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('lastUpdatedPatientId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_id={{lastUpdatedPatientId}}&_lastUpdated=ne{{lastUpdatedDate}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_id",
+                  "value": "{{lastUpdatedPatientId}}"
+                },
+                {
+                  "key": "_lastUpdated",
+                  "value": "ne{{lastUpdatedDate}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_lastUpdated=ge{{lastUpdatedDate}}&family=LastUpdatedTest (combined params)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Seeded patient found with combined _lastUpdated + family', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get('lastUpdatedPatientId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_lastUpdated=ge{{lastUpdatedDate}}&family=LastUpdatedTest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_lastUpdated",
+                  "value": "ge{{lastUpdatedDate}}"
+                },
+                {
+                  "key": "family",
+                  "value": "LastUpdatedTest"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
     {
       "name": "$validate",
-      "description": "Tests POST /{type}/$validate (FHIR R5 \u00a74.9.3). Validates a resource against the fhir.resources Pydantic model without persisting it. A valid resource returns 200 with an informational OperationOutcome; an invalid resource returns 422; an unknown type returns 404. The CapabilityStatement advertises $validate for every resource type.",
+      "description": "Tests POST /{type}/$validate (FHIR R5 §4.9.3). Validates a resource against the fhir.resources Pydantic model without persisting it. A valid resource returns 200 with an informational OperationOutcome; an invalid resource returns 422; an unknown type returns 404. The CapabilityStatement advertises $validate for every resource type.",
       "item": [
         {
-          "name": "{{baseUrl}}/Patient/$validate (valid \u2192 200 informational)",
+          "name": "{{baseUrl}}/Patient/$validate (valid → 200 informational)",
           "event": [
             {
               "listen": "test",
@@ -4256,7 +5523,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Observation/$validate (missing required fields \u2192 422)",
+          "name": "{{baseUrl}}/Observation/$validate (missing required fields → 422)",
           "event": [
             {
               "listen": "test",
@@ -4314,7 +5581,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Unicorn/$validate (unknown type \u2192 404)",
+          "name": "{{baseUrl}}/Unicorn/$validate (unknown type → 404)",
           "event": [
             {
               "listen": "test",
@@ -4434,6 +5701,133 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/$validate (does not persist — resource absent after validate)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns OperationOutcome not a stored Patient', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});",
+                  "// verify the resource was not persisted",
+                  "pm.sendRequest(",
+                  "    { url: pm.collectionVariables.get('baseUrl') + '/Patient?identifier=unique-validate-sentinel-xyz',",
+                  "      method: 'GET',",
+                  "      header: [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token') }] },",
+                  "    (err, res) => {",
+                  "        pm.test('Resource was not persisted by $validate', () => {",
+                  "            pm.expect(res.json().total).to.eql(0);",
+                  "        });",
+                  "    }",
+                  ");"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\":\"Patient\",\"name\":[{\"family\":\"ValidateNotStored\"}],\"identifier\":[{\"value\":\"unique-validate-sentinel-xyz\"}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/$validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "$validate"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/$validate (resourceType mismatch body vs URL → 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Observation\", \"status\": \"final\", \"code\": {\"text\": \"HR\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/$validate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "$validate"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -4442,7 +5836,7 @@
       "description": "Tests GET / for system-wide search across all resource types. With no params returns an informational OperationOutcome. With ?_type=Patient returns a searchset of Patients only. Supports the same _count/_sort/_lastUpdated params as type-level search.",
       "item": [
         {
-          "name": "{{baseUrl}}/ (no params \u2192 informational OperationOutcome)",
+          "name": "{{baseUrl}}/ (no params → informational OperationOutcome)",
           "event": [
             {
               "listen": "test",
@@ -4823,7 +6217,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Patient/{{compartmentPatientId}}/Condition (no conditions \u2192 empty bundle)",
+          "name": "{{baseUrl}}/Patient/{{compartmentPatientId}}/Condition (no conditions → empty bundle)",
           "event": [
             {
               "listen": "test",
@@ -4880,7 +6274,7 @@
           "response": []
         },
         {
-          "name": "{{baseUrl}}/Unicorn/some-id/Observation (unsupported compartment \u2192 404)",
+          "name": "{{baseUrl}}/Unicorn/some-id/Observation (unsupported compartment → 404)",
           "event": [
             {
               "listen": "test",
@@ -5205,6 +6599,3275 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Observation (resource type mismatch URL vs body → 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"Mismatch\"}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/invalid!!id (invalid ID format → 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/invalid!!id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "invalid!!id"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{patientId}} (PUT id mismatch body vs URL → 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"id\": \"different-id-altogether\", \"name\": [{\"family\": \"Mismatch\"}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{patientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{patientId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Conditional Headers",
+      "description": "Tests for conditional read headers (If-None-Match, If-Modified-Since) and Prefer: return preferences. Seeds a Patient (condHdrPatientId). ETag for version 1 is W/\"1\".",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient (seed conditional headers patient)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) {",
+                  "    pm.collectionVariables.set('condHdrPatientId', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"ConditionalHdrTest\"}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{condHdrPatientId}} If-None-Match current ETag → 304",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 304', () => pm.response.to.have.status(304));",
+                  "pm.test('Body is empty', () => { pm.expect(pm.response.text()).to.be.empty; });"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "If-None-Match",
+                "value": "W/\"1\""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{condHdrPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{condHdrPatientId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{condHdrPatientId}} If-None-Match stale ETag → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns Patient', () => {",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('condHdrPatientId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "If-None-Match",
+                "value": "W/\"99\""
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{condHdrPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{condHdrPatientId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{condHdrPatientId}} If-Modified-Since future date → 304",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 304', () => pm.response.to.have.status(304));",
+                  "pm.test('Body is empty', () => { pm.expect(pm.response.text()).to.be.empty; });"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "If-Modified-Since",
+                "value": "Thu, 01 Jan 2099 00:00:00 GMT"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{condHdrPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{condHdrPatientId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient (Prefer: return=minimal → 201 empty body)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Body is empty', () => { pm.expect(pm.response.text()).to.be.empty; });",
+                  "pm.test('ETag header present', () => {",
+                  "    pm.expect(pm.response.headers.get('ETag')).to.match(/^W\\/\"/);",
+                  "});",
+                  "pm.test('Location header present', () => {",
+                  "    pm.expect(pm.response.headers.get('Location')).to.not.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=minimal"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"MinimalPref\"}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient (Prefer: return=OperationOutcome → 201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});",
+                  "pm.test('Issue severity is information', () => {",
+                  "    pm.expect(pm.response.json().issue[0].severity).to.eql('information');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=OperationOutcome"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"OoPref\"}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Prefer: handling=strict",
+      "description": "Tests for Prefer: handling=strict on search endpoints. Unknown control parameters (those starting with _) return 400 in strict mode; non-underscore params and known control params are accepted. Defaults to lenient when the Prefer header is absent.",
+      "item": [
+        {
+          "name": "{{baseUrl}}/Patient (seed for handling=strict tests)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.collectionVariables.set('strictPatientId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"StrictHandlingTest\"}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_unknownparam=x handling=strict → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});",
+                  "pm.test('Diagnostics mentions unknown param', () => {",
+                  "    pm.expect(pm.response.json().issue[0].diagnostics).to.include('_unknownparam');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "handling=strict"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_unknownparam=x",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_unknownparam",
+                  "value": "x"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_foo=1&_bar=2 handling=strict → 400 (both listed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Diagnostics lists both unknown params', () => {",
+                  "    const diag = pm.response.json().issue[0].diagnostics;",
+                  "    pm.expect(diag).to.include('_foo');",
+                  "    pm.expect(diag).to.include('_bar');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "handling=strict"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_foo=1&_bar=2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_foo",
+                  "value": "1"
+                },
+                {
+                  "key": "_bar",
+                  "value": "2"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_id&_count=5&_sort=family&_summary=false handling=strict → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Known control params accepted', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('Bundle');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "handling=strict"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_id={{strictPatientId}}&_count=5&_sort=family&_summary=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_id",
+                  "value": "{{strictPatientId}}"
+                },
+                {
+                  "key": "_count",
+                  "value": "5"
+                },
+                {
+                  "key": "_sort",
+                  "value": "family"
+                },
+                {
+                  "key": "_summary",
+                  "value": "false"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?family=Smith handling=strict → 200 (non-underscore accepted)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns searchset Bundle', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('Bundle');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "handling=strict"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?family=Smith",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "family",
+                  "value": "Smith"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/_search unknown param handling=strict → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "handling=strict"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "_unknownparam",
+                  "value": "x"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/_search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "_search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_unknownparam=x + handling=strict mixed Prefer → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=minimal, handling=strict"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_unknownparam=x",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_unknownparam",
+                  "value": "x"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/?_type=Patient&_unknownparam handling=strict → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "handling=strict"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/?_type=Patient&_unknownparam=x",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [],
+              "query": [
+                {
+                  "key": "_type",
+                  "value": "Patient"
+                },
+                {
+                  "key": "_unknownparam",
+                  "value": "x"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_unknownparam handling=lenient → 200 (silently ignored)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Unknown param ignored, results returned', () => {",
+                  "    pm.expect(pm.response.json().total).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Prefer",
+                "value": "handling=lenient"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_id={{strictPatientId}}&_unknownparam=x",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_id",
+                  "value": "{{strictPatientId}}"
+                },
+                {
+                  "key": "_unknownparam",
+                  "value": "x"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_unknownparam no Prefer header → 200 (defaults to lenient)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_unknownparam=x",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_unknownparam",
+                  "value": "x"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Security Labels",
+      "description": "Tests for meta.security label access control. Roles: admin ({{token}}), clinician ({{clinicianToken}}), viewer ({{viewerToken}}). Confidentiality codes: V=very-restricted, R=restricted, N=normal. Run Setup first to register viewer and clinician users and obtain their tokens.",
+      "item": [
+        {
+          "name": "Register viewer user",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.collectionVariables.set('slViewerUsername', 'sl-viewer-' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201 or 409', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"{{slViewerUsername}}\", \"password\": \"SlViewer!1\", \"role\": \"viewer\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login viewer user (save viewerToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "    pm.collectionVariables.set('viewerToken', json.access_token);",
+                  "    console.log('Viewer token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"{{slViewerUsername}}\", \"password\": \"SlViewer!1\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register clinician user",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.collectionVariables.set('slClinicianUsername', 'sl-clinician-' + Date.now());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201 or 409', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"{{slClinicianUsername}}\", \"password\": \"SlClinician!1\", \"role\": \"clinician\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login clinician user (save clinicianToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "    pm.collectionVariables.set('clinicianToken', json.access_token);",
+                  "    console.log('Clinician token saved');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"{{slClinicianUsername}}\", \"password\": \"SlClinician!1\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seed V-labeled patient (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.collectionVariables.set('slVPatientId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"SlTest-V\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"V\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seed R-labeled patient (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.collectionVariables.set('slRPatientId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"SlTest-R\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"R\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seed N-labeled patient (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.collectionVariables.set('slNPatientId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"SlTest-N\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"N\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slVPatientId}} viewer reads V → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{viewerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slVPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slVPatientId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slRPatientId}} viewer reads R → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{viewerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slRPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slRPatientId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slNPatientId}} viewer reads N → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns Patient', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('Patient');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{viewerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slNPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slNPatientId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slRPatientId}} clinician reads R → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slRPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slRPatientId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slVPatientId}} clinician reads V → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slVPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slVPatientId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slVPatientId}} admin reads V → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slVPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slVPatientId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slRPatientId}}/_history/1 viewer vread R → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{viewerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slRPatientId}}/_history/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slRPatientId}}",
+                "_history",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slRPatientId}}/_history/1 clinician vread R → 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slRPatientId}}/_history/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slRPatientId}}",
+                "_history",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_id=V,N viewer search — V absent, N present",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('V patient absent from results', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('slVPatientId'));",
+                  "});",
+                  "pm.test('N patient present in results', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get('slNPatientId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{viewerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_id={{slVPatientId}},{{slNPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_id",
+                  "value": "{{slVPatientId}},{{slNPatientId}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_id=V,N&_total=accurate viewer — total reflects filtered count",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Total is 1 (V filtered out)', () => {",
+                  "    pm.expect(pm.response.json().total).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{viewerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_id={{slVPatientId}},{{slNPatientId}}&_total=accurate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_id",
+                  "value": "{{slVPatientId}},{{slNPatientId}}"
+                },
+                {
+                  "key": "_total",
+                  "value": "accurate"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/_search POST clinician — V patient absent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('V patient absent from POST search results', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('slVPatientId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "_id",
+                  "value": "{{slVPatientId}}"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/_search",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "_search"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient clinician POST V-labeled → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Returns OperationOutcome', () => {",
+                  "    pm.expect(pm.response.json().resourceType).to.eql('OperationOutcome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"SlTest-V\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"V\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient clinician POST R-labeled → 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "if (json.id) { pm.collectionVariables.set('slClinRId', json.id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"SlTest-R\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"R\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slVPatientId}} clinician PUT V resource → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"id\": \"{{slVPatientId}}\", \"name\": [{\"family\": \"SlTest-V\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"V\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slVPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slVPatientId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slVPatientId}} clinician PATCH V resource → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json-patch+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[{\"op\": \"add\", \"path\": \"/active\", \"value\": true}]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slVPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slVPatientId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slClinRId}} clinician upgrades R → V label → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 403 (cannot escalate label)', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"id\": \"{{slClinRId}}\", \"name\": [{\"family\": \"SlTest-V\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"V\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slClinRId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slClinRId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slRPatientId}}/_history viewer instance history of R → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{viewerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slRPatientId}}/_history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slRPatientId}}",
+                "_history"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/_history?_id=slV viewer type history — V entries filtered",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('V patient entries filtered from type history', () => {",
+                  "    const ids = (pm.response.json().entry || [])",
+                  "        .filter(e => e.request && e.request.method !== 'DELETE')",
+                  "        .map(e => (e.resource || {}).id);",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('slVPatientId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{viewerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/_history?_id={{slVPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "_history"
+              ],
+              "query": [
+                {
+                  "key": "_id",
+                  "value": "{{slVPatientId}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slRPatientId}}/$everything viewer → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{viewerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slRPatientId}}/$everything",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slRPatientId}}",
+                "$everything"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seed N patient with V-labeled Observation (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.json().id) { pm.collectionVariables.set('slNEveryId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"SlTest-N\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"N\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seed V-labeled Observation linked to slNEveryId (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.json().id) { pm.collectionVariables.set('slVObsEveryId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\":\"Observation\",\"status\":\"final\",\"code\":{\"text\":\"restricted\"},\"subject\":{\"reference\":\"Patient/{{slNEveryId}}\"},\"meta\":{\"security\":[{\"system\":\"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\",\"code\":\"V\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slNEveryId}}/$everything viewer — V observation absent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('V observation filtered from $everything', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('slVObsEveryId'));",
+                  "});",
+                  "pm.test('N patient anchor is present', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get('slNEveryId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{viewerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slNEveryId}}/$everything",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slNEveryId}}",
+                "$everything"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seed N patient for compartment test (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.json().id) { pm.collectionVariables.set('slNCompId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"SlTest-N\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"N\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seed unlabeled Observation linked to slNCompId (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.json().id) { pm.collectionVariables.set('slNCompObsId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\":\"Observation\",\"status\":\"final\",\"code\":{\"text\":\"normal\"},\"subject\":{\"reference\":\"Patient/{{slNCompId}}\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seed V-labeled Observation linked to slNCompId (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.json().id) { pm.collectionVariables.set('slVCompObsId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\":\"Observation\",\"status\":\"final\",\"code\":{\"text\":\"restricted\"},\"subject\":{\"reference\":\"Patient/{{slNCompId}}\"},\"meta\":{\"security\":[{\"system\":\"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\",\"code\":\"V\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient/{{slNCompId}}/Observation viewer — V observation absent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('V observation filtered from compartment search', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.not.include(pm.collectionVariables.get('slVCompObsId'));",
+                  "});",
+                  "pm.test('Normal observation is present', () => {",
+                  "    const ids = (pm.response.json().entry || []).map(e => e.resource.id);",
+                  "    pm.expect(ids).to.include(pm.collectionVariables.get('slNCompObsId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{viewerToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient/{{slNCompId}}/Observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient",
+                "{{slNCompId}}",
+                "Observation"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "{{baseUrl}}/Patient?_id=slVPatientId clinician conditional-update V → 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\":\"Patient\",\"id\":\"{{slVPatientId}}\",\"name\":[{\"family\":\"SlTest-V\"}],\"meta\":{\"security\":[{\"system\":\"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\",\"code\":\"V\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient?_id={{slVPatientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ],
+              "query": [
+                {
+                  "key": "_id",
+                  "value": "{{slVPatientId}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Clinician cond-create If-None-Exist _id=slVPatientId → 201 (V invisible → creates new)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201 (V match invisible to clinician, new resource created)', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              },
+              {
+                "key": "If-None-Exist",
+                "value": "_id={{slVPatientId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"SlTest-R\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"R\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Seed R patient for visible If-None-Exist test (clinician)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "if (pm.response.json().id) { pm.collectionVariables.set('slRVisibleId', pm.response.json().id); }"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"SlTest-R\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"R\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Clinician cond-create If-None-Exist _id=slRVisibleId → 200 (R visible → returns existing)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                  "pm.test('Status is 200 (R match visible to clinician, returns existing)', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Returns existing resource id', () => {",
+                  "    pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('slRVisibleId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "inherit"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{clinicianToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/fhir+json"
+              },
+              {
+                "key": "If-None-Exist",
+                "value": "_id={{slRVisibleId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resourceType\": \"Patient\", \"name\": [{\"family\": \"SlTest-R\"}], \"meta\": {\"security\": [{\"system\": \"http://terminology.hl7.org/CodeSystem/v3-Confidentiality\", \"code\": \"R\"}]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/Patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "Patient"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     }
@@ -5319,6 +9982,82 @@
     },
     {
       "key": "compartmentObsId",
+      "value": ""
+    },
+    {
+      "key": "condHdrPatientId",
+      "value": ""
+    },
+    {
+      "key": "strictPatientId",
+      "value": ""
+    },
+    {
+      "key": "viewerToken",
+      "value": ""
+    },
+    {
+      "key": "clinicianToken",
+      "value": ""
+    },
+    {
+      "key": "slViewerUsername",
+      "value": ""
+    },
+    {
+      "key": "slClinicianUsername",
+      "value": ""
+    },
+    {
+      "key": "slVPatientId",
+      "value": ""
+    },
+    {
+      "key": "slRPatientId",
+      "value": ""
+    },
+    {
+      "key": "slNPatientId",
+      "value": ""
+    },
+    {
+      "key": "slClinRId",
+      "value": ""
+    },
+    {
+      "key": "slNEveryId",
+      "value": ""
+    },
+    {
+      "key": "slVObsEveryId",
+      "value": ""
+    },
+    {
+      "key": "slNCompId",
+      "value": ""
+    },
+    {
+      "key": "slNCompObsId",
+      "value": ""
+    },
+    {
+      "key": "slVCompObsId",
+      "value": ""
+    },
+    {
+      "key": "slRVisibleId",
+      "value": ""
+    },
+    {
+      "key": "slVCondId",
+      "value": ""
+    },
+    {
+      "key": "everythingDeletedId",
+      "value": ""
+    },
+    {
+      "key": "includeObs2Id",
       "value": ""
     }
   ]

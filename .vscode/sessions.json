@@ -23,7 +23,7 @@
                     "joinOperator": "&&",
                     "commands": [
                         "source .venv/Scripts/activate",
-                        "newman run fhir_api.postman_collection.json --env-var \"baseUrl=http://localhost:8000\""
+                        "newman run fhir_api.postman_collection.json --env-var \"baseUrl=https://localhost:443\" --insecure"
                     ]
                 }
             ],
